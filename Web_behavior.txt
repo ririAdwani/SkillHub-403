@@ -1,0 +1,16 @@
+We have gust browsing, regular user role, admin role.
+
+Guest would be able to see the public pages, and required to log in for booking workshops (Redirect to login.php). 
+
+to be clear: 
+Guest clicks Book Workshop
+→ redirect to login.php with a message:
+“Please log in or register to book a workshop.”
+---------------------------------------------
+*Guest navbar:
+Home
+Services
+Schedule
+Guide
+About
+Login/Register

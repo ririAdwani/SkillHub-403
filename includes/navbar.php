@@ -18,15 +18,15 @@ $isAdminUser = function_exists('is_admin') && is_admin();
 ?>
 
 <header>
-  <div class="container">
-    <div id="header-inner">
+    <div class="container header-container">
+      <div id="header-inner">
       <!-- Site logo -->
       <a href="<?= $basePath ?>index.php" id="site-logo">
         <div id="logo-icon"><i class="fa-solid fa-book-open"></i></div>
         <span id="site-name">Skill<span>Hub</span></span>
       </a>
 
-      <!-- Role-based navigation menu -->
+      <!-- Primary navigation stays centered and contains page-level links only. -->
       <nav id="main-nav" aria-label="Main navigation">
         <ul>
           <li>
@@ -73,27 +73,37 @@ $isAdminUser = function_exists('is_admin') && is_admin();
                 </a>
               </li>
             <?php endif; ?>
-
-            <li>
-              <a href="<?= $basePath ?>pages/profile.php" class="<?= $currentPage === 'profile' ? 'active' : '' ?>">
-                <i class="fa-solid fa-user"></i> Profile
-              </a>
-            </li>
-
-            <li>
-              <a href="<?= $basePath ?>pages/logout.php">
-                <i class="fa-solid fa-right-from-bracket"></i> Logout
-              </a>
-            </li>
-          <?php else: ?>
-            <li>
-              <a href="<?= $basePath ?>pages/login.php" class="nav-auth-link">
-                <i class="fa-solid fa-right-to-bracket"></i> Login/Register
-              </a>
-            </li>
           <?php endif; ?>
         </ul>
       </nav>
+
+        <!-- Account actions stay separated from the main navigation. -->
+        <div id="account-actions" aria-label="Account actions">
+        <?php if ($isLoggedIn): ?>
+            <a
+            href="<?= $basePath ?>pages/profile.php"
+            class="account-btn profile-btn <?= $currentPage === 'profile' ? 'active' : '' ?>"
+            aria-label="Profile"
+            >
+            <i class="fa-solid fa-user"></i>
+            <span class="sr-only">Profile</span>
+            </a>
+
+            <a
+            href="<?= $basePath ?>pages/logout.php"
+            class="account-btn logout-btn"
+            aria-label="Logout"
+            >
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="sr-only">Logout</span>
+            </a>
+        <?php else: ?>
+            <a href="<?= $basePath ?>pages/login.php" class="auth-header-link">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Login</span>
+            </a>
+        <?php endif; ?>
+        </div>
 
       <!-- Mobile menu button -->
       <button id="menu-toggle" aria-label="Toggle menu">

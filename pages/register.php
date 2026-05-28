@@ -163,8 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       from Login/Register flow, so the page should focus on account creation.
     -->
     <header>
-      <div class="container">
-        <div id="header-inner">
+      <div class="container header-container">
+        <div id="header-inner" class="auth-header-inner">
           <a href="../index.php" id="site-logo">
             <div id="logo-icon"><i class="fa-solid fa-book-open"></i></div>
             <span id="site-name">Skill<span>Hub</span></span>

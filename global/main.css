@@ -92,6 +92,13 @@ li { margin-bottom: 0.4rem; } /* adds small spacing between list items */
   padding: 0 24px;
 }
 
+/* Header uses the full page width so account actions reach the upper-right side */
+.header-container {
+  max-width: none;
+  width: 100%;
+  padding: 0 56px;
+}
+
 /* ===== HEADER ===== */
 /* Sticky top header with site name and navigation */
 header {
@@ -104,15 +111,23 @@ header {
   box-shadow: var(--shadow-sm);
 }
 
+/* Header layout:
+   left = logo
+   center = main navigation
+   right = account actions
+*/
 #header-inner {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(210px, auto) 1fr minmax(150px, auto);
   align-items: center;
-  justify-content: space-between;
   height: 72px;
+  gap: 24px;
 }
 
 /* Logo / site name in header */
 #site-logo {
+  justify-self: start;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -120,66 +135,204 @@ header {
 }
 
 #logo-icon {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   background: var(--primary);
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.22rem;
 }
 
 #site-name {
-  font-size: 1.35rem;
+  font-size: 1.38rem;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.5px;
 }
 
-/* Applies the primary theme color to highlighted text */
-.text-primary {
+#site-name span {
   color: var(--primary);
 }
 
-
-/* Applies the primary theme color to the span element inside the site name */
-#site-name span { color: var(--primary); }
-
 /* ===== NAVIGATION BAR ===== */
-/* Consistent navigation menu across all pages */
+/* Main page navigation stays visually centered */
+nav#main-nav {
+  justify-self: center;
+}
+
 nav#main-nav ul {
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
   padding: 0;
+  margin: 0;
+}
+
+nav#main-nav ul li {
   margin: 0;
 }
 
 nav#main-nav ul li a {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  gap: 7px;
+  min-height: 42px;
+  padding: 9px 15px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
   color: var(--text-light);
-  transition: all 0.2s;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 nav#main-nav ul li a:hover {
   background: var(--primary-light);
   color: var(--primary);
+  transform: translateY(-1px);
 }
 
 nav#main-nav ul li a.active {
   background: var(--primary);
   color: white;
-  box-shadow: 0 2px 8px rgba(44,123,229,0.3);
+  box-shadow: 0 4px 12px rgba(44,123,229,0.28);
+}
+
+/* ===== ACCOUNT ACTIONS ===== */
+/* Profile and Logout are separated account controls, not part of the main nav */
+#account-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+/* Account icon buttons stay separate and smooth */
+.account-btn {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  /* border: 1px solid var(--border); */
+  /* background: rgba(255, 255, 255, 0.92); */
+  color: var(--text-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.18rem;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.account-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(44,123,229,0.28);
+  box-shadow: 0 10px 24px rgba(44,123,229,0.14);
+  transform: translateY(-1px);
+}
+
+/* Profile should feel slightly more visible than logout */
+.account-btn.profile-btn {
+  font-size: 1.28rem;
+  color: var(--primary);
+  border-color: rgba(44,123,229,0.22);
+  /* box-shadow: 0 8px 22px rgba(44,123,229,0.10); */
+}
+
+.account-btn.profile-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(44,123,229,0.35);
+  box-shadow: 0 10px 24px rgba(44,123,229,0.16);
+  transform: translateY(-1px);
+}
+
+.account-btn.profile-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 8px 22px rgba(44,123,229,0.28);
+}
+
+/* Logout stays gray by default. It only changes on hover/focus. */
+.account-btn.logout-btn {
+  color: var(--text-light);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.account-btn.logout-btn:hover {
+  background: #F9FAFB;
+  color: var(--primary);
+  border-color: rgba(44,123,229,0.25);
+  box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+  transform: translateY(-1px);
+}
+
+/* Optional stronger state when logout is clicked/focused */
+.account-btn.logout-btn:active {
+  background: #FEF2F2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+}
+
+/* Tooltip shown on hover/focus */
+.account-btn::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 50%;
+  transform: translateX(50%) translateY(-4px);
+  background: var(--text);
+  color: white;
+  padding: 7px 11px;
+  border-radius: 9px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.18s ease;
+  z-index: 200;
+}
+
+.account-btn::before {
+  content: '';
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 50%;
+  transform: translateX(50%) translateY(-4px);
+  border: 5px solid transparent;
+  border-bottom-color: var(--text);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.18s ease;
+  z-index: 200;
+}
+
+.account-btn:hover::after,
+.account-btn:hover::before,
+.account-btn:focus-visible::after,
+.account-btn:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(50%) translateY(0);
+}
+
+.account-btn:focus-visible {
+  outline: 3px solid rgba(44,123,229,0.28);
+  outline-offset: 3px;
 }
 
 /* Mobile hamburger button */
@@ -997,18 +1150,75 @@ textarea { min-height: 120px; resize: vertical; }
   h2 { font-size: 1.6rem; }
   #hero-title { font-size: 2.2rem; }
 
-  nav#main-nav { display: none; }
-  nav#main-nav.open { display: block; }
-  nav#main-nav.open ul {
-    flex-direction: column;
-    padding: 16px;
-    gap: 8px;
-    background: white;
-    border-top: 1px solid var(--border);
-  }
-  nav#main-nav.open ul li a { width: 100%; }
+.header-container {
+  padding: 0 18px;
+}
 
-  #menu-toggle { display: block; }
+#header-inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 10px;
+}
+
+#site-logo {
+  justify-self: start;
+}
+
+#site-name {
+  font-size: 1.15rem;
+}
+
+#logo-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+}
+
+nav#main-nav {
+  display: none;
+  position: absolute;
+  top: 72px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+nav#main-nav.open {
+  display: block;
+}
+
+nav#main-nav.open ul {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 16px 24px;
+  gap: 8px;
+  background: white;
+}
+
+nav#main-nav.open ul li a {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.account-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+.account-btn.profile-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  font-size: 1.08rem;
+}
+
+#menu-toggle {
+  display: block;
+}
 
   .grid-2, .grid-3, .grid-4 {
     grid-template-columns: 1fr;
@@ -1281,6 +1491,24 @@ textarea { min-height: 120px; resize: vertical; }
 
 .auth-header-link:hover i {
   color: white;
+}
+
+/* Auth headers use logo on the far left and auth button on the far right */
+.auth-header-inner {
+  grid-template-columns: minmax(210px, auto) 1fr minmax(150px, auto);
+}
+
+.auth-header-inner #site-logo {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.auth-header-inner .auth-header-link {
+  grid-column: 3;
+  justify-self: end;
+  width: auto;
+  min-width: 0;
+  padding: 9px 20px;
 }
 
 .auth-hero {

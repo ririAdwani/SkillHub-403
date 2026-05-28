@@ -17,5 +17,5 @@ require_once __DIR__ . '/../includes/auth.php';
 logout_user();
 
 // Redirect user after logout so they do not stay on a blank PHP page.
-header('Location: login.php?logged_out=1');
+header('Location: ../index.php');
 exit;

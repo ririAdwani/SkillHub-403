@@ -18,11 +18,11 @@ require_once __DIR__ . '/../includes/auth.php';
 // Redirect already logged-in users away from the login page.
 if (is_logged_in()) {
     if (is_admin()) {
-        header('Location: admin.php');
+        header('Location: Admin/admin.php');
         exit;
     }
 
-    header('Location: index.html');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -91,11 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Redirect based on role.
                 if ($user['role'] === 'admin') {
-                    header('Location: admin.php');
+                    header('Location: Admin/admin.php');
                     exit;
                 }
 
-                header('Location: index.html');
+                header('Location: ../index.php');
                 exit;
             }
         } catch (PDOException $e) {
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <header>
       <div class="container">
         <div id="header-inner">
-          <a href="index.html" id="site-logo">
+          <a href="../index.html" id="site-logo">
             <div id="logo-icon"><i class="fa-solid fa-book-open"></i></div>
             <span id="site-name">Skill<span>Hub</span></span>
           </a>
@@ -222,6 +222,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </section>
 
-    <script src="scripts/main.js"></script>
+    <script src="../scripts/main.js"></script>
   </body>
 </html>

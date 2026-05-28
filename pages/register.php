@@ -25,7 +25,7 @@ require_once __DIR__ . '/../includes/auth.php';
 
 // Redirect already logged-in users away from registration because they already have an active account session.
 if (is_logged_in()) {
-    header('Location: index.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <header>
       <div class="container">
         <div id="header-inner">
-          <a href="index.html" id="site-logo">
+          <a href="../index.html" id="site-logo">
             <div id="logo-icon"><i class="fa-solid fa-book-open"></i></div>
             <span id="site-name">Skill<span>Hub</span></span>
           </a>
@@ -326,6 +326,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </section>
 
-    <script src="global/main.js"></script>
+    <script src="../scripts/main.js"></script>
   </body>
 </html>

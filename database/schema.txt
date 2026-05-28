@@ -1,0 +1,16 @@
+-- This file contains the database table structure for SkillHub.
+-- Run these SQL commands in the MySQL database before using the website.
+
+CREATE TABLE IF NOT EXISTS users (
+  user_id INT AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+  profile_image VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Admin account should be created manually later using a hashed password.
+-- Do not store plain-text passwords.

@@ -42,7 +42,7 @@ function initMobileNav() {
 */
 // ===== ACTIVE NAV LINK =====
 function setActiveNavLink() {
-  const currentPage = window.location.pathname.split('/').pop() || 'index.html'; // gets the current page file name from the URL
+  const currentPage = window.location.pathname.split('/').pop() || 'index.php'; // gets the current page file name from the URL
   const navLinks = document.querySelectorAll('nav#main-nav ul li a'); // selects all links inside the main navigation
 
   navLinks.forEach(function (link) { // loops through each navigation link
@@ -51,8 +51,8 @@ function setActiveNavLink() {
 
     if (
       href === currentPage || // checks if the link matches the current page directly
-      (currentPage === 'index.html' && href === '../index.html') || // also handles the home link if written as ../index.html
-      (currentPage === 'index.html' && href === 'index.html') // also handles the home link if written as index.html
+      (currentPage === 'index.php' && href === '../index.php') || // also handles the home link if written as ../index.php
+      (currentPage === 'index.php' && href === 'index.php') // also handles the home link if written as index.php
     ) {
       link.classList.add('active'); // adds the active class to highlight the current page link
     }

@@ -47,10 +47,10 @@ $currentPage = 'home';
           </p>
 
           <div id="hero-actions">
-            <a href="pages/services.html" class="btn btn-primary"
+            <a href="pages/services.php" class="btn btn-primary"
               ><i class="fa-solid fa-rocket"></i> Explore Workshops</a
             >
-            <a href="pages/schedule.html" class="btn btn-outline"
+            <a href="pages/schedule.php" class="btn btn-outline"
               ><i class="fa-solid fa-calendar-days"></i> View Schedule</a
             >
           </div>
@@ -197,7 +197,7 @@ $currentPage = 'home';
         </div>
 
         <div style="text-align: center; margin-top: 40px">
-          <a href="pages/services.html" class="btn btn-primary"
+          <a href="pages/services.php" class="btn btn-primary"
             >View All Workshops →</a
           >
         </div>
@@ -219,12 +219,12 @@ $currentPage = 'home';
           <div id="footer-links">
             <p class="footer-heading">Quick Links</p>
             <ul>
-              <li><a href="index.html">Home</a></li>
-              <li><a href="pages/services.html">Services</a></li>
-              <li><a href="pages/schedule.html">Schedule</a></li>
-              <li><a href="pages/video.html">Guide</a></li>
-              <li><a href="pages/feedback.html">Feedback</a></li>
-              <li><a href="pages/about.html">About</a></li>
+              <li><a href="index.php">Home</a></li>
+              <li><a href="pages/services.php">Services</a></li>
+              <li><a href="pages/schedule.php">Schedule</a></li>
+              <li><a href="pages/video.php">Guide</a></li>
+              <li><a href="pages/feedback.php">Feedback</a></li>
+              <li><a href="pages/about.php">About</a></li>
             </ul>
           </div>
 

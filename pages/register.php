@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <header>
       <div class="container">
         <div id="header-inner">
-          <a href="../index.html" id="site-logo">
+          <a href="../index.php" id="site-logo">
             <div id="logo-icon"><i class="fa-solid fa-book-open"></i></div>
             <span id="site-name">Skill<span>Hub</span></span>
           </a>

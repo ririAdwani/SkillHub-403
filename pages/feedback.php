@@ -201,12 +201,12 @@ $currentPage = 'feedback';
           <div id="footer-links">
             <p class="footer-heading">Quick Links</p>
             <ul>
-              <li><a href="../index.html">Home</a></li>
-              <li><a href="services.html">Services</a></li>
-              <li><a href="schedule.html">Schedule</a></li>
-              <li><a href="video.html">Guide</a></li>
-              <li><a href="feedback.html">Feedback</a></li>
-              <li><a href="about.html">About</a></li>
+              <li><a href="../index.php">Home</a></li>
+              <li><a href="services.php">Services</a></li>
+              <li><a href="schedule.php">Schedule</a></li>
+              <li><a href="video.php">Guide</a></li>
+              <li><a href="feedback.php">Feedback</a></li>
+              <li><a href="about.php">About</a></li>
             </ul>
           </div>
           <div id="footer-contact">

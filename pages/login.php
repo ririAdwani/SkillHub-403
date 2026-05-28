@@ -36,11 +36,6 @@ if (isset($_GET['reason']) && $_GET['reason'] === 'booking') {
     $infoMessage = 'Please log in or register to book a workshop.';
 }
 
-// This message appears after logout.
-if (isset($_GET['logged_out']) && $_GET['logged_out'] === '1') {
-    $infoMessage = 'You have been logged out successfully.';
-}
-
 // This block runs only when the user submits the login form.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');

@@ -1,9 +1,10 @@
-<!--
- /* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
-/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
-/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
--->
 <?php
+/*
+Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3
+Name=Shahenaz Abushanab, ID=2215050, Section=DAR, Date=20/3
+Name=Raghad Abdullah Alzahrani, ID=2206740, Section=DAR, Date=20/3
+*/
+
 require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');

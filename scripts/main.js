@@ -254,9 +254,14 @@ var currentWorkshop = {};
   validation errors, and then displays the modal overlay. It also disables
   page scrolling while the modal is open.
 */
-function openBookingModal(name, date, time, link) {
-  currentWorkshop = { name: name, date: date, time: time, link: link }; // stores the selected workshop details in the shared currentWorkshop object
-
+function openBookingModal(id, name, date, time, link) {
+  currentWorkshop = {
+    id: id,
+    name: name,
+    date: date,
+    time: time,
+    link: link
+  };
   // shows the workshop name, date, and time inside the modal
   document.getElementById('info-name').textContent = '🎓 ' + name;
   document.getElementById('info-date').textContent = '📅 ' + date;
@@ -313,15 +318,16 @@ function initBookingForm() {
   var form = document.getElementById('booking-form');
   if (!form) return;
 
-  form.addEventListener('submit', function (e) {  // runs when the user submits the booking form
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    var isValid = true; // tracks whether all required validation checks pass
-    var errors = []; // stores validation error messages to show them together
+    var isValid = true;
+    var errors = [];
 
     var firstNameInput = document.getElementById('b-firstname');
     var firstNameError = document.getElementById('b-firstname-error');
-    if (!firstNameInput.value.trim()) { // checks whether the first name field is empty
+
+    if (!firstNameInput.value.trim()) {
       firstNameInput.classList.add('error');
       firstNameError.classList.add('visible');
       errors.push('First name is required.');
@@ -333,7 +339,7 @@ function initBookingForm() {
 
     var emailInput = document.getElementById('b-email');
     var emailError = document.getElementById('b-email-error');
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // defines a pattern for checking basic email format
+    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailInput.value.trim()) {
       emailInput.classList.add('error');
@@ -341,53 +347,130 @@ function initBookingForm() {
       emailError.textContent = 'Email address is required.';
       errors.push('Email address is required.');
       isValid = false;
-
     } else if (!emailRegex.test(emailInput.value.trim())) {
       emailInput.classList.add('error');
       emailError.classList.add('visible');
       emailError.textContent = 'Please enter a valid email address.';
       errors.push('Email format is invalid.');
       isValid = false;
-    } 
-    
-    else {
+    } else {
       emailInput.classList.remove('error');
       emailError.classList.remove('visible');
     }
 
-    if (!isValid) { // checks whether the form failed any validation rule
-      alert('Please fix the following before confirming:\n\n• ' + errors.join('\n• '));  // shows all collected validation errors in one alert
+    var fileInput = document.getElementById('supporting-file');
+
+    if (fileInput && fileInput.files.length > 0) {
+      var file = fileInput.files[0];
+      var allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+      var maxSize = 2 * 1024 * 1024;
+
+      if (!allowedTypes.includes(file.type)) {
+        errors.push('Only PDF, JPG, and PNG files are allowed.');
+        isValid = false;
+      }
+
+      if (file.size > maxSize) {
+        errors.push('File size must not exceed 2MB.');
+        isValid = false;
+      }
+    }
+
+    if (!isValid) {
+      alert('Please fix the following before confirming:\n\n• ' + errors.join('\n• '));
       return;
     }
 
-    var firstName = firstNameInput.value.trim(); // stores the cleaned first name value
-    var lastName = document.getElementById('b-lastname').value.trim(); // gets the optional last name value
-    var email = emailInput.value.trim();  // stores the cleaned email value
+    var firstName = firstNameInput.value.trim();
+    var lastName = document.getElementById('b-lastname').value.trim();
+    var email = emailInput.value.trim();
     var fullName = lastName ? firstName + ' ' + lastName : firstName;
 
-    closeBookingModal();
+    var formData = new FormData();
+    formData.append('workshop_id', currentWorkshop.id);
+    formData.append('first_name', firstName);
+    formData.append('last_name', lastName);
+    formData.append('email', email);
 
-    alert(
-      '🎉 You have successfully reserved a seat in this workshop!\n\n' +
-      '👤 Name: ' + fullName + '\n' +
-      '📧 Email: ' + email + '\n' +
-      '📌 Workshop: ' + currentWorkshop.name + '\n' +
-      '📅 Date: ' + currentWorkshop.date + '\n' +
-      '🕐 Time: ' + currentWorkshop.time + '\n' +
-      '🔗 Link: ' + currentWorkshop.link + '\n\n' +
-      '✉️ Check your email (' + email + ') for the workshop details and confirmation.'
-    );
+    if (fileInput && fileInput.files.length > 0) {
+      formData.append('supporting_file', fileInput.files[0]);
+    }
+
+    try {
+      var response = await fetch('../api/create_booking.php', {
+        method: 'POST',
+        body: formData
+      });
+
+      var result = await response.json();
+
+      // If the booking is completed successfully,
+// the system prepares a downloadable booking summary.
+// The user can optionally download a text file
+// containing their booking confirmation details.
+
+      if (result.success) {
+  closeBookingModal();
+
+  var summaryText =
+    'SkillHub Booking Summary\n\n' +
+    'Name: ' + fullName + '\n' +
+    'Email: ' + email + '\n' +
+    'Workshop: ' + currentWorkshop.name + '\n' +
+    'Date: ' + currentWorkshop.date + '\n' +
+    'Time: ' + currentWorkshop.time + '\n' +
+    'Booking Status: Confirmed\n';
+
+  var wantsDownload = confirm(
+    '🎉 Booking confirmed successfully!\n\n' +
+    'Would you like to download your booking summary?'
+  );
+
+  if (wantsDownload) {
+    var blob = new Blob([summaryText], { type: 'text/plain' });
+    var downloadLink = document.createElement('a');
+
+    downloadLink.href = window.URL.createObjectURL(blob);
+    downloadLink.download = 'booking-summary.txt';
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+
+    window.URL.revokeObjectURL(downloadLink.href);
+    document.body.removeChild(downloadLink);
+  }
+
+
+
+        alert(
+          '🎉 You have successfully reserved a seat in this workshop!\n\n' +
+          '👤 Name: ' + fullName + '\n' +
+          '📧 Email: ' + email + '\n' +
+          '📌 Workshop: ' + currentWorkshop.name + '\n' +
+          '📅 Date: ' + currentWorkshop.date + '\n' +
+          '🕐 Time: ' + currentWorkshop.time + '\n\n' +
+          '✅ ' + result.message
+        );
+
+        form.reset();
+      } else {
+        alert('Booking failed: ' + result.message);
+      }
+
+    } catch (error) {
+      alert('Something went wrong while submitting your booking.');
+    }
   });
 
-  var fnField = document.getElementById('b-firstname'); // gets the first name field for live error clearing
+  var fnField = document.getElementById('b-firstname');
   if (fnField) {
-    fnField.addEventListener('input', function () { // runs whenever the user types in the first name field
+    fnField.addEventListener('input', function () {
       fnField.classList.remove('error');
       document.getElementById('b-firstname-error').classList.remove('visible');
     });
   }
 
-  var emField = document.getElementById('b-email'); // gets the email field for live error clearing
+  var emField = document.getElementById('b-email');
   if (emField) {
     emField.addEventListener('input', function () {
       emField.classList.remove('error');
@@ -395,7 +478,6 @@ function initBookingForm() {
     });
   }
 }
-
 
 /*
   This event listener closes the booking modal when the user clicks

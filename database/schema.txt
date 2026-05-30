@@ -12,5 +12,11 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+
+
+
+
+
+
 -- Admin account should be created manually later using a hashed password.
 -- Do not store plain-text passwords.

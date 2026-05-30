@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate password strength first.
     // Password confirmation is checked only if the password itself is valid.
-    $passwordErrors = validate_skillhub_password($password, $fullName, $email);
+    $passwordErrors = validate_password($password, $fullName, $email);
 
     if (!empty($passwordErrors)) {
         $errors[] = 'Password does not meet the security requirements.';

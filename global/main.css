@@ -1338,6 +1338,7 @@ nav#main-nav.open ul li a {
   margin-bottom: 24px;
 }
 
+
 #info-name {
   font-weight: 700;
   font-size: 1rem;
@@ -1697,6 +1698,17 @@ input[type="password"]:focus {
   border-left: 5px solid #F59E0B;
 }
 
+/* Soft informational toast used for login-required messages. */
+.toast-info {
+  border-left: none;
+}
+
+/* Soft blue icon style for informational toast messages. */
+.toast-info .toast-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
 .toast-icon {
   width: 34px;
   height: 34px;
@@ -1762,6 +1774,28 @@ input[type="password"]:focus {
     opacity: 1;
     transform: translateY(0) translateX(0);
   }
+}
+
+/* Automatically hides temporary toast notifications after a few seconds. */
+.toast-auto-hide {
+  animation:
+    toast-slide-in 0.35s ease,
+    toast-fade-out 0.35s ease 5s forwards;
+}
+
+/* Fade-out animation used for short login-required notifications. */
+@keyframes toast-fade-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) translateX(16px);
+    visibility: hidden;
+  }
+}
+
+/* Keeps workshop booking buttons full width without inline styles. */
+.workshop-book-btn {
+  width: 100%;
+  margin-top: 18px;
 }
 
 @media (max-width: 600px) {

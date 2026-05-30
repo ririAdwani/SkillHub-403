@@ -137,6 +137,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </header>
 
+    <!-- ===== LOGIN TOAST NOTIFICATION ===== -->
+    <!--
+      This toast appears when a guest tries to book a workshop.
+      It explains why the user was redirected to the login page.
+    -->
+    <?php if ($infoMessage !== ''): ?>
+      <div class="toast-container" role="status" aria-live="polite">
+        <div class="toast-message toast-info toast-auto-hide">
+            <div class="toast-icon">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+
+          <div class="toast-content">
+            <strong>Login required</strong>
+            <span><?= h($infoMessage) ?></span>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+
     <!-- ===== LOGIN HERO ===== -->
     <!--
       This section introduces the login page and explains what the user
@@ -160,11 +180,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <section class="section auth-section">
         <div class="container auth-container">
          <form method="post" action="login.php" class="form-card auth-card" novalidate>          <!-- This block displays information messages such as logout or booking redirect notices. -->
-          <?php if ($infoMessage !== ''): ?>
-            <div class="auth-message auth-message-info">
-              <i class="fa-solid fa-circle-info"></i> <?= h($infoMessage) ?>
-            </div>
-          <?php endif; ?>
 
           <!-- This block displays validation or login errors collected from the backend. -->
           <?php if (!empty($errors)): ?>

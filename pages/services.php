@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/auth.php';
 
 $basePath = '../';
 $currentPage = 'services';
-/*----------*/
+
 require_once __DIR__ . '/../includes/db.php';
 
 $stmt = $pdo->query("
@@ -19,7 +19,7 @@ $stmt = $pdo->query("
 ");
 
 $workshops = $stmt->fetchAll();
-/*----------*/
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -35,7 +35,8 @@ $workshops = $stmt->fetchAll();
     <link rel="stylesheet" href="../global/main.css" />
     <link rel="stylesheet" href="../global/print.css" media="print" />
   </head>
-  <body>
+  <!-- This lets main.js know if the user is logged in -->
+  <body data-logged-in="<?= is_logged_in() ? '1' : '0' ?>"> 
     <!-- ===== HEADER ===== -->
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
@@ -132,20 +133,18 @@ $workshops = $stmt->fetchAll();
 
             </div>
 
-                <button
-        class="btn btn-primary book-btn"
-        style="margin-top: 18px; width: 100%"
-        onclick="openBookingModal(
-    '<?php echo htmlspecialchars($workshop['workshop_id']); ?>',
-    '<?php echo htmlspecialchars($workshop['title']); ?>',
-    '<?php echo htmlspecialchars($workshop['workshop_date']); ?>',
-    '<?php echo htmlspecialchars($workshop['start_time'] . ' - ' . $workshop['end_time']); ?>',
-    '#'
-)"
-    >
-        <i class="fa-solid fa-calendar-days"></i>
-        Book Workshop
-    </button>
+          <button
+            type="button"
+            class="btn btn-primary book-btn workshop-book-btn"
+            data-workshop-id="<?= h((string) $workshop['workshop_id']) ?>"
+            data-workshop-title="<?= h($workshop['title']) ?>"
+            data-workshop-date="<?= h($workshop['workshop_date']) ?>"
+            data-workshop-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
+            data-workshop-link="#"
+          >
+            <i class="fa-solid fa-calendar-days"></i>
+            Book Workshop
+          </button>
 
         </div>
 
@@ -410,10 +409,9 @@ async function loadWorkshops() {
 searchInput.addEventListener('keyup', loadWorkshops);
 categoryFilter.addEventListener('change', loadWorkshops);
 </script>
-
+    
     <script src="../scripts/main.js"></script>
-
-  
+ 
 
   </body>
 </html>

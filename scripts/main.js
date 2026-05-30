@@ -255,6 +255,14 @@ var currentWorkshop = {};
   page scrolling while the modal is open.
 */
 function openBookingModal(id, name, date, time, link) {
+  // Guests cannot book workshops.
+  // They are redirected to the login page with a short explanation toast.
+  // Prevents guests from opening the booking modal even if the function is called directly.
+  if (document.body.dataset.loggedIn === '0') {
+    window.location.href = 'login.php?reason=booking';
+    return;
+  }
+
   currentWorkshop = {
     id: id,
     name: name,
@@ -480,6 +488,110 @@ function initBookingForm() {
 }
 
 /*
+  This function handles live workshop search and category filtering.
+  It sends the current search text and selected category to the PHP API,
+  receives matching workshops as JSON, and updates the workshop cards
+  without reloading the page.
+*/
+async function initWorkshopSearch() {
+  const searchInput = document.getElementById('searchInput');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const grid = document.querySelector('.grid-2');
+
+  // Stop if the current page does not contain the workshop search elements.
+  if (!searchInput || !categoryFilter || !grid) return;
+
+  async function loadWorkshops() {
+    const searchValue = searchInput.value;
+    const categoryValue = categoryFilter.value;
+
+    const response = await fetch(
+      '../api/search_workshops.php?search=' +
+      encodeURIComponent(searchValue) +
+      '&category=' +
+      encodeURIComponent(categoryValue)
+    );
+
+    const workshops = await response.json();
+
+    grid.innerHTML = '';
+
+    workshops.forEach(function (workshop) {
+      grid.innerHTML += `
+        <div class="card">
+          <img
+            src="${workshop.image_path}"
+            alt="${workshop.title}"
+            class="card-img"
+          />
+
+          <div class="card-body">
+            <div class="card-icon card-icon-web">
+              <i class="fa-solid fa-laptop-code"></i>
+            </div>
+
+            <h3>${workshop.title}</h3>
+            <p>${workshop.description}</p>
+
+            <div class="card-tags" style="margin-top: 16px">
+              <span class="tag tag-primary">${workshop.category_name}</span>
+              <span class="tag tag-secondary">${workshop.available_seats} Seats</span>
+            </div>
+
+            <button
+              class="btn btn-primary book-btn"
+              style="margin-top: 18px; width: 100%"
+              onclick="openBookingModal(
+                '${workshop.workshop_id}',
+                '${workshop.title}',
+                '${workshop.workshop_date}',
+                '${workshop.start_time} - ${workshop.end_time}',
+                '#'
+              )"
+            >
+              <i class="fa-solid fa-calendar-days"></i>
+              Book Workshop
+            </button>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  searchInput.addEventListener('keyup', loadWorkshops);
+  categoryFilter.addEventListener('change', loadWorkshops);
+}
+
+/*
+  This function handles clicks on Book Workshop buttons.
+  If the visitor is a guest, the user is redirected to login.php with a booking reason.
+  If the visitor is logged in, the booking modal opens with the selected workshop data.
+*/
+function initBookingButtons() {
+  const bookingButtons = document.querySelectorAll('.book-btn'); // gets all workshop booking buttons
+  if (!bookingButtons.length) return; // stops if the current page has no booking buttons
+
+  bookingButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      const isLoggedIn = document.body.dataset.loggedIn === '1'; // reads login state from services.php
+
+      if (!isLoggedIn) {
+        window.location.href = 'login.php?reason=booking'; // redirects guest users to login page
+        return;
+      }
+
+      openBookingModal(
+        button.dataset.workshopId,
+        button.dataset.workshopTitle,
+        button.dataset.workshopDate,
+        button.dataset.workshopTime,
+        button.dataset.workshopLink
+      );
+    });
+  });
+}
+
+/*
   This event listener closes the booking modal when the user clicks
   on the overlay area outside the modal content. It checks whether
   the clicked element is the overlay itself, then calls the function
@@ -518,4 +630,6 @@ initMobileNav(); // initializes the navigation menu toggle behavior
   initFormValidation(); // enables validation for the feedback form
   initRippleEffect(); // enables the ripple click effect on buttons
   initBookingForm(); // enables validation and confirmation handling for the booking form
+  initBookingButtons(); // controls guest redirect and logged-in booking modal
+
 });

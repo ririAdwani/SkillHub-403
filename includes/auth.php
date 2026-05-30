@@ -134,7 +134,7 @@ function is_valid_email(string $email): bool
 // - at least one special character
 // - must not contain spaces
 // - must not contain the user’s name or email
-function validate_skillhub_password(string $password, string $fullName = '', string $email = ''): array
+function validate_password(string $password, string $fullName = '', string $email = ''): array
 {
     $errors = [];
 

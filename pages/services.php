@@ -35,8 +35,13 @@ $workshops = $stmt->fetchAll();
     <link rel="stylesheet" href="../global/main.css" />
     <link rel="stylesheet" href="../global/print.css" media="print" />
   </head>
-  <!-- This lets main.js know if the user is logged in -->
-  <body data-logged-in="<?= is_logged_in() ? '1' : '0' ?>"> 
+
+  <!-- Attributes inside Body tag lets main.js know if the user is logged in -->
+  <body
+    data-logged-in="<?= is_logged_in() ? '1' : '0' ?>"
+    data-user-name="<?= h($_SESSION['full_name'] ?? '') ?>"
+    data-user-email="<?= h($_SESSION['email'] ?? '') ?>"
+  >
     <!-- ===== HEADER ===== -->
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
@@ -200,152 +205,108 @@ $workshops = $stmt->fetchAll();
       </div>
     </footer>
 
-    <!-- 
-  Booking modal displayed when the user selects a workshop.
-  It allows users to enter their booking information,
-  upload supporting files, and confirm their reservation.
--->
-    <!-- ===== BOOKING MODAL ===== -->
-    <div id="booking-overlay" style="display: none">
-      <div id="booking-modal">
-        <div id="modal-header">
-          <div>
-            <p id="modal-badge">
-              <i class="fa-solid fa-calendar-days"></i> Workshop Booking
-            </p>
-            <h2 id="modal-title">Reserve Your Seat</h2>
-          </div>
-          <button
-            id="modal-close"
-            onclick="closeBookingModal()"
-            aria-label="Close"
-          >
-            &times;
-          </button>
-        </div>
+<!-- ===== BOOKING MODAL ===== -->
+<div id="booking-overlay" hidden>
+  <div id="booking-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div id="modal-header">
+      <div>
+        <p id="modal-badge">
+          <i class="fa-solid fa-calendar-days"></i> Workshop Booking
+        </p>
+        <h2 id="modal-title">Confirm Booking</h2>
+      </div>
 
-     <!-- 
-  Displays the selected workshop information inside the booking modal.
-  Users can review workshop details, enter booking information,
-  and optionally upload supporting files before confirming the reservation.
--->
-
-        <div id="modal-workshop-info">
-          <p id="info-name"></p>
-          <div id="info-details">
-            <span id="info-date"></span>
-            <span id="info-time"></span>
-          </div>
-          <a id="info-link" href="#" target="_blank"></a>
-          <p id="info-email-note">
-            <i class="fa-solid fa-envelope"></i> The workshop details, date,
-            time, and joining link will be sent to your email upon booking.
-          </p>
-        </div>
-
-        <form id="booking-form" novalidate>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="b-firstname"
-                >First Name <span class="required">*</span></label
-              >
-              <input
-                type="text"
-                id="b-firstname"
-                placeholder="e.g. Sara"
-                autocomplete="given-name"
-              />
-              <span class="error-msg" id="b-firstname-error"
-                >First name is required.</span
-              >
-            </div>
-
-          <div class="form-group">
-              <label for="b-lastname">
-                Last Name
-                <span class="optional-label">(optional)</span> <!-- shows that this field is not required -->
-              </label>
-              <input
-                type="text"
-                id="b-lastname"
-                placeholder="e.g. Ahmed"
-                autocomplete="family-name"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="b-email"
-              >Email Address <span class="required">*</span></label
-            > <!-- label for the required email input field -->
-            <input
-              type="email"
-              id="b-email"
-              placeholder="your.email@example.com"
-              autocomplete="email"
-            />
-            <span class="error-msg" id="b-email-error"
-              >Please enter a valid email address.</span>
-
-                  <div class="form-group" style="margin-top: 18px">
-
-      <label for="supporting-file">
-        Upload CV / Certificate
-        <span class="optional-label">(optional)</span>
-      </label>
-
-      <input
-        type="file"
-        id="supporting-file"
-        name="supporting_file"
-        accept=".pdf,.jpg,.jpeg,.png"
-      />
-
-      <small style="color: #666">
-        Allowed files: PDF, JPG, PNG (Max 2MB)
-      </small>
-
+      <button
+        type="button"
+        id="modal-close"
+        aria-label="Close booking window"
+      >
+        &times;
+      </button>
     </div>
-          </div>
 
-        <!-- 
-  Optional file upload field.
-  Allows users to upload supporting documents such as
-  certificates, CVs, or portfolio files with validation rules.
--->
-          <div id="booking-will-receive">
-  <p>
-    <i class="fa-solid fa-file-arrow-down"></i>
-    <strong>
-      After booking, you can download a booking summary containing:
-    </strong>
-  </p>
+    <div id="booking-state-confirm" class="booking-state">
+      <div id="modal-workshop-info">
+        <p id="info-name"></p>
 
-  <ul>
-    <li>
-      <i class="fa-solid fa-circle-check"></i> Your booking confirmation
-    </li>
-    <li>
-      <i class="fa-solid fa-calendar-days"></i> Workshop date and time
-    </li>
-    <li>
-      <i class="fa-solid fa-chair"></i> Workshop availability status
-    </li>
-    <li>
-      <i class="fa-solid fa-file"></i> Uploaded file confirmation
-    </li>
-  </ul>
-</div>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            style="width: 100%; justify-content: center; margin-top: 8px"
-          >
-            <i class="fa-solid fa-circle-check"></i> Confirm Booking
-          </button>
-        </form>
+        <div id="info-details">
+          <span id="info-date"></span>
+          <span id="info-time"></span>
+        </div>
+
+        <p id="info-email-note">
+          <i class="fa-solid fa-envelope"></i>
+          A booking confirmation email will be sent with the workshop details.
+        </p>
+      </div>
+
+      <div class="booking-confirm-actions">
+        <button type="button" class="btn btn-outline" id="booking-cancel-btn">
+          Back
+        </button>
+
+        <button type="button" class="btn btn-primary" id="booking-confirm-btn">
+          <i class="fa-solid fa-circle-check"></i>
+          Confirm Booking
+        </button>
       </div>
     </div>
+
+    <div id="booking-state-loading" class="booking-state" hidden>
+      <div class="booking-feedback-card">
+        <div class="booking-loader" aria-hidden="true"></div>
+        <h3>Booking your workshop...</h3>
+        <p>Please wait while we reserve your seat.</p>
+      </div>
+    </div>
+
+    <div id="booking-state-success" class="booking-state" hidden>
+      <div class="booking-feedback-card booking-success-card">
+        <div class="booking-success-icon">
+          <i class="fa-solid fa-check"></i>
+        </div>
+
+        <h3>Workshop booked successfully</h3>
+
+        <p>
+          Your seat has been reserved successfully.
+          A confirmation email was sent with your booking details.
+        </p>
+
+        <div class="booking-zoom-note">
+          <i class="fa-solid fa-video"></i>
+          <span>The Zoom meeting link for this workshop will be sent to your email before it starts.</span>
+        </div>
+
+        <div class="booking-success-actions">
+          <a href="profile.php" class="btn btn-primary">
+            <i class="fa-solid fa-user"></i>
+            View My Bookings
+          </a>
+
+          <button type="button" class="btn btn-outline" id="booking-back-btn">
+            Back to Workshops
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="booking-state-error" class="booking-state" hidden>
+      <div class="booking-feedback-card booking-error-card">
+        <div class="booking-error-icon">
+          <i class="fa-solid fa-xmark"></i>
+        </div>
+
+        <h3>Booking failed</h3>
+        <p id="booking-error-message">Something went wrong while booking this workshop.</p>
+
+        <button type="button" class="btn btn-outline" id="booking-error-back-btn">
+          Back
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
     <script>
 const searchInput = document.getElementById('searchInput');

@@ -247,17 +247,33 @@ function initRippleEffect() {
 */
 var currentWorkshop = {};
 
+
+/*
+  This function switches the booking modal between confirmation,
+  loading, success, and error states.
+*/
+function setBookingState(state) {
+  var states = [
+    'booking-state-confirm',
+    'booking-state-loading',
+    'booking-state-success',
+    'booking-state-error'
+  ];
+
+  states.forEach(function (id) {
+    var element = document.getElementById(id);
+    if (element) element.hidden = true;
+  });
+
+  var activeState = document.getElementById('booking-state-' + state);
+  if (activeState) activeState.hidden = false;
+}
+
 /*
   This function opens the booking modal and fills it with the selected
-  workshop information. It stores the workshop data in currentWorkshop,
-  updates the modal text fields, resets the booking form, clears any old
-  validation errors, and then displays the modal overlay. It also disables
-  page scrolling while the modal is open.
+  workshop details before the user confirms the reservation.
 */
 function openBookingModal(id, name, date, time, link) {
-  // Guests cannot book workshops.
-  // They are redirected to the login page with a short explanation toast.
-  // Prevents guests from opening the booking modal even if the function is called directly.
   if (document.body.dataset.loggedIn === '0') {
     window.location.href = 'login.php?reason=booking';
     return;
@@ -270,222 +286,123 @@ function openBookingModal(id, name, date, time, link) {
     time: time,
     link: link
   };
-  // shows the workshop name, date, and time inside the modal
-  document.getElementById('info-name').textContent = '🎓 ' + name;
-  document.getElementById('info-date').textContent = '📅 ' + date;
-  document.getElementById('info-time').textContent = '🕐 ' + time;
 
-  var linkEl = document.getElementById('info-link'); // gets the element that displays the workshop link
-  linkEl.textContent = '🔗 ' + link; // shows the workshop link text inside the modal
-  linkEl.href = link; // sets the actual hyperlink destination
+  document.getElementById('info-name').textContent = name;
+  document.getElementById('info-date').textContent = 'Date: ' + date;
+  document.getElementById('info-time').textContent = 'Time: ' + time;
 
-  document.getElementById('booking-form').reset();
-  clearBookingErrors(); // removes old validation errors before showing the form again
+  setBookingState('confirm');
 
-  document.getElementById('booking-overlay').style.display = 'flex'; // makes the booking modal overlay visible
-  document.body.style.overflow = 'hidden';  // prevents background page scrolling while the modal is open
+  var overlay = document.getElementById('booking-overlay');
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
 }
 
 /*
-  This function closes the booking modal and restores the normal page view.
-  It hides the modal overlay if it exists, then returns the page scrolling
-  behavior back to normal.
+  This function closes the booking modal and restores page scrolling.
 */
 function closeBookingModal() {
   var overlay = document.getElementById('booking-overlay');
-  if (overlay) overlay.style.display = 'none'; // hides the overlay if it exists
-  document.body.style.overflow = ''; // restores normal page scrolling
+  if (!overlay) return;
+
+  overlay.hidden = true;
+  document.body.style.overflow = '';
 }
 
 /*
-  This function clears the validation error state from the booking form.
-  It removes the error styling from the required input fields and hides
-  their related error messages, so the form appears clean when reopened
-  or reused.
+  This function sends the booking request to the PHP API, then updates
+  the modal state based on whether the booking succeeds or fails.
 */
-function clearBookingErrors() {
-  ['b-firstname', 'b-email'].forEach(function (id) { // loops through the booking fields that may contain validation errors
-    var el = document.getElementById(id); // gets the current input field
-    if (el) el.classList.remove('error'); // removes the error style from the field if it exists
+async function submitWorkshopBooking() {
+  var confirmButton = document.getElementById('booking-confirm-btn');
+  var errorMessage = document.getElementById('booking-error-message');
 
-    var err = document.getElementById(id + '-error'); // gets the related error message element
-    if (err) err.classList.remove('visible'); // hides the error message if it exists
-  });
-}
+  if (!currentWorkshop.id) return;
 
-/*
-  This function handles validation and submission for the workshop booking form.
-  It checks that the required fields are filled correctly, especially the first
-  name and email fields, and prevents confirmation if the entered data is not
-  valid. If the form passes validation, it closes the booking modal and shows
-  a confirmation message that includes the participant information and the
-  selected workshop details. It also removes error styling while the user is
-  correcting the input.
-*/
-function initBookingForm() {
-  var form = document.getElementById('booking-form');
-  if (!form) return;
+  setBookingState('loading');
 
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault();
+  if (confirmButton) {
+    confirmButton.disabled = true;
+  }
 
-    var isValid = true;
-    var errors = [];
+  var fullName = document.body.dataset.userName || 'SkillHub User';
+  var email = document.body.dataset.userEmail || '';
+  var nameParts = fullName.trim().split(' ');
+  var firstName = nameParts.shift() || 'SkillHub';
+  var lastName = nameParts.join(' ');
 
-    var firstNameInput = document.getElementById('b-firstname');
-    var firstNameError = document.getElementById('b-firstname-error');
+  var formData = new FormData();
+  formData.append('workshop_id', currentWorkshop.id);
+  formData.append('first_name', firstName);
+  formData.append('last_name', lastName);
+  formData.append('email', email);
 
-    if (!firstNameInput.value.trim()) {
-      firstNameInput.classList.add('error');
-      firstNameError.classList.add('visible');
-      errors.push('First name is required.');
-      isValid = false;
-    } else {
-      firstNameInput.classList.remove('error');
-      firstNameError.classList.remove('visible');
-    }
+  try {
+    var response = await fetch('../api/create_booking.php', {
+      method: 'POST',
+      body: formData
+    });
 
-    var emailInput = document.getElementById('b-email');
-    var emailError = document.getElementById('b-email-error');
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var result = await response.json();
 
-    if (!emailInput.value.trim()) {
-      emailInput.classList.add('error');
-      emailError.classList.add('visible');
-      emailError.textContent = 'Email address is required.';
-      errors.push('Email address is required.');
-      isValid = false;
-    } else if (!emailRegex.test(emailInput.value.trim())) {
-      emailInput.classList.add('error');
-      emailError.classList.add('visible');
-      emailError.textContent = 'Please enter a valid email address.';
-      errors.push('Email format is invalid.');
-      isValid = false;
-    } else {
-      emailInput.classList.remove('error');
-      emailError.classList.remove('visible');
-    }
-
-    var fileInput = document.getElementById('supporting-file');
-
-    if (fileInput && fileInput.files.length > 0) {
-      var file = fileInput.files[0];
-      var allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-      var maxSize = 2 * 1024 * 1024;
-
-      if (!allowedTypes.includes(file.type)) {
-        errors.push('Only PDF, JPG, and PNG files are allowed.');
-        isValid = false;
-      }
-
-      if (file.size > maxSize) {
-        errors.push('File size must not exceed 2MB.');
-        isValid = false;
-      }
-    }
-
-    if (!isValid) {
-      alert('Please fix the following before confirming:\n\n• ' + errors.join('\n• '));
+    if (result.success) {
+      setBookingState('success');
       return;
     }
 
-    var firstName = firstNameInput.value.trim();
-    var lastName = document.getElementById('b-lastname').value.trim();
-    var email = emailInput.value.trim();
-    var fullName = lastName ? firstName + ' ' + lastName : firstName;
-
-    var formData = new FormData();
-    formData.append('workshop_id', currentWorkshop.id);
-    formData.append('first_name', firstName);
-    formData.append('last_name', lastName);
-    formData.append('email', email);
-
-    if (fileInput && fileInput.files.length > 0) {
-      formData.append('supporting_file', fileInput.files[0]);
+    if (errorMessage) {
+      errorMessage.textContent = result.message || 'Booking failed. Please try again.';
     }
 
-    try {
-      var response = await fetch('../api/create_booking.php', {
-        method: 'POST',
-        body: formData
-      });
+    setBookingState('error');
+  } catch (error) {
+    if (errorMessage) {
+      errorMessage.textContent = 'Something went wrong while submitting your booking.';
+    }
 
-      var result = await response.json();
+    setBookingState('error');
+  } finally {
+    if (confirmButton) {
+      confirmButton.disabled = false;
+    }
+  }
+}
 
-      // If the booking is completed successfully,
-// the system prepares a downloadable booking summary.
-// The user can optionally download a text file
-// containing their booking confirmation details.
+/*
+  This function wires the booking modal buttons without inline JavaScript.
+*/
+function initBookingConfirmation() {
+  var overlay = document.getElementById('booking-overlay');
+  var closeButton = document.getElementById('modal-close');
+  var cancelButton = document.getElementById('booking-cancel-btn');
+  var confirmButton = document.getElementById('booking-confirm-btn');
+  var backButton = document.getElementById('booking-back-btn');
+  var errorBackButton = document.getElementById('booking-error-back-btn');
 
-      if (result.success) {
-  closeBookingModal();
+  if (!overlay) return;
 
-  var summaryText =
-    'SkillHub Booking Summary\n\n' +
-    'Name: ' + fullName + '\n' +
-    'Email: ' + email + '\n' +
-    'Workshop: ' + currentWorkshop.name + '\n' +
-    'Date: ' + currentWorkshop.date + '\n' +
-    'Time: ' + currentWorkshop.time + '\n' +
-    'Booking Status: Confirmed\n';
+  if (closeButton) closeButton.addEventListener('click', closeBookingModal);
+  if (cancelButton) cancelButton.addEventListener('click', closeBookingModal);
+  if (backButton) backButton.addEventListener('click', closeBookingModal);
+  if (errorBackButton) errorBackButton.addEventListener('click', closeBookingModal);
 
-  var wantsDownload = confirm(
-    '🎉 Booking confirmed successfully!\n\n' +
-    'Would you like to download your booking summary?'
-  );
-
-  if (wantsDownload) {
-    var blob = new Blob([summaryText], { type: 'text/plain' });
-    var downloadLink = document.createElement('a');
-
-    downloadLink.href = window.URL.createObjectURL(blob);
-    downloadLink.download = 'booking-summary.txt';
-
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-
-    window.URL.revokeObjectURL(downloadLink.href);
-    document.body.removeChild(downloadLink);
+  if (confirmButton) {
+    confirmButton.addEventListener('click', submitWorkshopBooking);
   }
 
-
-
-        alert(
-          '🎉 You have successfully reserved a seat in this workshop!\n\n' +
-          '👤 Name: ' + fullName + '\n' +
-          '📧 Email: ' + email + '\n' +
-          '📌 Workshop: ' + currentWorkshop.name + '\n' +
-          '📅 Date: ' + currentWorkshop.date + '\n' +
-          '🕐 Time: ' + currentWorkshop.time + '\n\n' +
-          '✅ ' + result.message
-        );
-
-        form.reset();
-      } else {
-        alert('Booking failed: ' + result.message);
-      }
-
-    } catch (error) {
-      alert('Something went wrong while submitting your booking.');
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) {
+      closeBookingModal();
     }
   });
 
-  var fnField = document.getElementById('b-firstname');
-  if (fnField) {
-    fnField.addEventListener('input', function () {
-      fnField.classList.remove('error');
-      document.getElementById('b-firstname-error').classList.remove('visible');
-    });
-  }
-
-  var emField = document.getElementById('b-email');
-  if (emField) {
-    emField.addEventListener('input', function () {
-      emField.classList.remove('error');
-      document.getElementById('b-email-error').classList.remove('visible');
-    });
-  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !overlay.hidden) {
+      closeBookingModal();
+    }
+  });
 }
+
 
 /*
   This function handles live workshop search and category filtering.
@@ -538,20 +455,18 @@ async function initWorkshopSearch() {
               <span class="tag tag-secondary">${workshop.available_seats} Seats</span>
             </div>
 
-            <button
-              class="btn btn-primary book-btn"
-              style="margin-top: 18px; width: 100%"
-              onclick="openBookingModal(
-                '${workshop.workshop_id}',
-                '${workshop.title}',
-                '${workshop.workshop_date}',
-                '${workshop.start_time} - ${workshop.end_time}',
-                '#'
-              )"
-            >
-              <i class="fa-solid fa-calendar-days"></i>
-              Book Workshop
-            </button>
+                <button
+            type="button"
+            class="btn btn-primary book-btn workshop-book-btn"
+            data-workshop-id="${workshop.workshop_id}"
+            data-workshop-title="${workshop.title}"
+            data-workshop-date="${workshop.workshop_date}"
+            data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
+            data-workshop-link="#"
+          >
+            <i class="fa-solid fa-calendar-days"></i>
+            Book Workshop
+          </button>
           </div>
         </div>
       `;
@@ -563,31 +478,28 @@ async function initWorkshopSearch() {
 }
 
 /*
-  This function handles clicks on Book Workshop buttons.
-  If the visitor is a guest, the user is redirected to login.php with a booking reason.
-  If the visitor is logged in, the booking modal opens with the selected workshop data.
+  This function handles clicks on Book Workshop buttons through event delegation.
+  It works for both initial workshop cards and cards added later by live search.
 */
 function initBookingButtons() {
-  const bookingButtons = document.querySelectorAll('.book-btn'); // gets all workshop booking buttons
-  if (!bookingButtons.length) return; // stops if the current page has no booking buttons
+  document.addEventListener('click', function (e) {
+    var button = e.target.closest('.book-btn');
+    if (!button) return;
 
-  bookingButtons.forEach(function (button) {
-    button.addEventListener('click', function () {
-      const isLoggedIn = document.body.dataset.loggedIn === '1'; // reads login state from services.php
+    var isLoggedIn = document.body.dataset.loggedIn === '1';
 
-      if (!isLoggedIn) {
-        window.location.href = 'login.php?reason=booking'; // redirects guest users to login page
-        return;
-      }
+    if (!isLoggedIn) {
+      window.location.href = 'login.php?reason=booking';
+      return;
+    }
 
-      openBookingModal(
-        button.dataset.workshopId,
-        button.dataset.workshopTitle,
-        button.dataset.workshopDate,
-        button.dataset.workshopTime,
-        button.dataset.workshopLink
-      );
-    });
+    openBookingModal(
+      button.dataset.workshopId,
+      button.dataset.workshopTitle,
+      button.dataset.workshopDate,
+      button.dataset.workshopTime,
+      button.dataset.workshopLink
+    );
   });
 }
 
@@ -769,29 +681,6 @@ function initProfileNameEdit() {
 }
 
 
-/*
-  This event listener closes the booking modal when the user clicks
-  on the overlay area outside the modal content. It checks whether
-  the clicked element is the overlay itself, then calls the function
-  that hides the modal.
-*/
-document.addEventListener('click', function (e) {
-  var overlay = document.getElementById('booking-overlay');
-  if (overlay && e.target === overlay) {
-    closeBookingModal();
-  }
-});
-
-/*
-  This event listener closes the booking modal when the user presses
-  the Escape key on the keyboard. It improves usability by giving the
-  user another simple way to dismiss the modal.
-*/
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') {
-    closeBookingModal();
-  }
-});
 
 /*
   This event runs after the HTML document finishes loading.
@@ -807,9 +696,10 @@ initMobileNav(); // initializes the navigation menu toggle behavior
   initScrollAnimations(); // activates fade-in animations for selected page elements during scrolling
   initFormValidation(); // enables validation for the feedback form
   initRippleEffect(); // enables the ripple click effect on buttons
-  initBookingForm(); // enables validation and confirmation handling for the booking form
-  initBookingButtons(); // controls guest redirect and logged-in booking modal
   initProfilePictureUpload(); // enables the profile picture upload modal behavior
   initProfilePasswordModal(); // enables the profile password change modal behavior
   initProfileNameEdit(); // enables edit mode for the profile name field
+  initWorkshopSearch(); // enables live workshop search and filtering
+  initBookingButtons(); // controls guest redirect and logged-in booking modal
+  initBookingConfirmation(); // controls booking confirmation, loading, and success states
 });

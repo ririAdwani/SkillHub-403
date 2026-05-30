@@ -423,8 +423,7 @@ if (!is_admin()) {
           <div>
             <span class="profile-section-kicker">My Schedule</span>
             <h2>Booked Workshops</h2>
-            <p>Your online workshop meeting details will be sent to your email.</p>
-          </div>
+            </div>
 
           <a href="services.php" class="btn btn-outline profile-section-action">
             <i class="fa-solid fa-box"></i>
@@ -446,7 +445,7 @@ if (!is_admin()) {
         <?php else: ?>
   <div class="profile-booking-note">
     <i class="fa-solid fa-video"></i>
-    <span>Zoom meeting details will be sent to your email for upcoming workshops.</span>
+    <span>For each upcoming reserved workshop, the Zoom meeting link will be sent to your email before the workshop starts.</span>
   </div>
 
   <div class="booking-table-wrapper">

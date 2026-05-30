@@ -46,8 +46,8 @@ $workshops = $stmt->fetchAll();
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
     <!-- ===== PAGE HERO ===== -->
-    <div class="page-hero">
-      <div class="container">
+    <div class="page-hero services-hero">
+        <div class="container">
         <div class="badge"><i class="fa-solid fa-box"></i> Our Workshops</div>
         <h1>Workshop Categories</h1>
         <p>
@@ -58,49 +58,31 @@ $workshops = $stmt->fetchAll();
     </div>
 
     <!-- ===== WORKSHOP CARDS SECTION ===== -->
-    <section class="section">
-      <div class="container">
-         <div style="margin-bottom: 30px;">
-          <h2 style="margin-bottom: 12px;">
-    Search Workshops
-</h2>
+<section class="section services-section">
+        <div class="container">
+        <!-- Search and category filter for workshop browsing. -->
+        <div class="services-search-panel">
+          <div class="services-search-copy">
+            <h2>Search Workshops</h2>
+            <p>Find workshops by title, description, or category.</p>
+          </div>
 
-<p style="margin-bottom: 20px; color: #666;">
-    Find workshops by title, description, or category.
-</p>
-    
-    <input
-        type="text"
-        id="searchInput"
-        placeholder="Search workshops..."
-        style="
-            width: 100%;
-            padding: 14px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-            font-size: 16px;
-        "
-    />
+          <div class="services-search-controls">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search workshops..."
+            />
 
-    <select
-    id="categoryFilter"
-    style="
-        width: 100%;
-        margin-top: 14px;
-        padding: 14px;
-        border-radius: 10px;
-        border: 1px solid #ccc;
-        font-size: 16px;
-    "
->
-    <option value="">All Categories</option>
-    <option value="Web Development">Web Development</option>
-    <option value="UI/UX Design">UI/UX Design</option>
-    <option value="Data Analysis">Data Analysis</option>
-    <option value="Cybersecurity">Cybersecurity</option>
-</select>
-
-</div>
+            <select id="categoryFilter">
+              <option value="">All Categories</option>
+              <option value="Web Development">Web Development</option>
+              <option value="UI/UX Design">UI/UX Design</option>
+              <option value="Data Analysis">Data Analysis</option>
+              <option value="Cybersecurity">Cybersecurity</option>
+            </select>
+          </div>
+        </div>
         <div class="grid-2">
               <?php foreach ($workshops as $workshop): ?>
 

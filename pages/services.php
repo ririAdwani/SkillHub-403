@@ -51,8 +51,8 @@ $workshops = $stmt->fetchAll();
         <div class="badge"><i class="fa-solid fa-swatchbook"></i> Our Workshops</div>
         <h1>Workshop Categories</h1>
         <p>
-          Choose from our curated selection of workshops designed specifically
-          for students who want to build practical, in-demand skills.
+          Choose from our selected range of workshops designed specifically for students who want to build practical, 
+          in-demand skills. Each workshop is a focused, hands-on session that fits into your busy schedule.
         </p>
       </div>
     </div>
@@ -167,7 +167,9 @@ $workshops = $stmt->fetchAll();
               <li><a href="services.php">Services</a></li>
               <li><a href="schedule.php">Schedule</a></li>
               <li><a href="video.php">Guide</a></li>
-              <li><a href="feedback.php">Feedback</a></li>
+<?php if (is_logged_in()): ?>
+  <li><a href="<?= $basePath ?>pages/feedback.php">Feedback</a></li>
+<?php endif; ?>
               <li><a href="about.php">About</a></li>
             </ul>
           </div>

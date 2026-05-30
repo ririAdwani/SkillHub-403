@@ -352,15 +352,15 @@ nav#main-nav ul li a.active {
 footer {
   background: var(--text);
   color: white;
-  padding: 60px 0 0;
-  margin-top: 80px;
+  padding: 36px 0 0;
+  margin-top: 48px;
 }
 
 #footer-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
-  padding-bottom: 40px;
+  grid-template-columns: 1.3fr 0.8fr 1fr;
+  gap: 28px;
+  padding-bottom: 26px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
@@ -368,22 +368,23 @@ footer {
 #footer-links p,
 #footer-contact p {
   color: rgba(255,255,255,0.65);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
+  margin-bottom: 0;
 }
 
 #footer-brand h3 {
   color: white;
-  margin-bottom: 12px;
-  font-size: 1.25rem;
+  margin-bottom: 8px;
+  font-size: 1.15rem;
 }
 
 .footer-heading {
   color: rgba(255,255,255,0.8);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.74rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 16px;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
 }
 
 #footer-links ul {
@@ -391,11 +392,11 @@ footer {
   padding: 0;
 }
 
-#footer-links ul li { margin-bottom: 10px; }
+#footer-links ul li { margin-bottom: 6px; }
 
 #footer-links ul li a {
   color: rgba(255,255,255,0.65);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   transition: color 0.2s;
 }
 
@@ -405,15 +406,15 @@ footer {
 footer address {
   font-style: normal;
   color: rgba(255,255,255,0.65);
-  font-size: 0.9rem;
-  line-height: 1.8;
+  font-size: 0.84rem;
+  line-height: 1.6;
 }
 
 /* Copyright bar at bottom of footer */
 #footer-copyright {
   text-align: center;
-  padding: 20px;
-  font-size: 0.85rem;
+  padding: 14px 20px;
+  font-size: 0.78rem;
   color: rgba(255,255,255,0.5);
 }
 
@@ -1641,7 +1642,7 @@ nav#main-nav.open ul li a {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
-  box-shadow: 0 10px 24px rgba(44, 123, 229, 0.22);
+  box-shadow: 24px rgba(44, 123, 229, 0.22);
   transform: translateY(-1px);
 }
 
@@ -1659,12 +1660,33 @@ nav#main-nav.open ul li a {
   justify-self: start;
 }
 
-.auth-header-inner .auth-header-link {
+.auth-header-actions {
   grid-column: 3;
   justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-header-inner .auth-header-link {
   width: auto;
   min-width: 0;
-  padding: 9px 20px;
+  padding: 9px 18px;
+}
+
+.auth-home-link {
+  color: var(--text-light);
+}
+
+.auth-header-link.auth-home-link:hover {
+  background: #EBF4FF;
+  color: var(--primary);
+  border-color: rgba(44, 123, 229, 0.18);
+  box-shadow: 0 8px 20px rgba(44, 123, 229, 0.10);
+}
+
+.auth-header-link.auth-home-link:hover i {
+  color: var(--primary);
 }
 
 .auth-hero {

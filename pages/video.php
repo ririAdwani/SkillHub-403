@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 
 $basePath = '../';
-$currentPage = 'video';
+$currentPage = 'guide';
 ?>
 <!doctype html>
 <html lang="en">
@@ -35,8 +35,8 @@ $currentPage = 'video';
         </div>
         <h1>How to Use SkillHub</h1>
         <p>
-          Watch our step-by-step tutorial to learn how to navigate the platform,
-          browse workshops, and track your progress.
+          Watch our step-by-step tutorial to learn how to navigate the platform, 
+          browse and book workshops.
         </p>
       </div>
     </div>
@@ -115,7 +115,9 @@ $currentPage = 'video';
               <li><a href="services.php">Services</a></li>
               <li><a href="schedule.php">Schedule</a></li>
               <li><a href="video.php">Guide</a></li>
-              <li><a href="feedback.php">Feedback</a></li>
+<?php if (is_logged_in()): ?>
+  <li><a href="<?= $basePath ?>pages/feedback.php">Feedback</a></li>
+<?php endif; ?>
               <li><a href="about.php">About</a></li>
             </ul>
           </div>

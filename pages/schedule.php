@@ -31,7 +31,7 @@ $currentPage = 'schedule';
     <div class="page-hero">
       <div class="container">
         <div class="badge">
-          <i class="fa-solid fa-calendar-days"></i> Spring 2026
+          <i class="fa-solid fa-calendar-days"></i> Workshop Timetable
         </div>
         <h1>Workshop Schedule</h1>
         <p>
@@ -55,7 +55,7 @@ $currentPage = 'schedule';
           <table id="schedule-table">
             <caption>
               Weekly Workshop Schedule
-              <p>Spring 2026 Semester — All times are in local timezone</p>
+              <p>Current Workshop Calendar</p>
             </caption>
 
             <!-- 
@@ -201,7 +201,9 @@ $currentPage = 'schedule';
               <li><a href="services.php">Services</a></li>
               <li><a href="schedule.php">Schedule</a></li>
               <li><a href="video.php">Guide</a></li>
-              <li><a href="feedback.php">Feedback</a></li>
+              <?php if (is_logged_in()): ?>
+                <li><a href="<?= $basePath ?>pages/feedback.php">Feedback</a></li>
+              <?php endif; ?>
               <li><a href="about.php">About</a></li>
             </ul>
           </div>

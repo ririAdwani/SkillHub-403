@@ -129,10 +129,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span id="site-name">Skill<span>Hub</span></span>
           </a>
 
-            <a href="register.php" class="auth-header-link">
-            <i class="fa-solid fa-user-plus"></i>
-            <span>Register</span>
+          <div class="auth-header-actions">
+            <a href="../index.php" class="auth-header-link auth-home-link">
+              <i class="fa-solid fa-house"></i>
             </a>
+
+            <a href="register.php" class="auth-header-link">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>Register</span>
+            </a>
+          </div>
         </div>
       </div>
     </header>
@@ -168,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <i class="fa-solid fa-right-to-bracket"></i> SkillHub Login
         </div>
         <h1>Welcome Back</h1>
-        <p>Log in to book workshops, access your profile, and manage your sessions.</p>
+        <p>Log in to book workshops, view your bookings, and update your profile.</p>
       </div>
     </div>
 

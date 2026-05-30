@@ -180,7 +180,9 @@ $currentPage = 'about';
             <li><a href="services.php">Services</a></li>
             <li><a href="schedule.php">Schedule</a></li>
             <li><a href="video.php">Video</a></li>
-            <li><a href="feedback.php">Feedback</a></li>
+            <?php if (is_logged_in()): ?>
+              <li><a href="<?= $basePath ?>pages/feedback.php">Feedback</a></li>
+            <?php endif; ?>
             <li><a href="about.php">About</a></li>
           </ul>
         </div>

@@ -223,7 +223,9 @@ $currentPage = 'home';
               <li><a href="pages/services.php">Services</a></li>
               <li><a href="pages/schedule.php">Schedule</a></li>
               <li><a href="pages/video.php">Guide</a></li>
-              <li><a href="pages/feedback.php">Feedback</a></li>
+              <?php if (is_logged_in()): ?>
+                <li><a href="<?= $basePath ?>pages/feedback.php">Feedback</a></li>
+              <?php endif; ?>
               <li><a href="pages/about.php">About</a></li>
             </ul>
           </div>
@@ -231,7 +233,6 @@ $currentPage = 'home';
           <div id="footer-contact">
             <p class="footer-heading">Contact</p>
             <address>
-              SkillHub Platform<br />
               Email: info@skillhub.edu<br />
             </address>
           </div>

@@ -1668,6 +1668,607 @@ input[type="password"]:focus {
   display: block;
 }
 
+
+/* ===== PROFILE PAGE ===== */
+/*
+  This section styles the protected profile page.
+  The layout is intentionally compact so account details stay small
+  and regular users can see their booked workshops quickly.
+*/
+.profile-page {
+  min-height: 100vh;
+  padding: 28px 0 72px;
+  background: var(--background);
+}
+
+.profile-container {
+  max-width: 1040px;
+}
+
+.profile-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.profile-back-link:hover {
+  color: var(--primary);
+}
+
+.profile-top-card {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(340px, 0.9fr);
+  gap: 22px;
+  align-items: center;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: white;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.06);
+}
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar-note {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  max-width: 230px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(44, 123, 229, 0.16);
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  animation: profile-note-fade 4.5s ease forwards;
+  z-index: 2;
+}
+
+@keyframes profile-note-fade {
+  0%, 70% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-5px); visibility: hidden; }
+}
+
+.profile-avatar-btn {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border: 1px solid rgba(44, 123, 229, 0.18);
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--primary-light), white);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(44, 123, 229, 0.09);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.profile-avatar-btn:hover,
+.profile-avatar-btn:focus-visible {
+  border-color: rgba(44, 123, 229, 0.36);
+  box-shadow: 0 14px 28px rgba(44, 123, 229, 0.14);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-initial {
+  font-size: 2.35rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.profile-avatar-plus {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(44, 123, 229, 0.28);
+  font-size: 0.72rem;
+}
+
+.profile-identity {
+  min-width: 0;
+}
+
+.profile-identity h1 {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+}
+
+.profile-identity p {
+  margin-bottom: 0;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.profile-actions {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-name-form label {
+  margin-bottom: 7px;
+  font-size: 0.8rem;
+}
+
+.profile-edit-field {
+  position: relative;
+}
+
+.profile-edit-field input {
+  padding-right: 46px;
+}
+
+.profile-icon-submit {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+}
+
+.profile-icon-submit:hover,
+.profile-icon-submit:focus-visible {
+  background: var(--primary-light);
+  color: var(--primary);
+  outline: none;
+}
+
+.profile-password-open {
+  width: fit-content;
+  padding: 0.65rem 1rem;
+  font-size: 0.86rem;
+}
+
+.profile-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 13px 15px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: white;
+  box-shadow: var(--shadow-sm);
+  animation: profile-alert-hide 0.35s ease 4s forwards;
+
+}
+
+@keyframes profile-alert-hide {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+    visibility: hidden;
+  }
+}
+
+.profile-alert p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.profile-alert-success {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: var(--secondary-light);
+  color: #047857;
+}
+
+.profile-alert-error {
+  border-color: #FCA5A5;
+  background: #FEF2F2;
+  color: #991B1B;
+}
+
+.profile-bookings-section {
+  margin-top: 26px;
+}
+
+.profile-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.profile-section-kicker {
+  display: inline-block;
+  margin-bottom: 5px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.profile-section-header h2 {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 1.35rem;
+  letter-spacing: -0.3px;
+}
+
+.profile-section-header p {
+  margin-bottom: 0;
+  max-width: 520px;
+  font-size: 0.88rem;
+}
+
+.profile-section-action {
+  flex-shrink: 0;
+  padding: 0.65rem 1rem;
+  font-size: 0.86rem;
+}
+
+.profile-booking-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.booking-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.booking-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.booking-table thead {
+  background: var(--background);
+}
+
+.booking-table th {
+  padding: 14px 18px;
+  text-align: left;
+  color: var(--text-light);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+
+.booking-table td {
+  padding: 16px 18px;
+  color: var(--text);
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.booking-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.booking-table tbody tr:hover {
+  background: #F9FAFB;
+}
+
+.booking-table tbody tr.status-today {
+  background: var(--secondary-light);
+}
+
+.booking-table tbody tr.status-past {
+  opacity: 0.68;
+  background: #F9FAFB;
+}
+
+.booking-title {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.booking-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-today .booking-status-badge {
+  background: var(--secondary-light);
+  color: #047857;
+}
+
+.status-past .booking-status-badge {
+  background: #F3F4F6;
+  color: var(--text-light);
+}
+
+.profile-empty-state {
+  padding: 30px 24px;
+  border: 1px dashed rgba(44, 123, 229, 0.26);
+  border-radius: 18px;
+  background: white;
+  text-align: center;
+}
+
+.profile-empty-state i {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 1.12rem;
+}
+
+.profile-empty-state h3 {
+  margin-bottom: 5px;
+  font-size: 1.08rem;
+}
+
+.profile-empty-state p {
+  margin-bottom: 0;
+  font-size: 0.88rem;
+}
+
+.profile-upload-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.profile-upload-overlay[hidden] {
+  display: none;
+}
+
+.profile-upload-modal {
+  width: min(420px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 22px;
+  background: white;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  animation: slideModal 0.25s ease;
+}
+
+.profile-password-modal {
+  width: min(400px, 100%);
+}
+
+.profile-upload-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.profile-upload-header h2 {
+  font-size: 1.25rem;
+  letter-spacing: -0.3px;
+}
+
+.profile-modal-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.profile-modal-close:hover {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+  color: #DC2626;
+}
+
+.profile-upload-form,
+.profile-password-form {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-upload-box {
+  min-height: 122px;
+  border: 2px dashed rgba(44, 123, 229, 0.32);
+  border-radius: 18px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-bottom: 0;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.profile-upload-box:hover {
+  background: #F5FAFF;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.profile-upload-box i {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-upload-box span {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.profile-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.profile-file-name {
+  margin-bottom: 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-light);
+}
+
+.profile-upload-rules {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--background);
+}
+
+.profile-upload-rules strong {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 0.86rem;
+}
+
+.profile-upload-rules ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.profile-upload-rules li {
+  margin-bottom: 3px;
+  color: var(--text-light);
+  font-size: 0.8rem;
+}
+
+.profile-upload-submit {
+  width: 100%;
+}
+
+.profile-password-form .form-group {
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .profile-page {
+    padding-top: 22px;
+  }
+
+  .profile-top-card {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-summary {
+    align-items: flex-start;
+  }
+
+  .profile-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .booking-table {
+  min-width: 680px;
+}
+}
+
+.profile-edit-field input[readonly] {
+  cursor: default;
+  color: var(--text);
+  background: var(--background);
+}
+
+.profile-edit-field input[readonly]:focus {
+  border-color: var(--border);
+  box-shadow: none;
+  background: var(--background);
+}
+
+.profile-icon-submit.is-editing {
+  background: var(--secondary-light);
+  color: var(--secondary);
+}
+
 /* ===== TOAST NOTIFICATIONS ===== */
 
 .toast-container {

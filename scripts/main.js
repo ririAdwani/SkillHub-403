@@ -591,6 +591,184 @@ function initBookingButtons() {
   });
 }
 
+// ===== PROFILE PICTURE UPLOAD MODAL =====
+/*
+  This function controls the profile picture upload modal.
+  The avatar opens the modal, the close button and outside overlay close it,
+  and the selected file name is shown before the user submits the upload form.
+*/
+function initProfilePictureUpload() {
+  var openButton = document.getElementById('profile-avatar-open');
+  var overlay = document.getElementById('profile-upload-overlay');
+  var closeButton = document.getElementById('profile-upload-close');
+  var fileInput = document.getElementById('profile_image');
+  var fileName = document.getElementById('profile-file-name');
+
+  if (!openButton || !overlay) return;
+
+  function openProfileUploadModal() {
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeProfileUploadModal() {
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  openButton.addEventListener('click', openProfileUploadModal);
+
+  if (closeButton) {
+    closeButton.addEventListener('click', closeProfileUploadModal);
+  }
+
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) {
+      closeProfileUploadModal();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !overlay.hidden) {
+      closeProfileUploadModal();
+    }
+  });
+
+  if (fileInput && fileName) {
+    fileInput.addEventListener('change', function () {
+      fileName.textContent = fileInput.files.length
+        ? fileInput.files[0].name
+        : 'No file selected';
+    });
+  }
+}
+
+// ===== PROFILE PASSWORD MODAL =====
+/*
+  This function controls the change password modal on the profile page.
+  The visible button opens the modal, while the close button, overlay click,
+  and Escape key close it without using inline JavaScript.
+*/
+function initProfilePasswordModal() {
+  var openButton = document.getElementById('profile-password-open');
+  var overlay = document.getElementById('profile-password-overlay');
+  var closeButton = document.getElementById('profile-password-close');
+
+  if (!openButton || !overlay) return;
+
+  function openPasswordModal() {
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePasswordModal() {
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  openButton.addEventListener('click', openPasswordModal);
+
+  if (closeButton) {
+    closeButton.addEventListener('click', closePasswordModal);
+  }
+
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) {
+      closePasswordModal();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !overlay.hidden) {
+      closePasswordModal();
+    }
+  });
+}
+
+// ===== PROFILE NAME EDIT MODE =====
+/*
+  This function controls the profile name edit field.
+  The name starts as read-only. Clicking the pen enables editing,
+  changes the icon to a check mark, and lets the user submit by
+  pressing Enter or clicking the check button.
+*/
+function initProfileNameEdit() {
+  var form = document.getElementById('profile-name-form');
+  var input = document.getElementById('full_name');
+  var button = document.getElementById('profile-name-edit');
+
+  if (!form || !input || !button) return;
+
+  var originalValue = input.value.trim();
+  var isEditing = false;
+
+  function setEditMode() {
+    isEditing = true;
+
+    input.removeAttribute('readonly');
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    button.classList.add('is-editing');
+    button.setAttribute('aria-label', button.dataset.saveLabel || 'Save name');
+    button.innerHTML = '<i class="fa-solid fa-check"></i>';
+  }
+
+  function setViewMode() {
+    isEditing = false;
+
+    input.setAttribute('readonly', 'readonly');
+    input.value = originalValue;
+
+    button.classList.remove('is-editing');
+    button.setAttribute('aria-label', button.dataset.editLabel || 'Edit name');
+    button.innerHTML = '<i class="fa-solid fa-pen"></i>';
+  }
+
+  button.addEventListener('click', function (e) {
+    if (!isEditing) {
+      e.preventDefault();
+      setEditMode();
+      return;
+    }
+
+    form.requestSubmit();
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && isEditing) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+
+    if (e.key === 'Escape' && isEditing) {
+      e.preventDefault();
+      setViewMode();
+    }
+  });
+
+  form.addEventListener('submit', function (e) {
+    var currentValue = input.value.trim();
+
+    if (!isEditing) {
+      e.preventDefault();
+      return;
+    }
+
+    if (currentValue === '') {
+      e.preventDefault();
+      input.focus();
+      return;
+    }
+
+    if (currentValue === originalValue) {
+      e.preventDefault();
+      setViewMode();
+    }
+  });
+}
+
+
 /*
   This event listener closes the booking modal when the user clicks
   on the overlay area outside the modal content. It checks whether
@@ -631,5 +809,7 @@ initMobileNav(); // initializes the navigation menu toggle behavior
   initRippleEffect(); // enables the ripple click effect on buttons
   initBookingForm(); // enables validation and confirmation handling for the booking form
   initBookingButtons(); // controls guest redirect and logged-in booking modal
-
+  initProfilePictureUpload(); // enables the profile picture upload modal behavior
+  initProfilePasswordModal(); // enables the profile password change modal behavior
+  initProfileNameEdit(); // enables edit mode for the profile name field
 });

@@ -426,7 +426,7 @@ if (!is_admin()) {
             </div>
 
           <a href="services.php" class="btn btn-outline profile-section-action">
-            <i class="fa-solid fa-box"></i>
+            <i class="fa-solid fa-chalkboard"></i>
             Explore More
           </a>
         </div>
@@ -632,10 +632,7 @@ if (!is_admin()) {
           <div id="footer-contact">
             <p class="footer-heading">Contact</p>
             <address>
-              SkillHub Platform<br />
-              University Campus, Building A<br />
               Email: info@skillhub.edu<br />
-              Phone: +1 (555) 123-4567
             </address>
           </div>
         </div>

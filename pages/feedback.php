@@ -212,10 +212,7 @@ $currentPage = 'feedback';
           <div id="footer-contact">
             <p class="footer-heading">Contact</p>
             <address>
-              SkillHub Platform<br />
-              University Campus, Building A<br />
               Email: info@skillhub.edu<br />
-              Phone: +1 (555) 123-4567
             </address>
           </div>
         </div>

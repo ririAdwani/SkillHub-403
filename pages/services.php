@@ -48,7 +48,7 @@ $workshops = $stmt->fetchAll();
     <!-- ===== PAGE HERO ===== -->
     <div class="page-hero services-hero">
         <div class="container">
-        <div class="badge"><i class="fa-solid fa-box"></i> Our Workshops</div>
+        <div class="badge"><i class="fa-solid fa-swatchbook"></i> Our Workshops</div>
         <h1>Workshop Categories</h1>
         <p>
           Choose from our curated selection of workshops designed specifically

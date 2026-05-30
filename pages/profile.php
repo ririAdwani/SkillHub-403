@@ -426,7 +426,7 @@ if (!is_admin()) {
             </div>
 
           <a href="services.php" class="btn btn-outline profile-section-action">
-            <i class="fa-solid fa-chalkboard"></i>
+          <i class="fa-solid fa-swatchbook"></i>
             Explore More
           </a>
         </div>

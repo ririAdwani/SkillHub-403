@@ -37,7 +37,7 @@ $isAdminUser = function_exists('is_admin') && is_admin();
 
           <li>
             <a href="<?= $basePath ?>pages/services.php" class="<?= $currentPage === 'services' ? 'active' : '' ?>">
-              <i class="fa-solid fa-box"></i> Services
+              <i class="fa-solid fa-swatchbook"></i> Services
             </a>
           </li>
 

@@ -1,10 +1,4 @@
 <?php
-/*
-Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3
-Name=Shahenaz Abushanab, ID=2215050, Section=DAR, Date=20/3
-Name=Raghad Abdullah Alzahrani, ID=2206740, Section=DAR, Date=20/3
-*/
-
 require_once __DIR__ . '/../includes/db.php';
 
 header('Content-Type: application/json');
@@ -14,27 +8,115 @@ $first_name = trim($_POST['first_name'] ?? '');
 $last_name = trim($_POST['last_name'] ?? '');
 $email = trim($_POST['email'] ?? '');
 
-if (!$workshop_id || empty($first_name) || empty($email)) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Please fill in all required fields.'
-    ]);
-    exit;
+
+// Starts a database transaction to make sure the booking,
+//  seat update are handled together.
+// If any step fails, all changes will be rolled back.
+
+/*
+  Formats workshop dates and times for the booking confirmation email.
+  These helpers keep the email readable without changing the database values.
+*/
+function format_booking_date(?string $date): string
+{
+    if (empty($date)) {
+        return 'To be announced';
+    }
+
+    return date('M j, Y', strtotime($date));
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Please enter a valid email address.'
-    ]);
-    exit;
+function format_booking_time(?string $startTime, ?string $endTime): string
+{
+    if (empty($startTime) || empty($endTime)) {
+        return 'To be announced';
+    }
+
+    return date('g:i A', strtotime($startTime)) . ' - ' . date('g:i A', strtotime($endTime));
 }
-// Starts a database transaction to make sure the booking,
-// file upload metadata, and seat update are handled together.
-// If any step fails, all changes will be rolled back.
+
+/*
+  Sends a confirmation email after the booking is saved successfully.
+  The Zoom link is not exposed here because SkillHub says meeting details
+  are sent by email before the workshop starts.
+*/
+function send_booking_confirmation_email(
+    string $email,
+    string $firstName,
+    string $lastName,
+    array $workshop
+): bool {
+    $fullName = trim($firstName . ' ' . $lastName);
+    $dateText = format_booking_date($workshop['workshop_date'] ?? '');
+    $timeText = format_booking_time($workshop['start_time'] ?? '', $workshop['end_time'] ?? '');
+    $categoryName = $workshop['category_name'] ?? 'Workshop';
+    $workshopTitle = $workshop['title'] ?? 'SkillHub Workshop';
+
+    $subject = 'SkillHub Workshop Booking Confirmation';
+
+    $message = "Hello {$fullName},\n\n"
+        . "Your workshop booking has been confirmed.\n\n"
+        . "Workshop Details:\n"
+        . "Workshop: {$workshopTitle}\n"
+        . "Category: {$categoryName}\n"
+        . "Date: {$dateText}\n"
+        . "Time: {$timeText}\n\n"
+        . "Your seat has been reserved successfully.\n"
+        . "The Zoom meeting link and access details will be sent to your email before the workshop starts.\n\n"
+        . "Thank you,\n"
+        . "SkillHub Team";
+
+    // Use a real IONOS-hosted email later if available.
+    $headers = "From: SkillHub <no-reply@s1098733524.onlinehome.us>\r\n"
+        . "Reply-To: no-reply@s1098733524.onlinehome.us\r\n"
+        . "Content-Type: text/plain; charset=UTF-8\r\n";
+
+    return @mail($email, $subject, $message, $headers);
+}
 
 try {
     $pdo->beginTransaction();
+        // Load workshop details for seat validation and the confirmation email.
+    $workshopStmt = $pdo->prepare("
+        SELECT workshops.workshop_id,
+               workshops.title,
+               workshops.workshop_date,
+               workshops.start_time,
+               workshops.end_time,
+               workshops.available_seats,
+               categories.category_name
+        FROM workshops
+        JOIN categories
+        ON workshops.category_id = categories.category_id
+        WHERE workshops.workshop_id = :workshop_id
+        LIMIT 1
+    ");
+
+    $workshopStmt->execute([
+        ':workshop_id' => $workshop_id
+    ]);
+
+    $workshop = $workshopStmt->fetch();
+
+    if (!$workshop) {
+        $pdo->rollBack();
+
+        echo json_encode([
+            'success' => false,
+            'message' => 'Workshop was not found.'
+        ]);
+        exit;
+    }
+
+    if ((int) $workshop['available_seats'] <= 0) {
+        $pdo->rollBack();
+
+        echo json_encode([
+            'success' => false,
+            'message' => 'This workshop is fully booked.'
+        ]);
+        exit;
+    }
 
     // Check if this user has already booked this workshop
     // Prevents the same person from booking the same workshop multiple times
@@ -67,55 +149,7 @@ try {
 
     $booking_id = $pdo->lastInsertId();
 
-    // Handles the optional supporting file upload.
-// The system validates the file extension and size,
-// renames the file with a unique name, stores it securely,
-// and saves its metadata in the database.
-
-    if (isset($_FILES['supporting_file']) && $_FILES['supporting_file']['error'] === UPLOAD_ERR_OK) {
-        $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-        $maxSize = 2 * 1024 * 1024;
-
-        $originalName = $_FILES['supporting_file']['name'];
-        $fileSize = $_FILES['supporting_file']['size'];
-        $tmpPath = $_FILES['supporting_file']['tmp_name'];
-
-        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-
-        if (!in_array($extension, $allowedExtensions)) {
-            throw new Exception('Invalid file type. Only PDF, JPG, JPEG, and PNG are allowed.');
-        }
-
-        if ($fileSize > $maxSize) {
-            throw new Exception('File size is too large. Maximum allowed size is 2MB.');
-        }
-
-        $storedName = uniqid('certificate_', true) . '.' . $extension;
-        $uploadDir = __DIR__ . '/../uploads/certificates/';
-        $filePath = $uploadDir . $storedName;
-        $dbPath = 'uploads/certificates/' . $storedName;
-
-        if (!move_uploaded_file($tmpPath, $filePath)) {
-            throw new Exception('Failed to upload the file.');
-        }
-
-        $uploadStmt = $pdo->prepare("
-            INSERT INTO uploads 
-            (booking_id, original_name, stored_name, file_path, file_type, file_size)
-            VALUES 
-            (:booking_id, :original_name, :stored_name, :file_path, :file_type, :file_size)
-        ");
-
-        $uploadStmt->execute([
-            ':booking_id' => $booking_id,
-            ':original_name' => $originalName,
-            ':stored_name' => $storedName,
-            ':file_path' => $dbPath,
-            ':file_type' => $extension,
-            ':file_size' => $fileSize
-        ]);
-    }
-
+    
     // Updates the number of available seats after a successful booking.
 // The condition prevents the number of seats from going below zero.
 
@@ -130,11 +164,27 @@ try {
         ':workshop_id' => $workshop_id
     ]);
 
+    // If no row was updated, the workshop had no available seats.
+    if ($seatStmt->rowCount() !== 1) {
+        throw new Exception('This workshop is fully booked.');
+    }
+
     $pdo->commit();
+
+    // Send email after commit so the booking is not lost if mail() fails.
+    $emailSent = send_booking_confirmation_email(
+        $email,
+        $first_name,
+        $last_name,
+        $workshop
+    );
 
     echo json_encode([
         'success' => true,
-        'message' => 'Booking confirmed successfully.'
+        'email_sent' => $emailSent,
+        'message' => $emailSent
+            ? 'Booking confirmed successfully. A confirmation email was sent.'
+            : 'Booking confirmed successfully, but the confirmation email could not be sent.'
     ]);
 
     // If an error occurs, the transaction is cancelled

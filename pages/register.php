@@ -116,8 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     . "SkillHub Team";
 
                 // These headers identify SkillHub as the sender and send the email as plain text.
-                $headers = "From: SkillHub <no-reply@skillhub.local>\r\n"
-                    . "Reply-To: no-reply@skillhub.local\r\n"
+                $headers = "From: SkillHub <nno-reply@s1098733524.onlinehome.us>\r\n"
+                    . "Reply-To: no-reply@s1098733524.onlinehome.us\r\n"
                     . "Content-Type: text/plain; charset=UTF-8\r\n";
 
                 // mail() returns false if the server does not accept the email for sending.

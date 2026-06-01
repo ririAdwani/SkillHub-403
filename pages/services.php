@@ -290,7 +290,7 @@ if (is_logged_in() && !is_admin()) {
 
         <h3>Workshop booked successfully</h3>
 
-        <p>
+        <p id="booking-success-message">
           Your seat has been reserved successfully.
           A confirmation email was sent with your booking details.
         </p>

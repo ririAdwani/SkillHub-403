@@ -378,11 +378,19 @@ async function submitWorkshopBooking() {
     });
 
     var result = await response.json();
+   if (result.success) {
+    var successMessage = document.getElementById("booking-success-message");
 
-    if (result.success) {
-      setBookingState("success");
-      return;
+    // Keep the modal honest if the booking worked but PHP mail() failed.
+    if (successMessage) {
+      successMessage.textContent = result.email_sent
+        ? "Your seat has been reserved successfully. A confirmation email was sent with your booking details."
+        : "Your seat has been reserved successfully, but the confirmation email could not be sent. You can still view the booking from your profile.";
     }
+
+    setBookingState("success");
+    return;
+  }
 
     // Special case: user already booked this workshop
     if (result.already_booked) {

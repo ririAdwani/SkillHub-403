@@ -16,20 +16,37 @@ $currentPage = $currentPage ?? '';
 $isLoggedIn = function_exists('is_logged_in') && is_logged_in();
 $isAdminUser = function_exists('is_admin') && is_admin();
 
-// Check if admin has replied to this user's feedback (to show notification dot)
+// Show notification dot on Feedback link only if:
+// - admin has replied to this user, AND
+// - user hasn't opened the replies tab yet (session flag)
 $hasAdminReply = false;
 if ($isLoggedIn && !$isAdminUser && function_exists('current_user_id')) {
+    // Don't show dot if user has already seen their replies
+    $seenAt = $_SESSION['replies_seen_at'] ?? 0;
     try {
         global $pdo;
         if ($pdo) {
+            // Check if any message was sent AFTER the user last viewed replies
             $replyCheck = $pdo->prepare(
-                "SELECT COUNT(*) FROM feedback WHERE user_id = :uid AND admin_reply IS NOT NULL AND admin_reply != ''"
+                "SELECT COUNT(*) FROM feedback_messages fm
+                 JOIN feedback f ON fm.feedback_id = f.feedback_id
+                 WHERE f.user_id = :uid AND UNIX_TIMESTAMP(fm.sent_at) > :seen"
             );
-            $replyCheck->execute([':uid' => current_user_id()]);
+            $replyCheck->execute([':uid' => current_user_id(), ':seen' => $seenAt]);
             $hasAdminReply = $replyCheck->fetchColumn() > 0;
         }
     } catch (Exception $e) {
-        $hasAdminReply = false;
+        // feedback_messages may not exist — fall back to admin_reply check
+        try {
+            global $pdo;
+            if ($pdo) {
+                $replyCheck = $pdo->prepare(
+                    "SELECT COUNT(*) FROM feedback WHERE user_id = :uid AND admin_reply IS NOT NULL AND admin_reply != ''"
+                );
+                $replyCheck->execute([':uid' => current_user_id()]);
+                $hasAdminReply = $replyCheck->fetchColumn() > 0 && $seenAt === 0;
+            }
+        } catch (Exception $e2) { $hasAdminReply = false; }
     }
 }
 ?>

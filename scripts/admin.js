@@ -386,10 +386,10 @@ function openReplyBox(feedbackId, existingText) {
   if (!box || !textarea) return;
 
   textarea.value = existingText || "";
-  box.hidden = false;
+  box.style.setProperty("display", "block", "important");
+  box.scrollIntoView({ block: "nearest" });
   textarea.focus();
 
-  // Hide the button row while editing
   const actions = document.getElementById("reply-actions-" + feedbackId);
   if (actions) actions.style.display = "none";
 }
@@ -397,7 +397,7 @@ function openReplyBox(feedbackId, existingText) {
 function closeReplyBox(feedbackId) {
   const box = document.getElementById("reply-box-" + feedbackId);
   const actions = document.getElementById("reply-actions-" + feedbackId);
-  if (box) box.hidden = true;
+  if (box) box.style.display = "none"; // NOT box.hidden = true
   if (actions) actions.style.display = "";
 }
 
@@ -430,34 +430,106 @@ async function submitReply(feedbackId) {
         .getElementById("reply-actions-" + feedbackId)
         .closest(".feedback-card");
 
-      // Update or create the reply display block
-      let replyDisplay = card.querySelector(".feedback-reply-display");
-      if (!replyDisplay) {
-        replyDisplay = document.createElement("div");
-        replyDisplay.className = "feedback-reply-display";
-        card.querySelector(".feedback-reply-actions").before(replyDisplay);
+      // Get or create the message history container
+      let historyContainer = card.querySelector(".feedback-message-history");
+      if (!historyContainer) {
+        historyContainer = document.createElement("div");
+        historyContainer.className = "feedback-message-history";
+        card.querySelector(".feedback-reply-actions").before(historyContainer);
       }
-      replyDisplay.innerHTML = `
-        <div class="feedback-reply-label"><i class="fa-solid fa-reply"></i> Your Reply</div>
-        <p>${replyText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
-      `;
 
-      // Switch button to "Edit Reply"
+      // Remove legacy single-reply display if present
+      const oldSingle = card.querySelector(
+        ".feedback-reply-display:not(.feedback-message-history .feedback-reply-display)",
+      );
+      if (oldSingle) oldSingle.remove();
+
+      // Build timestamp
+      const now = new Date();
+      const timeStr = now.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+
+      // Append new message as a double-click-editable bubble
+      // We don't have the message_id yet (need page reload for that)
+      // so double-click edit will work after next page load
+      const safeText = replyText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "feedback-reply-display admin-msg-bubble";
+      msgDiv.style.marginBottom = "8px";
+      msgDiv.title = "Double-click to edit";
+      msgDiv.innerHTML =
+        '<div class="feedback-reply-label">' +
+        '<i class="fa-solid fa-reply"></i> Admin · ' +
+        timeStr +
+        '<span class="msg-edit-hint">double-click to edit</span>' +
+        "</div>" +
+        '<p class="msg-text">' +
+        safeText +
+        "</p>";
+      historyContainer.appendChild(msgDiv);
+
+      // Restore all buttons (Edit Reply + New Message + Resolve)
+      // Never use innerHTML to replace — it loses the Resolve button
       const actions = document.getElementById("reply-actions-" + feedbackId);
       if (actions) {
-        actions.innerHTML = `
-          <button class="btn-reply-edit" onclick="openReplyBox(${feedbackId}, ${JSON.stringify(replyText)})">
-            <i class="fa-solid fa-pen"></i> Edit Reply
-          </button>
-        `;
+        // Update Edit Reply button onclick with new text, or create it
+        let editBtn = actions.querySelector(".btn-reply-edit, .btn-reply-open");
+        if (editBtn) {
+          editBtn.className = "btn-reply-edit";
+          editBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Reply';
+          editBtn.setAttribute(
+            "onclick",
+            "openReplyBox(" +
+              feedbackId +
+              ", " +
+              JSON.stringify(replyText) +
+              ")",
+          );
+        } else {
+          // First reply — add Edit Reply button before the Resolve button
+          const resolveBtn = actions.querySelector(".btn-resolve");
+          const newEditBtn = document.createElement("button");
+          newEditBtn.className = "btn-reply-edit";
+          newEditBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Reply';
+          newEditBtn.setAttribute(
+            "onclick",
+            "openReplyBox(" +
+              feedbackId +
+              ", " +
+              JSON.stringify(replyText) +
+              ")",
+          );
+          if (resolveBtn) {
+            actions.insertBefore(newEditBtn, resolveBtn);
+          } else {
+            actions.appendChild(newEditBtn);
+          }
+          // Also add New Message button
+          const newMsgBtn = document.createElement("button");
+          newMsgBtn.className = "btn-reply-new";
+          newMsgBtn.innerHTML = '<i class="fa-solid fa-plus"></i> New Message';
+          const name = textarea.getAttribute("placeholder") || "";
+          newMsgBtn.setAttribute(
+            "onclick",
+            "openNewMessage(" + feedbackId + ", '')",
+          );
+          if (resolveBtn) {
+            actions.insertBefore(newMsgBtn, resolveBtn);
+          } else {
+            actions.appendChild(newMsgBtn);
+          }
+        }
         actions.style.display = "";
       }
 
       closeReplyBox(feedbackId);
-
-      // Reduce the sidebar badge count (since this item now has a reply)
-      reduceFeedbackBadge();
-
       showToast("Reply sent!", "success");
     } else {
       showToast(result.message || "Could not send reply.", "error");

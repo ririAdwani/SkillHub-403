@@ -1,4 +1,4 @@
-We have gust browsing, regular user role, admin role.
+We have guest browsing, regular user role, admin role.
 
 Guest would be able to see the public pages, and required to log in for booking workshops (Redirect to login.php). 
 

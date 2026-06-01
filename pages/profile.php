@@ -40,6 +40,7 @@ require_once __DIR__ . '/../includes/auth.php';
 
 require_login();
 
+
 $basePath = '../';
 $currentPage = 'profile';
 
@@ -285,7 +286,8 @@ $bookingsError = '';
 if (!is_admin()) {
     try {
         $stmt = $pdo->prepare(
-            'SELECT bookings.booking_id,
+            'SELECT MIN(bookings.booking_id) AS booking_id,
+                    bookings.workshop_id,
                     bookings.email,
                     workshops.title,
                     workshops.workshop_date,
@@ -296,6 +298,9 @@ if (!is_admin()) {
              JOIN workshops ON bookings.workshop_id = workshops.workshop_id
              LEFT JOIN categories ON workshops.category_id = categories.category_id
              WHERE bookings.email = :email
+             GROUP BY bookings.workshop_id, workshops.title,
+                      workshops.workshop_date, workshops.start_time,
+                      workshops.end_time, categories.category_name
              ORDER BY workshops.workshop_date ASC, workshops.start_time ASC'
         );
         $stmt->execute(['email' => $user['email']]);

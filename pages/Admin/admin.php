@@ -54,6 +54,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_category_id'])) 
     }
 }
 
+// ── HANDLE: Edit a specific message ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit_message') {
+    header('Content-Type: application/json');
+    $msgId    = (int)($_POST['message_id']  ?? 0);
+    $feedbackId = (int)($_POST['feedback_id'] ?? 0);
+    $newText  = trim($_POST['new_text']     ?? '');
+    if ($msgId > 0 && $newText !== '') {
+        try {
+            $pdo->prepare("UPDATE feedback_messages SET message = :msg WHERE message_id = :id")
+                ->execute([':msg' => $newText, ':id' => $msgId]);
+            // Also update admin_reply to latest text
+            $pdo->prepare("UPDATE feedback SET admin_reply = :msg WHERE feedback_id = :fid")
+                ->execute([':msg' => $newText, ':fid' => $feedbackId]);
+            echo json_encode(['success' => true]);
+        } catch (PDOException $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Invalid data.']);
+    }
+    exit;
+}
+
 // ── HANDLE: Resolve feedback ──
 // Best practice: keep in DB but mark resolved=1 so admin can refer back.
 // The dashboard counter only shows unresolved items.
@@ -89,11 +112,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $reply = trim($_POST['admin_reply'] ?? '');
     if ($fid > 0 && $reply !== '') {
         try {
+            // Save to message history (messages stack, not overwrite)
+            try {
+                $pdo->prepare("INSERT INTO feedback_messages (feedback_id, sender, message) VALUES (:fid, 'admin', :msg)")
+                    ->execute([':fid' => $fid, ':msg' => $reply]);
+            } catch (PDOException $e2) { /* Table may not exist yet */ }
+            // Also keep admin_reply updated for quick access
             $pdo->prepare("UPDATE feedback SET admin_reply = :reply WHERE feedback_id = :id")
                 ->execute([':reply' => $reply, ':id' => $fid]);
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true, 'message' => $reply]);
         } catch (PDOException $e) {
-            echo json_encode(['success' => false, 'message' => 'Database error.']);
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
         }
     } else {
         echo json_encode(['success' => false, 'message' => 'Reply cannot be empty.']);
@@ -204,14 +233,38 @@ try {
     $fbStmt->execute($feedbackParams);
     $feedbackList = $fbStmt->fetchAll();
     $feedbackTableMissing = false;
+
+    // Load message history for each feedback item
+    $feedbackMessages = [];
+    try {
+        foreach ($feedbackList as $fb) {
+            $msgStmt = $pdo->prepare("SELECT * FROM feedback_messages WHERE feedback_id = :id ORDER BY sent_at ASC");
+            $msgStmt->execute([':id' => $fb['feedback_id']]);
+            $feedbackMessages[$fb['feedback_id']] = $msgStmt->fetchAll();
+        }
+    } catch (PDOException $e2) {
+        $feedbackMessages = []; // Table doesn't exist yet
+    }
 } catch (PDOException $e) {
     $feedbackList = [];
+    $feedbackMessages = [];
     $feedbackTableMissing = true;
 }
 
 $totalSeats = array_sum(array_column($workshops, 'available_seats'));
 
-// Which section is active (for sidebar highlight)
+// Load admin's profile image from DB
+try {
+    $adminStmt = $pdo->prepare("SELECT full_name, profile_image FROM users WHERE user_id = :id");
+    $adminStmt->execute([':id' => current_user_id()]);
+    $adminProfile = $adminStmt->fetch();
+    $adminProfileImage = $adminProfile['profile_image'] ?? null;
+    $adminFullName = $adminProfile['full_name'] ?? ($_SESSION['full_name'] ?? 'Admin');
+} catch (PDOException $e) {
+    $adminProfileImage = null;
+    $adminFullName = $_SESSION['full_name'] ?? 'Admin';
+}
+
 $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
 ?>
 <!doctype html>
@@ -243,11 +296,23 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
 
     <!-- Who is logged in -->
     <div class="admin-sidebar-user">
-      <div class="admin-sidebar-avatar">
-        <?= strtoupper(substr($_SESSION['full_name'] ?? 'A', 0, 1)) ?>
-      </div>
+      <?php if (!empty($adminProfileImage)): ?>
+        <!-- Show uploaded profile picture -->
+        <img src="<?= h('../../' . $adminProfileImage) ?>"
+          alt="<?= h($adminFullName) ?>"
+          class="admin-sidebar-avatar admin-sidebar-avatar-img"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+        <div class="admin-sidebar-avatar" style="display:none">
+          <?= strtoupper(substr($adminFullName, 0, 1)) ?>
+        </div>
+      <?php else: ?>
+        <!-- No profile picture — show initial -->
+        <div class="admin-sidebar-avatar">
+          <?= strtoupper(substr($adminFullName, 0, 1)) ?>
+        </div>
+      <?php endif; ?>
       <div class="admin-sidebar-user-info">
-        <strong><?= h($_SESSION['full_name'] ?? 'Admin') ?></strong>
+        <strong><?= h($adminFullName) ?></strong>
         <span class="admin-role-badge"><i class="fa-solid fa-shield-halved"></i> Administrator</span>
       </div>
     </div>
@@ -256,19 +321,19 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
     <nav class="admin-sidebar-nav">
       <p class="admin-sidebar-nav-label">Menu</p>
 
-      <a href="#" class="admin-sidebar-link <?= $activeSection !== 'feedback' ? 'active' : '' ?>" id="sidebar-link-workshops"
-        onclick="smoothScrollTo('top', this)">
+      <a href="#" class="admin-sidebar-link active" id="sidebar-link-workshops"
+        onclick="sidebarNav('top', this); return false;">
         <i class="fa-solid fa-gauge"></i>
         <span>Workshop Manager</span>
       </a>
 
       <a href="#instructors" class="admin-sidebar-link" id="sidebar-link-instructors"
-        onclick="smoothScrollTo('instructors', this)">
+        onclick="sidebarNav('instructors', this); return false;">
         <i class="fa-solid fa-chalkboard-user"></i>
         <span>Instructors</span>
       </a>
 
-      <a href="#feedback" class="admin-sidebar-link <?= $activeSection === 'feedback' ? 'active' : '' ?>" id="sidebar-link-feedback"
+      <a href="#feedback" class="admin-sidebar-link" id="sidebar-link-feedback"
         onclick="smoothScrollTo('feedback', this)">
         <i class="fa-solid fa-comments"></i>
         <span>Student Feedback</span>
@@ -634,34 +699,50 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
             </div>
             <?php endif; ?>
 
-            <?php if ($fb['admin_reply']): ?>
-            <div class="feedback-reply-display">
-              <div class="feedback-reply-label"><i class="fa-solid fa-reply"></i> Your Reply</div>
-              <p><?= h($fb['admin_reply']) ?></p>
-            </div>
-            <?php endif; ?>
+                          <?php
+                $msgs = $feedbackMessages[$fb['feedback_id']] ?? [];
+                if (!empty($msgs)):
+              ?>
+              <div class="feedback-message-history" id="msg-history-<?= $fb['feedback_id'] ?>">
+                <?php foreach ($msgs as $msg): ?>
+                <div class="feedback-reply-display admin-msg-bubble"
+                  style="margin-bottom:8px; cursor:pointer;"
+                  title="Double-click to edit"
+                  ondblclick="editMessage(<?= $fb['feedback_id'] ?>, <?= $msg['message_id'] ?>, this)">
+                  <div class="feedback-reply-label">
+                    <i class="fa-solid fa-reply"></i> Admin · <?= date('M j, g:i A', strtotime($msg['sent_at'])) ?>
+                    <span class="msg-edit-hint">double-click to edit</span>
+                  </div>
+                  <p class="msg-text"><?= h($msg['message']) ?></p>
+                  <!-- Inline edit form (hidden until double-click) -->
+                  <div class="msg-edit-form" style="display:none; margin-top:8px;">
+                    <textarea class="msg-edit-textarea" rows="2"><?= h($msg['message']) ?></textarea>
+                    <div style="display:flex; gap:8px; margin-top:6px;">
+                      <button class="btn-reply-save" onclick="saveEditedMessage(<?= $fb['feedback_id'] ?>, <?= $msg['message_id'] ?>, this)">
+                        <i class="fa-solid fa-check"></i> Save
+                      </button>
+                      <button class="btn-reply-cancel" onclick="cancelEditMessage(this)">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+                <?php endforeach; ?>
+              </div>
+              <?php elseif (!empty($fb['admin_reply'])): ?>
+              <div class="feedback-reply-display">
+                <div class="feedback-reply-label"><i class="fa-solid fa-reply"></i> Your Reply</div>
+                <p><?= h($fb['admin_reply']) ?></p>
+              </div>
+              <?php endif; ?>
 
             <!-- Reply area -->
             <div class="feedback-reply-actions" id="reply-actions-<?= $fb['feedback_id'] ?>">
 
-              <?php if (!$fb['admin_reply']): ?>
-                <!-- No reply yet — single Write Reply button -->
-                <button class="btn-reply-open"
-                  onclick="openReplyBox(<?= $fb['feedback_id'] ?>, '')">
-                  <i class="fa-solid fa-paper-plane"></i> Write Reply
-                </button>
-
-              <?php else: ?>
-                <!-- Has reply — show Edit Reply AND Send New Message -->
-                <button class="btn-reply-edit"
-                  onclick="openReplyBox(<?= $fb['feedback_id'] ?>, <?= json_encode($fb['admin_reply']) ?>)">
-                  <i class="fa-solid fa-pen"></i> Edit Reply
-                </button>
-                <button class="btn-reply-new"
-                  onclick="openNewMessage(<?= $fb['feedback_id'] ?>, '<?= h($fb['name']) ?>')">
-                  <i class="fa-solid fa-plus"></i> New Message
-                </button>
-              <?php endif; ?>
+              <!-- Write Reply always available -->
+              <button class="btn-reply-open"
+                onclick="openReplyBox(<?= $fb['feedback_id'] ?>, '')">
+                <i class="fa-solid fa-paper-plane"></i>
+                <?= $fb['admin_reply'] ? 'New Message' : 'Write Reply' ?>
+              </button>
 
               <!-- Resolve: hides from view, keeps in DB -->
               <button class="btn-resolve" id="resolve-btn-<?= $fb['feedback_id'] ?>"
@@ -670,8 +751,8 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
               </button>
             </div>
 
-            <!-- Hidden inline reply box — shown when button is clicked -->
-            <div class="feedback-reply-box" id="reply-box-<?= $fb['feedback_id'] ?>" hidden>
+            <!-- Inline reply box — hidden by default with style, shown by JS -->
+            <div class="feedback-reply-box" id="reply-box-<?= $fb['feedback_id'] ?>" style="display:none">
               <textarea id="reply-text-<?= $fb['feedback_id'] ?>"
                 placeholder="Write a reply to <?= h($fb['name']) ?>..."
                 rows="2"></textarea>
@@ -898,22 +979,17 @@ function cancelEditCategory(id) {
 
 <script>
   function openReplyBox(id, existingText) {
-    const box = document.getElementById('reply-box-' + id);
+    const box      = document.getElementById('reply-box-' + id);
     const textarea = document.getElementById('reply-text-' + id);
     if (!box || !textarea) return;
-    textarea.value = existingText || '';
-    // Remove hidden attribute AND force display with setAttribute
-    // setAttribute beats CSS !important because inline styles win over class rules
-    box.removeAttribute('hidden');
-    box.setAttribute('style', 'display:block !important; margin-top:12px;');
+    textarea.value     = existingText || '';
+    box.style.display  = 'block'; // Simple - no hidden attribute to fight
     textarea.focus();
   }
 
   function closeReplyBox(id) {
     const box = document.getElementById('reply-box-' + id);
-    if (box) {
-      box.setAttribute('style', 'display:none !important;');
-    }
+    if (box) box.style.display = 'none';
   }
 
   async function submitReply(id) {
@@ -999,14 +1075,66 @@ function cancelEditCategory(id) {
     document.getElementById('inst-edit-' + id).style.display = 'none';
   }
 
+  // ── DOUBLE-CLICK TO EDIT A MESSAGE ──────────────────────────
+  function editMessage(feedbackId, messageId, bubble) {
+    // Show the inline edit form inside this bubble
+    const editForm = bubble.querySelector('.msg-edit-form');
+    const msgText  = bubble.querySelector('.msg-text');
+    if (!editForm || !msgText) return;
+    msgText.style.display    = 'none';
+    editForm.style.display   = 'block';
+    const ta = editForm.querySelector('.msg-edit-textarea');
+    if (ta) { ta.focus(); ta.select(); }
+  }
+
+  function cancelEditMessage(btn) {
+    const editForm = btn.closest('.msg-edit-form');
+    const bubble   = btn.closest('.admin-msg-bubble');
+    if (!editForm || !bubble) return;
+    editForm.style.display = 'none';
+    const msgText = bubble.querySelector('.msg-text');
+    if (msgText) msgText.style.display = '';
+  }
+
+  async function saveEditedMessage(feedbackId, messageId, btn) {
+    const editForm = btn.closest('.msg-edit-form');
+    const bubble   = btn.closest('.admin-msg-bubble');
+    const ta       = editForm ? editForm.querySelector('.msg-edit-textarea') : null;
+    if (!ta) return;
+
+    const newText = ta.value.trim();
+    if (!newText) { alert('Message cannot be empty.'); return; }
+
+    const formData = new FormData();
+    formData.append('action',     'edit_message');
+    formData.append('message_id', messageId);
+    formData.append('new_text',   newText);
+    formData.append('feedback_id', feedbackId);
+
+    const res    = await fetch('admin.php', { method: 'POST', body: formData });
+    const result = await res.json();
+
+    if (result.success) {
+      // Update displayed text
+      const msgText = bubble.querySelector('.msg-text');
+      if (msgText) {
+        msgText.textContent    = newText;
+        msgText.style.display  = '';
+      }
+      editForm.style.display = 'none';
+      showAdminToast('Message updated.', 'success');
+    } else {
+      alert(result.message || 'Could not update message.');
+    }
+  }
+
   function openNewMessage(id, name) {
-    const box = document.getElementById('reply-box-' + id);
+    const box      = document.getElementById('reply-box-' + id);
     const textarea = document.getElementById('reply-text-' + id);
     if (!box || !textarea) return;
-    textarea.value = '';
+    textarea.value       = '';
     textarea.placeholder = 'Write a new message to ' + name + '...';
-    box.removeAttribute('hidden');
-    box.setAttribute('style', 'display:block !important; margin-top:12px;');
+    box.style.display    = 'block';
     textarea.focus();
   }
 
@@ -1023,5 +1151,56 @@ function cancelEditCategory(id) {
   }
 </script>
 <script src="../../scripts/admin.js?v=8"></script>
+<script>
+// ── SIDEBAR NAVIGATION ──────────────────────────────────────────
+// Handles active highlighting + smooth scroll for all sidebar links
+function sidebarNav(sectionId, clickedLink) {
+  // 1. Remove active from all links
+  document.querySelectorAll('.admin-sidebar-link').forEach(function(l) {
+    l.classList.remove('active');
+  });
+  // 2. Add active to the clicked link
+  if (clickedLink) clickedLink.classList.add('active');
+  // 3. Scroll to section
+  if (sectionId === 'top') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    var el = document.getElementById(sectionId);
+    if (el) {
+      var y = el.getBoundingClientRect().top + window.pageYOffset - 20;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }
+}
+
+// Auto-highlight based on scroll position
+// Uses window height to detect which section takes up most of the viewport
+window.addEventListener('scroll', function() {
+  var activeLinkId = 'sidebar-link-workshops';
+
+  // Check sections from bottom to top — last one that's entered viewport wins
+  var sections = [
+    { id: 'instructors', link: 'sidebar-link-instructors' },
+    { id: 'feedback',    link: 'sidebar-link-feedback' }
+  ];
+
+  sections.forEach(function(s) {
+    var el = document.getElementById(s.id);
+    if (el) {
+      var rect = el.getBoundingClientRect();
+      // Section is active if its top is within the top half of the screen
+      if (rect.top <= window.innerHeight * 0.5) {
+        activeLinkId = s.link;
+      }
+    }
+  });
+
+  document.querySelectorAll('.admin-sidebar-link').forEach(function(l) {
+    l.classList.remove('active');
+  });
+  var activeEl = document.getElementById(activeLinkId);
+  if (activeEl) activeEl.classList.add('active');
+});
+</script>
 </body>
 </html>

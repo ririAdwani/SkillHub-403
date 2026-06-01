@@ -394,6 +394,49 @@ function openReplyBox(feedbackId, existingText) {
   if (actions) actions.style.display = "none";
 }
 
+// Inline edit helpers for dynamically added bubbles (no DB message_id)
+function saveInlineEdit(btn, feedbackId) {
+  var editForm = btn.closest(".msg-edit-form");
+  var bubble = btn.closest(".admin-msg-bubble");
+  var ta = editForm ? editForm.querySelector(".msg-edit-textarea") : null;
+  if (!ta) return;
+  var newText = ta.value.trim();
+  if (!newText) {
+    alert("Message cannot be empty.");
+    return;
+  }
+  var formData = new FormData();
+  formData.append("action", "reply_feedback");
+  formData.append("feedback_id", feedbackId);
+  formData.append("admin_reply", newText);
+  fetch("admin.php", { method: "POST", body: formData })
+    .then(function (r) {
+      return r.json();
+    })
+    .then(function (res) {
+      if (res.success) {
+        var mt = bubble.querySelector(".msg-text");
+        if (mt) {
+          mt.textContent = newText;
+          mt.style.display = "";
+        }
+        editForm.style.display = "none";
+        showToast("Message updated.", "success");
+      } else {
+        alert(res.message || "Could not update.");
+      }
+    });
+}
+
+function cancelInlineEdit(btn) {
+  var editForm = btn.closest(".msg-edit-form");
+  var bubble = btn.closest(".admin-msg-bubble");
+  if (!editForm || !bubble) return;
+  editForm.style.display = "none";
+  var mt = bubble.querySelector(".msg-text");
+  if (mt) mt.style.display = "";
+}
+
 function closeReplyBox(feedbackId) {
   const box = document.getElementById("reply-box-" + feedbackId);
   const actions = document.getElementById("reply-actions-" + feedbackId);
@@ -472,53 +515,61 @@ async function submitReply(feedbackId) {
         "</div>" +
         '<p class="msg-text">' +
         safeText +
-        "</p>";
+        "</p>" +
+        '<div class="msg-edit-form" style="display:none;margin-top:8px;">' +
+        '<textarea class="msg-edit-textarea" rows="2">' +
+        safeText +
+        "</textarea>" +
+        '<div style="display:flex;gap:8px;margin-top:6px;">' +
+        '<button class="btn-reply-save" onclick="saveInlineEdit(this,' +
+        feedbackId +
+        ')"><i class="fa-solid fa-check"></i> Save</button>' +
+        '<button class="btn-reply-cancel" onclick="cancelInlineEdit(this)">Cancel</button>' +
+        "</div>" +
+        "</div>";
+      // Wire up double-click on this dynamically created bubble
+      msgDiv.addEventListener("dblclick", function () {
+        var ef = msgDiv.querySelector(".msg-edit-form");
+        var mt = msgDiv.querySelector(".msg-text");
+        if (!ef || !mt) return;
+        mt.style.display = "none";
+        ef.style.display = "block";
+        var ta = ef.querySelector(".msg-edit-textarea");
+        if (ta) {
+          ta.focus();
+          ta.select();
+        }
+      });
       historyContainer.appendChild(msgDiv);
 
-      // Restore all buttons (Edit Reply + New Message + Resolve)
-      // Never use innerHTML to replace — it loses the Resolve button
+      // Update the actions row after sending a reply
+      // Rules: NO Edit Reply button ever. Show: New Message + Resolve only.
       const actions = document.getElementById("reply-actions-" + feedbackId);
       if (actions) {
-        // Update Edit Reply button onclick with new text, or create it
-        let editBtn = actions.querySelector(".btn-reply-edit, .btn-reply-open");
-        if (editBtn) {
-          editBtn.className = "btn-reply-edit";
-          editBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Reply';
-          editBtn.setAttribute(
+        const resolveBtn = actions.querySelector(".btn-resolve");
+
+        // Remove any Edit Reply button that might exist
+        actions.querySelectorAll(".btn-reply-edit").forEach((b) => b.remove());
+
+        // Change Write Reply button to New Message, or add it if missing
+        let writeBtn = actions.querySelector(".btn-reply-open");
+        if (writeBtn) {
+          // Rename to New Message
+          writeBtn.innerHTML =
+            '<i class="fa-solid fa-paper-plane"></i> New Message';
+          writeBtn.setAttribute(
             "onclick",
-            "openReplyBox(" +
-              feedbackId +
-              ", " +
-              JSON.stringify(replyText) +
-              ")",
+            "openReplyBox(" + feedbackId + ", '')",
           );
-        } else {
-          // First reply — add Edit Reply button before the Resolve button
-          const resolveBtn = actions.querySelector(".btn-resolve");
-          const newEditBtn = document.createElement("button");
-          newEditBtn.className = "btn-reply-edit";
-          newEditBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Reply';
-          newEditBtn.setAttribute(
-            "onclick",
-            "openReplyBox(" +
-              feedbackId +
-              ", " +
-              JSON.stringify(replyText) +
-              ")",
-          );
-          if (resolveBtn) {
-            actions.insertBefore(newEditBtn, resolveBtn);
-          } else {
-            actions.appendChild(newEditBtn);
-          }
-          // Also add New Message button
+        } else if (!actions.querySelector(".btn-reply-new")) {
+          // First reply — create New Message button
           const newMsgBtn = document.createElement("button");
-          newMsgBtn.className = "btn-reply-new";
-          newMsgBtn.innerHTML = '<i class="fa-solid fa-plus"></i> New Message';
-          const name = textarea.getAttribute("placeholder") || "";
+          newMsgBtn.className = "btn-reply-open";
+          newMsgBtn.innerHTML =
+            '<i class="fa-solid fa-paper-plane"></i> New Message';
           newMsgBtn.setAttribute(
             "onclick",
-            "openNewMessage(" + feedbackId + ", '')",
+            "openReplyBox(" + feedbackId + ", '')",
           );
           if (resolveBtn) {
             actions.insertBefore(newMsgBtn, resolveBtn);
@@ -526,7 +577,8 @@ async function submitReply(feedbackId) {
             actions.appendChild(newMsgBtn);
           }
         }
-        actions.style.display = "";
+
+        actions.style.display = ""; // Make sure row is visible
       }
 
       closeReplyBox(feedbackId);

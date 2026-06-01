@@ -1019,11 +1019,12 @@ function cancelEditCategory(id) {
         card.querySelector('.feedback-reply-actions').before(displayDiv);
       }
 
-      const openBtn = card.querySelector('.btn-reply-open');
+      // Rename Write Reply → New Message. Never show Edit Reply button.
+      const openBtn = card.querySelector('.btn-reply-open, .btn-reply-edit');
       if (openBtn) {
-        openBtn.className = 'btn-reply-edit';
-        openBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Reply';
-        openBtn.setAttribute('onclick', 'openReplyBox(' + id + ', ' + JSON.stringify(reply) + ')');
+        openBtn.className = 'btn-reply-open';
+        openBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> New Message';
+        openBtn.setAttribute('onclick', "openReplyBox(" + id + ", '')");
       }
 
       closeReplyBox(id);
@@ -1085,6 +1086,34 @@ function cancelEditCategory(id) {
     editForm.style.display   = 'block';
     const ta = editForm.querySelector('.msg-edit-textarea');
     if (ta) { ta.focus(); ta.select(); }
+  }
+
+  // Saves edit for a newly sent bubble (no DB message_id yet — updates reply box text)
+  async function saveNewBubble(btn, feedbackId) {
+    const editForm = btn.closest('.msg-edit-form');
+    const bubble   = btn.closest('.admin-msg-bubble');
+    const ta       = editForm ? editForm.querySelector('.msg-edit-textarea') : null;
+    if (!ta) return;
+    const newText = ta.value.trim();
+    if (!newText) { alert('Message cannot be empty.'); return; }
+
+    // Update via reply_feedback action (updates admin_reply + latest message)
+    const formData = new FormData();
+    formData.append('action',      'reply_feedback');
+    formData.append('feedback_id', feedbackId);
+    formData.append('admin_reply', newText);
+
+    const res    = await fetch('admin.php', { method: 'POST', body: formData });
+    const result = await res.json();
+
+    if (result.success) {
+      const msgText = bubble.querySelector('.msg-text');
+      if (msgText) { msgText.textContent = newText; msgText.style.display = ''; }
+      editForm.style.display = 'none';
+      showAdminToast('Message updated.', 'success');
+    } else {
+      alert(result.message || 'Could not update.');
+    }
   }
 
   function cancelEditMessage(btn) {

@@ -1,6 +1,24 @@
 -- This file contains the database table structure for SkillHub.
--- Run these SQL commands in the MySQL database before using the website.
 
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: users
+-- Stores every registered account on the platform.
+--
+-- Columns:
+--   user_id       → auto-generated unique ID for each user
+--   full_name     → user's display name (shown in navbar, profile)
+--   email         → login email — must be unique across all users
+--   password_hash → bcrypt hash from PHP's password_hash()
+--                   NEVER store plain-text passwords here
+--   role          → 'user' = regular student, 'admin' = site admin
+--                   Admin gets access to the dashboard; user cannot
+--   profile_image → relative path to uploaded profile picture
+--                   e.g. uploads/profile_pictures/abc123.jpg
+--                   NULL if no picture has been uploaded
+--   created_at    → when the account was created (auto-set)
+--   updated_at    → auto-updates whenever the row is changed
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   full_name VARCHAR(100) NOT NULL,
@@ -12,22 +30,66 @@ CREATE TABLE users (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: categories
+-- Workshop categories shown in the filter dropdown on Services
+-- and in the Add/Edit workshop dropdown in the admin dashboard.
+--
+-- Columns:
+--   category_id   → auto-generated unique ID
+--   category_name → display name e.g. 'Web Development', 'AI Tools'
+--                   UNIQUE prevents duplicate category names
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
     category_name VARCHAR(100) NOT NULL UNIQUE
 );
 
+
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: workshops
+-- Each row is one workshop session available for booking.
+-- Shown on the Services page and the Schedule page.
+--
+-- Columns:
+--   workshop_id     → auto-generated unique ID
+--   title           → workshop name e.g. 'Python for Beginners'
+--   description     → what students will learn in this session
+--   category_id     → links to categories table (FOREIGN KEY)
+--                     must match an existing category
+--   instructor_id   → links to instructors table (FOREIGN KEY)
+--                     NULL if no instructor has been assigned yet
+--   workshop_date   → date the workshop takes place (YYYY-MM-DD)
+--   start_time      → time the workshop starts (HH:MM:SS)
+--   end_time        → time the workshop ends — must be after start
+--   available_seats → seats left for booking; decreases by 1 each
+--                     time a student books; never goes below 0
+--   image_path      → optional path to a workshop image file
+--                     NULL shows a placeholder card instead
+--   created_at      → when the workshop was added
+--   updated_at      → auto-updates when the workshop is edited
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE workshops (
-    workshop_id INT AUTO_INCREMENT PRIMARY KEY,
-    category_id INT NOT NULL,
-    title VARCHAR(150) NOT NULL,
-    description TEXT NOT NULL,
-    image_path VARCHAR(255) NOT NULL,
-    workshop_date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    available_seats INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    workshop_id      INT AUTO_INCREMENT PRIMARY KEY,
+    title            VARCHAR(200) NOT NULL,
+    description      TEXT         NOT NULL,
+    category_id      INT          NOT NULL,
+    instructor_id    INT          DEFAULT NULL,
+    workshop_date    DATE         NOT NULL,
+    start_time       TIME         NOT NULL,
+    end_time         TIME         NOT NULL,
+    available_seats  INT          NOT NULL DEFAULT 30,
+    image_path       VARCHAR(255) DEFAULT NULL,
+    created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    -- If a category is deleted, block the delete to protect workshops
+    FOREIGN KEY (category_id)  REFERENCES categories(category_id),
+    -- If an instructor is deleted, set their workshops to unassigned
+    FOREIGN KEY (instructor_id) REFERENCES instructors(instructor_id) ON DELETE SET NULL
 
     CONSTRAINT fk_workshops_category
         FOREIGN KEY (category_id)
@@ -36,6 +98,24 @@ CREATE TABLE workshops (
         ON DELETE RESTRICT
 );
 
+
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: bookings
+-- Each row is one workshop reservation made by a student.
+-- Shown in the student's profile under "My Bookings".
+--
+-- Columns:
+--   booking_id  → auto-generated unique ID
+--   workshop_id → which workshop was booked (FOREIGN KEY)
+--                 ON DELETE CASCADE: if workshop is deleted,
+--                 all its bookings are automatically removed
+--   first_name  → student's first name at time of booking
+--   last_name   → student's last name (optional)
+--   email       → student's email — used to identify the user
+--                 and to prevent double-booking the same workshop
+--   created_at  → when the booking was made
+-- ────────────────────────────────────────────────────────────
 CREATE TABLE bookings (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NULL,
@@ -61,18 +141,114 @@ CREATE TABLE bookings (
         UNIQUE (email, workshop_id)
 );
 
-Admin query: INSERT INTO users (full_name, email, password_hash, role)
 
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: instructors
+-- People who lead workshops. Admin can add/edit instructors
+-- from the dashboard and assign them to workshops.
+--
+-- Columns:
+--   instructor_id → auto-generated unique ID
+--   full_name     → instructor's full name e.g. 'Ahmed Hassan'
+--   title         → honorific e.g. 'Dr.', 'Prof.', 'Mr.'
+--                   NULL if no title
+--   email         → instructor's contact email (optional)
+--   created_at    → when the instructor record was added
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS instructors (
+    instructor_id  INT AUTO_INCREMENT PRIMARY KEY,
+    full_name      VARCHAR(150) NOT NULL,
+    title          VARCHAR(100) DEFAULT NULL,
+    email          VARCHAR(150) DEFAULT NULL,
+    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+-- Seed instructors — INSERT IGNORE skips duplicates
+INSERT IGNORE INTO instructors (instructor_id, full_name, title, email) VALUES
+    (1, 'Ahmed Hassan', 'Dr.',   'a.hassan@skillhub.edu'),
+    (2, 'Lina Torres',  'Prof.', 'l.torres@skillhub.edu'),
+    (3, 'Sarah Kim',    'Dr.',   's.kim@skillhub.edu'),
+    (4, 'James Park',   'Mr.',   'j.park@skillhub.edu');
+
+
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: feedback
+-- Stores feedback submitted by students via the Feedback page.
+-- Admin can view all submissions on the dashboard, reply to them,
+-- and mark them as resolved.
+--
+-- Columns:
+--   feedback_id          → auto-generated unique ID
+--   user_id              → links to the user who submitted it
+--                          ON DELETE SET NULL: keeps feedback even
+--                          if the user account is later deleted
+--   name                 → student's name at time of submission
+--   email                → student's email
+--   rating               → overall rating: Good / Average / Poor
+--   workshops_interested → comma-separated workshop interests
+--                          e.g. 'web-dev, ai-tools'
+--   preferred_time       → preferred session time e.g. 'morning'
+--   comments             → open-ended feedback text from student
+--   admin_reply          → the most recent admin reply (quick-view)
+--                          full history is in feedback_messages table
+--   resolved             → 0 = active, 1 = resolved (hidden from view)
+--                          resolved feedback stays in DB for reference
+--   submitted_at         → when the student submitted the form
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS feedback (
+    feedback_id           INT AUTO_INCREMENT PRIMARY KEY,
+    user_id               INT           DEFAULT NULL,
+    name                  VARCHAR(100)  NOT NULL,
+    email                 VARCHAR(150)  NOT NULL,
+    rating                ENUM('Good', 'Average', 'Poor') NOT NULL,
+    workshops_interested  VARCHAR(255)  DEFAULT NULL,
+    preferred_time        VARCHAR(50)   DEFAULT NULL,
+    comments              TEXT          DEFAULT NULL,
+    admin_reply           TEXT          DEFAULT NULL,
+    resolved              TINYINT(1)    NOT NULL DEFAULT 0,
+    submitted_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+
+
+-- ────────────────────────────────────────────────────────────
+-- TABLE: feedback_messages
+-- Stores the full history of admin replies to each feedback item.
+-- Unlike feedback.admin_reply (which only keeps the latest),
+-- this table stacks all messages so nothing is overwritten.
+-- Each time the admin sends or edits a reply, a new row is added.
+--
+-- Columns:
+--   message_id  → auto-generated unique ID
+--   feedback_id → which feedback this message belongs to
+--                 ON DELETE CASCADE: removed if feedback is deleted
+--   sender      → always 'admin' for now (future: could add 'user')
+--   message     → the reply text sent by the admin
+--   sent_at     → when the message was sent
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS feedback_messages (
+    message_id   INT AUTO_INCREMENT PRIMARY KEY,
+    feedback_id  INT NOT NULL,
+    sender       ENUM('admin') NOT NULL DEFAULT 'admin',
+    message      TEXT NOT NULL,
+    sent_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (feedback_id) REFERENCES feedback(feedback_id) ON DELETE CASCADE
+);
+
+
+
+
+Admin query: 
+INSERT INTO users (full_name, email, password_hash, role)
 VALUES (
-
   'Admin',
-
   'admin_skilhub@outlook.sa',
-
   'cbhw249s@mdkA',
-
   'admin'
-
 );
 
 

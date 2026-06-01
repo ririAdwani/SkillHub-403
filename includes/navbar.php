@@ -15,6 +15,23 @@ $currentPage = $currentPage ?? '';
 
 $isLoggedIn = function_exists('is_logged_in') && is_logged_in();
 $isAdminUser = function_exists('is_admin') && is_admin();
+
+// Check if admin has replied to this user's feedback (to show notification dot)
+$hasAdminReply = false;
+if ($isLoggedIn && !$isAdminUser && function_exists('current_user_id')) {
+    try {
+        global $pdo;
+        if ($pdo) {
+            $replyCheck = $pdo->prepare(
+                "SELECT COUNT(*) FROM feedback WHERE user_id = :uid AND admin_reply IS NOT NULL AND admin_reply != ''"
+            );
+            $replyCheck->execute([':uid' => current_user_id()]);
+            $hasAdminReply = $replyCheck->fetchColumn() > 0;
+        }
+    } catch (Exception $e) {
+        $hasAdminReply = false;
+    }
+}
 ?>
 
 <header>
@@ -61,8 +78,17 @@ $isAdminUser = function_exists('is_admin') && is_admin();
 
           <?php if ($isLoggedIn): ?>
             <li>
-              <a href="<?= $basePath ?>pages/feedback.php" class="<?= $currentPage === 'feedback' ? 'active' : '' ?>">
+              <a href="<?= $basePath ?>pages/feedback.php" class="<?= $currentPage === 'feedback' ? 'active' : '' ?>" style="position:relative;">
                 <i class="fa-solid fa-comments"></i> Feedback
+                <?php if ($hasAdminReply): ?>
+                  <!-- Red dot: admin has replied to user's feedback -->
+                  <span style="
+                    position:absolute; top:-4px; right:-8px;
+                    width:8px; height:8px; border-radius:50%;
+                    background:#ef4444; display:inline-block;
+                    box-shadow:0 0 0 2px #fff;
+                  "></span>
+                <?php endif; ?>
               </a>
             </li>
 

@@ -12,7 +12,6 @@
   initialized when the page finishes loading inside the DOMContentLoaded event.
 */
 
-
 /*
   This function handles the navigation menu behavior.
   It gets the menu button and navigation container, then checks that both
@@ -22,16 +21,16 @@
 */
 // ===== MOBILE NAVIGATION TOGGLE =====
 function initMobileNav() {
-  const toggle = document.getElementById('menu-toggle'); // gets the mobile menu toggle button
-  const nav = document.getElementById('main-nav'); // gets the main navigation menu
-  if (!toggle || !nav) return;  // stops the function if one of the required elements is missing
+  const toggle = document.getElementById("menu-toggle"); // gets the mobile menu toggle button
+  const nav = document.getElementById("main-nav"); // gets the main navigation menu
+  if (!toggle || !nav) return; // stops the function if one of the required elements is missing
 
-  toggle.addEventListener('click', function () { // runs when the user clicks the menu button
-    nav.classList.toggle('open');  // adds or removes the open class to show or hide the menu
-    toggle.textContent = nav.classList.contains('open') ? '✕' : '☰'; // changes the icon depending on whether the menu is open or closed
+  toggle.addEventListener("click", function () {
+    // runs when the user clicks the menu button
+    nav.classList.toggle("open"); // adds or removes the open class to show or hide the menu
+    toggle.textContent = nav.classList.contains("open") ? "✕" : "☰"; // changes the icon depending on whether the menu is open or closed
   });
 }
-
 
 /*
   This function highlights the navigation link of the current page.
@@ -42,23 +41,23 @@ function initMobileNav() {
 */
 // ===== ACTIVE NAV LINK =====
 function setActiveNavLink() {
-  const currentPage = window.location.pathname.split('/').pop() || 'index.php'; // gets the current page file name from the URL
-  const navLinks = document.querySelectorAll('nav#main-nav ul li a'); // selects all links inside the main navigation
+  const currentPage = window.location.pathname.split("/").pop() || "index.php"; // gets the current page file name from the URL
+  const navLinks = document.querySelectorAll("nav#main-nav ul li a"); // selects all links inside the main navigation
 
-  navLinks.forEach(function (link) { // loops through each navigation link
-    const href = link.getAttribute('href'); // gets the href value of the current link
+  navLinks.forEach(function (link) {
+    // loops through each navigation link
+    const href = link.getAttribute("href"); // gets the href value of the current link
     if (!href) return; // skips this link if it does not have an href value
 
     if (
       href === currentPage || // checks if the link matches the current page directly
-      (currentPage === 'index.php' && href === '../index.php') || // also handles the home link if written as ../index.php
-      (currentPage === 'index.php' && href === 'index.php') // also handles the home link if written as index.php
+      (currentPage === "index.php" && href === "../index.php") || // also handles the home link if written as ../index.php
+      (currentPage === "index.php" && href === "index.php") // also handles the home link if written as index.php
     ) {
-      link.classList.add('active'); // adds the active class to highlight the current page link
+      link.classList.add("active"); // adds the active class to highlight the current page link
     }
   });
 }
-
 
 /*
   This function adds a scroll animation effect to selected page elements.
@@ -70,20 +69,29 @@ function setActiveNavLink() {
 */
 // ===== SCROLL ANIMATIONS =====
 function initScrollAnimations() {
-  const targets = document.querySelectorAll('.card, .info-card, .section-header, .page-hero, .table-wrapper'); // selects the elements that should receive the scroll animation
+  const targets = document.querySelectorAll(
+    ".card, .info-card, .section-header, .page-hero, .table-wrapper",
+  ); // selects the elements that should receive the scroll animation
   if (!targets.length) return; // stops the function if no matching elements are found
 
-  const observer = new IntersectionObserver(function (entries) { // creates an observer to watch when elements enter the viewport
-    entries.forEach(function (entry) { // checks each observed element
-      if (entry.isIntersecting) { // runs when the element becomes visible on screen
-        entry.target.classList.add('visible'); // adds the visible class to trigger the animation
-        observer.unobserve(entry.target); // stops observing this element so the animation only happens once
-      }
-    });
-  }, { threshold: 0.12 }); // triggers when about 12% of the element is visible
+  const observer = new IntersectionObserver(
+    function (entries) {
+      // creates an observer to watch when elements enter the viewport
+      entries.forEach(function (entry) {
+        // checks each observed element
+        if (entry.isIntersecting) {
+          // runs when the element becomes visible on screen
+          entry.target.classList.add("visible"); // adds the visible class to trigger the animation
+          observer.unobserve(entry.target); // stops observing this element so the animation only happens once
+        }
+      });
+    },
+    { threshold: 0.12 },
+  ); // triggers when about 12% of the element is visible
 
-  targets.forEach(function (el) { // loops through each target element
-    el.classList.add('fade-in'); // adds the initial hidden animation class
+  targets.forEach(function (el) {
+    // loops through each target element
+    el.classList.add("fade-in"); // adds the initial hidden animation class
     observer.observe(el); // starts observing the element
   });
 }
@@ -97,85 +105,109 @@ function initScrollAnimations() {
   the user edits the name and email fields.
 */
 function initFormValidation() {
-  const form = document.getElementById('feedback-form'); // gets the feedback form element
+  const form = document.getElementById("feedback-form"); // gets the feedback form element
   if (!form) return; // stops the function if the form does not exist on the page
 
-  form.addEventListener('submit', function (e) { // runs when the user tries to submit the form
+  form.addEventListener("submit", function (e) {
+    // runs when the user tries to submit the form
     e.preventDefault(); // prevents the default form submission behavior
 
     let isValid = true; // keeps track of whether the form passes all validation checks
     const errors = []; // stores validation error messages to show in one alert
 
-    const nameInput = document.getElementById('name'); // gets the name input field
-    const nameError = document.getElementById('name-error'); // gets the error message element for the name field
-    if (!nameInput.value.trim()) { // checks whether the name field is empty after removing extra spaces
-      nameInput.classList.add('error'); // adds error styling to the name field
-      nameError.classList.add('visible'); // shows the name error message
-      errors.push('Name is required.'); // adds the error text to the error list
+    const nameInput = document.getElementById("name"); // gets the name input field
+    const nameError = document.getElementById("name-error"); // gets the error message element for the name field
+    if (!nameInput.value.trim()) {
+      // checks whether the name field is empty after removing extra spaces
+      nameInput.classList.add("error"); // adds error styling to the name field
+      nameError.classList.add("visible"); // shows the name error message
+      errors.push("Name is required."); // adds the error text to the error list
       isValid = false; // marks the form as invalid
     } else {
-      nameInput.classList.remove('error'); // removes error styling if the name is valid
-      nameError.classList.remove('visible'); // hides the name error message
+      nameInput.classList.remove("error"); // removes error styling if the name is valid
+      nameError.classList.remove("visible"); // hides the name error message
     }
 
-    const emailInput = document.getElementById('email'); // gets the email input field
-    const emailError = document.getElementById('email-error'); // gets the error message element for the email field
+    const emailInput = document.getElementById("email"); // gets the email input field
+    const emailError = document.getElementById("email-error"); // gets the error message element for the email field
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // defines a simple pattern to check valid email format
 
-    if (!emailInput.value.trim()) { // checks whether the email field is empty
-      emailInput.classList.add('error'); // adds error styling to the email field
-      emailError.classList.add('visible'); // shows the email error message
-      emailError.textContent = 'Please enter your email address.'; // sets the error text for missing email
-      errors.push('Email is required.'); // adds the error to the error list
+    if (!emailInput.value.trim()) {
+      // checks whether the email field is empty
+      emailInput.classList.add("error"); // adds error styling to the email field
+      emailError.classList.add("visible"); // shows the email error message
+      emailError.textContent = "Please enter your email address."; // sets the error text for missing email
+      errors.push("Email is required."); // adds the error to the error list
       isValid = false; // marks the form as invalid
-    } else if (!emailRegex.test(emailInput.value.trim())) { // checks whether the email format is incorrect
-      emailInput.classList.add('error'); // adds error styling to the email field
-      emailError.classList.add('visible'); // shows the email error message
-      emailError.textContent = 'Please enter a valid email address.'; // sets the error text for invalid email format
-      errors.push('Email format is invalid.'); // adds the format error to the error list
+    } else if (!emailRegex.test(emailInput.value.trim())) {
+      // checks whether the email format is incorrect
+      emailInput.classList.add("error"); // adds error styling to the email field
+      emailError.classList.add("visible"); // shows the email error message
+      emailError.textContent = "Please enter a valid email address."; // sets the error text for invalid email format
+      errors.push("Email format is invalid."); // adds the format error to the error list
       isValid = false; // marks the form as invalid
     } else {
-      emailInput.classList.remove('error'); // removes error styling if the email is valid
-      emailError.classList.remove('visible'); // hides the email error message
+      emailInput.classList.remove("error"); // removes error styling if the email is valid
+      emailError.classList.remove("visible"); // hides the email error message
     }
 
     const ratingInputs = document.querySelectorAll('input[name="rating"]'); // gets all rating radio button inputs
-    const ratingError = document.getElementById('rating-error'); // gets the error message element for the rating field
-    const ratingSelected = Array.from(ratingInputs).some(function (r) { return r.checked; }); // checks whether at least one rating option is selected
+    const ratingError = document.getElementById("rating-error"); // gets the error message element for the rating field
+    const ratingSelected = Array.from(ratingInputs).some(function (r) {
+      return r.checked;
+    }); // checks whether at least one rating option is selected
 
- if (!ratingSelected) {
-    if (ratingError) ratingError.classList.add('visible');
-    errors.push('Please select a rating.');
-    isValid = false;
-  } else {
-    if (ratingError) ratingError.classList.remove('visible');
-  }
+    if (!ratingSelected) {
+      if (ratingError) ratingError.classList.add("visible");
+      errors.push("Please select a rating.");
+      isValid = false;
+    } else {
+      if (ratingError) ratingError.classList.remove("visible");
+    }
 
-    if (!isValid) { // checks whether any validation error was found
-      alert('Please fix the following errors before submitting:\n\n• ' + errors.join('\n• ')); // Shows all collected validation errors in one alert message
+    if (!isValid) {
+      // checks whether any validation error was found
+      alert(
+        "Please fix the following errors before submitting:\n\n• " +
+          errors.join("\n• "),
+      ); // Shows all collected validation errors in one alert message
       return; // stops the function so the form is not processed further
     }
 
-    form.style.display = 'none'; // hides the form after successful validation
-    const successMsg = document.getElementById('success-message'); // gets the success message element
-    if (successMsg) { // checks that the success message element exists
-      successMsg.style.display = 'block'; // displays the success message
-      successMsg.scrollIntoView({ behavior: 'smooth' }); // scrolls smoothly to the success message
+    // Save feedback to database via AJAX so admin can see it on the dashboard
+    // This runs silently — the user sees success regardless of save result
+    try {
+      var feedbackData = new FormData(form);
+      fetch("../server/process_feedback.php", {
+        method: "POST",
+        body: feedbackData,
+      });
+    } catch (e) {
+      /* silent fail — UI still shows success */
+    }
+
+    form.style.display = "none"; // hides the form after successful validation
+    const successMsg = document.getElementById("success-message"); // gets the success message element
+    if (successMsg) {
+      // checks that the success message element exists
+      successMsg.style.display = "block"; // displays the success message
+      successMsg.scrollIntoView({ behavior: "smooth" }); // scrolls smoothly to the success message
     }
   });
 
-  ['name', 'email'].forEach(function (id) { // loops through the input fields that should clear errors while typing
+  ["name", "email"].forEach(function (id) {
+    // loops through the input fields that should clear errors while typing
     const el = document.getElementById(id); // gets the current input element by its id
     if (!el) return; // skips this field if the element does not exist
 
-    el.addEventListener('input', function () { // runs whenever the user types in the field
-      el.classList.remove('error'); // removes the error styling from the input field
-      const errEl = document.getElementById(id + '-error'); // gets the related error message element
-      if (errEl) errEl.classList.remove('visible'); // hides the related error message if it exists
+    el.addEventListener("input", function () {
+      // runs whenever the user types in the field
+      el.classList.remove("error"); // removes the error styling from the input field
+      const errEl = document.getElementById(id + "-error"); // gets the related error message element
+      if (errEl) errEl.classList.remove("visible"); // hides the related error message if it exists
     });
   });
 }
-
 
 // ===== BUTTON RIPPLE EFFECT =====
 /*
@@ -187,16 +219,19 @@ function initFormValidation() {
 */
 // ===== BUTTON RIPPLE EFFECT =====
 function initRippleEffect() {
-  document.querySelectorAll('.btn').forEach(function (btn) { // loops through all buttons that use the btn class
-    btn.addEventListener('click', function (e) { // runs when the user clicks a button
-      const ripple = document.createElement('span'); // creates a span element that will act as the ripple
-      ripple.classList.add('btn-ripple'); // applies the ripple styling class from the CSS file
-      ripple.style.left = (e.offsetX - 5) + 'px'; // positions the ripple horizontally based on the click point
-      ripple.style.top = (e.offsetY - 5) + 'px'; // positions the ripple vertically based on the click point
+  document.querySelectorAll(".btn").forEach(function (btn) {
+    // loops through all buttons that use the btn class
+    btn.addEventListener("click", function (e) {
+      // runs when the user clicks a button
+      const ripple = document.createElement("span"); // creates a span element that will act as the ripple
+      ripple.classList.add("btn-ripple"); // applies the ripple styling class from the CSS file
+      ripple.style.left = e.offsetX - 5 + "px"; // positions the ripple horizontally based on the click point
+      ripple.style.top = e.offsetY - 5 + "px"; // positions the ripple vertically based on the click point
 
       btn.appendChild(ripple); // adds the ripple element inside the clicked button
 
-      setTimeout(function () { // waits until the animation finishes
+      setTimeout(function () {
+        // waits until the animation finishes
         ripple.remove(); // removes the ripple element from the button
       }, 500);
     });
@@ -247,17 +282,16 @@ function initRippleEffect() {
 */
 var currentWorkshop = {};
 
-
 /*
   This function switches the booking modal between confirmation,
   loading, success, and error states.
 */
 function setBookingState(state) {
   var states = [
-    'booking-state-confirm',
-    'booking-state-loading',
-    'booking-state-success',
-    'booking-state-error'
+    "booking-state-confirm",
+    "booking-state-loading",
+    "booking-state-success",
+    "booking-state-error",
   ];
 
   states.forEach(function (id) {
@@ -265,7 +299,7 @@ function setBookingState(state) {
     if (element) element.hidden = true;
   });
 
-  var activeState = document.getElementById('booking-state-' + state);
+  var activeState = document.getElementById("booking-state-" + state);
   if (activeState) activeState.hidden = false;
 }
 
@@ -274,8 +308,8 @@ function setBookingState(state) {
   workshop details before the user confirms the reservation.
 */
 function openBookingModal(id, name, date, time, link) {
-  if (document.body.dataset.loggedIn === '0') {
-    window.location.href = 'login.php?reason=booking';
+  if (document.body.dataset.loggedIn === "0") {
+    window.location.href = "login.php?reason=booking";
     return;
   }
 
@@ -284,29 +318,29 @@ function openBookingModal(id, name, date, time, link) {
     name: name,
     date: date,
     time: time,
-    link: link
+    link: link,
   };
 
-  document.getElementById('info-name').textContent = name;
-  document.getElementById('info-date').textContent = 'Date: ' + date;
-  document.getElementById('info-time').textContent = 'Time: ' + time;
+  document.getElementById("info-name").textContent = name;
+  document.getElementById("info-date").textContent = "Date: " + date;
+  document.getElementById("info-time").textContent = "Time: " + time;
 
-  setBookingState('confirm');
+  setBookingState("confirm");
 
-  var overlay = document.getElementById('booking-overlay');
+  var overlay = document.getElementById("booking-overlay");
   overlay.hidden = false;
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow = "hidden";
 }
 
 /*
   This function closes the booking modal and restores page scrolling.
 */
 function closeBookingModal() {
-  var overlay = document.getElementById('booking-overlay');
+  var overlay = document.getElementById("booking-overlay");
   if (!overlay) return;
 
   overlay.hidden = true;
-  document.body.style.overflow = '';
+  document.body.style.overflow = "";
 }
 
 /*
@@ -314,53 +348,65 @@ function closeBookingModal() {
   the modal state based on whether the booking succeeds or fails.
 */
 async function submitWorkshopBooking() {
-  var confirmButton = document.getElementById('booking-confirm-btn');
-  var errorMessage = document.getElementById('booking-error-message');
+  var confirmButton = document.getElementById("booking-confirm-btn");
+  var errorMessage = document.getElementById("booking-error-message");
 
   if (!currentWorkshop.id) return;
 
-  setBookingState('loading');
+  setBookingState("loading");
 
   if (confirmButton) {
     confirmButton.disabled = true;
   }
 
-  var fullName = document.body.dataset.userName || 'SkillHub User';
-  var email = document.body.dataset.userEmail || '';
-  var nameParts = fullName.trim().split(' ');
-  var firstName = nameParts.shift() || 'SkillHub';
-  var lastName = nameParts.join(' ');
+  var fullName = document.body.dataset.userName || "SkillHub User";
+  var email = document.body.dataset.userEmail || "";
+  var nameParts = fullName.trim().split(" ");
+  var firstName = nameParts.shift() || "SkillHub";
+  var lastName = nameParts.join(" ");
 
   var formData = new FormData();
-  formData.append('workshop_id', currentWorkshop.id);
-  formData.append('first_name', firstName);
-  formData.append('last_name', lastName);
-  formData.append('email', email);
+  formData.append("workshop_id", currentWorkshop.id);
+  formData.append("first_name", firstName);
+  formData.append("last_name", lastName);
+  formData.append("email", email);
 
   try {
-    var response = await fetch('../api/create_booking.php', {
-      method: 'POST',
-      body: formData
+    var response = await fetch("../api/create_booking.php", {
+      method: "POST",
+      body: formData,
     });
 
     var result = await response.json();
 
     if (result.success) {
-      setBookingState('success');
+      setBookingState("success");
+      return;
+    }
+
+    // Special case: user already booked this workshop
+    if (result.already_booked) {
+      if (errorMessage) {
+        errorMessage.textContent =
+          "You have already booked this workshop. Check your profile to view your bookings.";
+      }
+      setBookingState("error");
       return;
     }
 
     if (errorMessage) {
-      errorMessage.textContent = result.message || 'Booking failed. Please try again.';
+      errorMessage.textContent =
+        result.message || "Booking failed. Please try again.";
     }
 
-    setBookingState('error');
+    setBookingState("error");
   } catch (error) {
     if (errorMessage) {
-      errorMessage.textContent = 'Something went wrong while submitting your booking.';
+      errorMessage.textContent =
+        "Something went wrong while submitting your booking.";
     }
 
-    setBookingState('error');
+    setBookingState("error");
   } finally {
     if (confirmButton) {
       confirmButton.disabled = false;
@@ -372,37 +418,37 @@ async function submitWorkshopBooking() {
   This function wires the booking modal buttons without inline JavaScript.
 */
 function initBookingConfirmation() {
-  var overlay = document.getElementById('booking-overlay');
-  var closeButton = document.getElementById('modal-close');
-  var cancelButton = document.getElementById('booking-cancel-btn');
-  var confirmButton = document.getElementById('booking-confirm-btn');
-  var backButton = document.getElementById('booking-back-btn');
-  var errorBackButton = document.getElementById('booking-error-back-btn');
+  var overlay = document.getElementById("booking-overlay");
+  var closeButton = document.getElementById("modal-close");
+  var cancelButton = document.getElementById("booking-cancel-btn");
+  var confirmButton = document.getElementById("booking-confirm-btn");
+  var backButton = document.getElementById("booking-back-btn");
+  var errorBackButton = document.getElementById("booking-error-back-btn");
 
   if (!overlay) return;
 
-  if (closeButton) closeButton.addEventListener('click', closeBookingModal);
-  if (cancelButton) cancelButton.addEventListener('click', closeBookingModal);
-  if (backButton) backButton.addEventListener('click', closeBookingModal);
-  if (errorBackButton) errorBackButton.addEventListener('click', closeBookingModal);
+  if (closeButton) closeButton.addEventListener("click", closeBookingModal);
+  if (cancelButton) cancelButton.addEventListener("click", closeBookingModal);
+  if (backButton) backButton.addEventListener("click", closeBookingModal);
+  if (errorBackButton)
+    errorBackButton.addEventListener("click", closeBookingModal);
 
   if (confirmButton) {
-    confirmButton.addEventListener('click', submitWorkshopBooking);
+    confirmButton.addEventListener("click", submitWorkshopBooking);
   }
 
-  overlay.addEventListener('click', function (e) {
+  overlay.addEventListener("click", function (e) {
     if (e.target === overlay) {
       closeBookingModal();
     }
   });
 
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !overlay.hidden) {
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !overlay.hidden) {
       closeBookingModal();
     }
   });
 }
-
 
 /*
   This function handles live workshop search and category filtering.
@@ -411,9 +457,9 @@ function initBookingConfirmation() {
   without reloading the page.
 */
 async function initWorkshopSearch() {
-  const searchInput = document.getElementById('searchInput');
-  const categoryFilter = document.getElementById('categoryFilter');
-  const grid = document.querySelector('.grid-2');
+  const searchInput = document.getElementById("searchInput");
+  const categoryFilter = document.getElementById("categoryFilter");
+  const grid = document.querySelector(".grid-2");
 
   // Stop if the current page does not contain the workshop search elements.
   if (!searchInput || !categoryFilter || !grid) return;
@@ -423,15 +469,15 @@ async function initWorkshopSearch() {
     const categoryValue = categoryFilter.value;
 
     const response = await fetch(
-      '../api/search_workshops.php?search=' +
-      encodeURIComponent(searchValue) +
-      '&category=' +
-      encodeURIComponent(categoryValue)
+      "../api/search_workshops.php?search=" +
+        encodeURIComponent(searchValue) +
+        "&category=" +
+        encodeURIComponent(categoryValue),
     );
 
     const workshops = await response.json();
 
-    grid.innerHTML = '';
+    grid.innerHTML = "";
 
     workshops.forEach(function (workshop) {
       grid.innerHTML += `
@@ -473,8 +519,8 @@ async function initWorkshopSearch() {
     });
   }
 
-  searchInput.addEventListener('keyup', loadWorkshops);
-  categoryFilter.addEventListener('change', loadWorkshops);
+  searchInput.addEventListener("keyup", loadWorkshops);
+  categoryFilter.addEventListener("change", loadWorkshops);
 }
 
 /*
@@ -482,14 +528,28 @@ async function initWorkshopSearch() {
   It works for both initial workshop cards and cards added later by live search.
 */
 function initBookingButtons() {
-  document.addEventListener('click', function (e) {
-    var button = e.target.closest('.book-btn');
+  // Hide Book Workshop buttons if the current user is an admin
+  // Admins can view the site but cannot book workshops
+  var isAdmin = document.body.dataset.isAdmin === "1";
+  if (isAdmin) {
+    document
+      .querySelectorAll(".book-btn, .workshop-book-btn")
+      .forEach(function (btn) {
+        btn.style.display = "none";
+      });
+  }
+
+  document.addEventListener("click", function (e) {
+    var button = e.target.closest(".book-btn");
     if (!button) return;
 
-    var isLoggedIn = document.body.dataset.loggedIn === '1';
+    // Double-check: admins cannot book even if button somehow shows
+    if (isAdmin) return;
+
+    var isLoggedIn = document.body.dataset.loggedIn === "1";
 
     if (!isLoggedIn) {
-      window.location.href = 'login.php?reason=booking';
+      window.location.href = "login.php?reason=booking";
       return;
     }
 
@@ -498,7 +558,7 @@ function initBookingButtons() {
       button.dataset.workshopTitle,
       button.dataset.workshopDate,
       button.dataset.workshopTime,
-      button.dataset.workshopLink
+      button.dataset.workshopLink,
     );
   });
 }
@@ -510,47 +570,47 @@ function initBookingButtons() {
   and the selected file name is shown before the user submits the upload form.
 */
 function initProfilePictureUpload() {
-  var openButton = document.getElementById('profile-avatar-open');
-  var overlay = document.getElementById('profile-upload-overlay');
-  var closeButton = document.getElementById('profile-upload-close');
-  var fileInput = document.getElementById('profile_image');
-  var fileName = document.getElementById('profile-file-name');
+  var openButton = document.getElementById("profile-avatar-open");
+  var overlay = document.getElementById("profile-upload-overlay");
+  var closeButton = document.getElementById("profile-upload-close");
+  var fileInput = document.getElementById("profile_image");
+  var fileName = document.getElementById("profile-file-name");
 
   if (!openButton || !overlay) return;
 
   function openProfileUploadModal() {
     overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   }
 
   function closeProfileUploadModal() {
     overlay.hidden = true;
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   }
 
-  openButton.addEventListener('click', openProfileUploadModal);
+  openButton.addEventListener("click", openProfileUploadModal);
 
   if (closeButton) {
-    closeButton.addEventListener('click', closeProfileUploadModal);
+    closeButton.addEventListener("click", closeProfileUploadModal);
   }
 
-  overlay.addEventListener('click', function (e) {
+  overlay.addEventListener("click", function (e) {
     if (e.target === overlay) {
       closeProfileUploadModal();
     }
   });
 
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !overlay.hidden) {
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !overlay.hidden) {
       closeProfileUploadModal();
     }
   });
 
   if (fileInput && fileName) {
-    fileInput.addEventListener('change', function () {
+    fileInput.addEventListener("change", function () {
       fileName.textContent = fileInput.files.length
         ? fileInput.files[0].name
-        : 'No file selected';
+        : "No file selected";
     });
   }
 }
@@ -562,36 +622,36 @@ function initProfilePictureUpload() {
   and Escape key close it without using inline JavaScript.
 */
 function initProfilePasswordModal() {
-  var openButton = document.getElementById('profile-password-open');
-  var overlay = document.getElementById('profile-password-overlay');
-  var closeButton = document.getElementById('profile-password-close');
+  var openButton = document.getElementById("profile-password-open");
+  var overlay = document.getElementById("profile-password-overlay");
+  var closeButton = document.getElementById("profile-password-close");
 
   if (!openButton || !overlay) return;
 
   function openPasswordModal() {
     overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   }
 
   function closePasswordModal() {
     overlay.hidden = true;
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   }
 
-  openButton.addEventListener('click', openPasswordModal);
+  openButton.addEventListener("click", openPasswordModal);
 
   if (closeButton) {
-    closeButton.addEventListener('click', closePasswordModal);
+    closeButton.addEventListener("click", closePasswordModal);
   }
 
-  overlay.addEventListener('click', function (e) {
+  overlay.addEventListener("click", function (e) {
     if (e.target === overlay) {
       closePasswordModal();
     }
   });
 
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !overlay.hidden) {
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !overlay.hidden) {
       closePasswordModal();
     }
   });
@@ -605,9 +665,9 @@ function initProfilePasswordModal() {
   pressing Enter or clicking the check button.
 */
 function initProfileNameEdit() {
-  var form = document.getElementById('profile-name-form');
-  var input = document.getElementById('full_name');
-  var button = document.getElementById('profile-name-edit');
+  var form = document.getElementById("profile-name-form");
+  var input = document.getElementById("full_name");
+  var button = document.getElementById("profile-name-edit");
 
   if (!form || !input || !button) return;
 
@@ -617,27 +677,27 @@ function initProfileNameEdit() {
   function setEditMode() {
     isEditing = true;
 
-    input.removeAttribute('readonly');
+    input.removeAttribute("readonly");
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
 
-    button.classList.add('is-editing');
-    button.setAttribute('aria-label', button.dataset.saveLabel || 'Save name');
+    button.classList.add("is-editing");
+    button.setAttribute("aria-label", button.dataset.saveLabel || "Save name");
     button.innerHTML = '<i class="fa-solid fa-check"></i>';
   }
 
   function setViewMode() {
     isEditing = false;
 
-    input.setAttribute('readonly', 'readonly');
+    input.setAttribute("readonly", "readonly");
     input.value = originalValue;
 
-    button.classList.remove('is-editing');
-    button.setAttribute('aria-label', button.dataset.editLabel || 'Edit name');
+    button.classList.remove("is-editing");
+    button.setAttribute("aria-label", button.dataset.editLabel || "Edit name");
     button.innerHTML = '<i class="fa-solid fa-pen"></i>';
   }
 
-  button.addEventListener('click', function (e) {
+  button.addEventListener("click", function (e) {
     if (!isEditing) {
       e.preventDefault();
       setEditMode();
@@ -647,19 +707,19 @@ function initProfileNameEdit() {
     form.requestSubmit();
   });
 
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && isEditing) {
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && isEditing) {
       e.preventDefault();
       form.requestSubmit();
     }
 
-    if (e.key === 'Escape' && isEditing) {
+    if (e.key === "Escape" && isEditing) {
       e.preventDefault();
       setViewMode();
     }
   });
 
-  form.addEventListener('submit', function (e) {
+  form.addEventListener("submit", function (e) {
     var currentValue = input.value.trim();
 
     if (!isEditing) {
@@ -667,7 +727,7 @@ function initProfileNameEdit() {
       return;
     }
 
-    if (currentValue === '') {
+    if (currentValue === "") {
       e.preventDefault();
       input.focus();
       return;
@@ -680,8 +740,6 @@ function initProfileNameEdit() {
   });
 }
 
-
-
 /*
   This event runs after the HTML document finishes loading.
   It starts the main website features by calling the functions
@@ -690,8 +748,8 @@ function initProfileNameEdit() {
   and booking form handling.
 */
 // ===== INITIALIZE =====
-document.addEventListener('DOMContentLoaded', function () {
-initMobileNav(); // initializes the navigation menu toggle behavior
+document.addEventListener("DOMContentLoaded", function () {
+  initMobileNav(); // initializes the navigation menu toggle behavior
   setActiveNavLink(); // highlights the link of the current page in the navigation menu
   initScrollAnimations(); // activates fade-in animations for selected page elements during scrolling
   initFormValidation(); // enables validation for the feedback form

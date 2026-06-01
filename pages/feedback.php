@@ -6,11 +6,34 @@
 
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/db.php';
 
 require_login();
 
 $basePath = '../';
 $currentPage = 'feedback';
+
+// Load this user's previous feedback submissions and any admin replies
+// so they can see if the admin has responded to them
+$myFeedback = [];
+try {
+    $fbStmt = $pdo->prepare(
+        "SELECT * FROM feedback WHERE user_id = :uid ORDER BY submitted_at DESC"
+    );
+    $fbStmt->execute([':uid' => current_user_id()]);
+    $myFeedback = $fbStmt->fetchAll();
+} catch (PDOException $e) {
+    $myFeedback = []; // Table might not exist yet — fail silently
+}
+
+// Count unreplied feedback for notification
+$hasUnreadReply = false;
+foreach ($myFeedback as $fb) {
+    if (!empty($fb['admin_reply'])) {
+        $hasUnreadReply = true;
+        break;
+    }
+}
 ?>
 
 <!doctype html>
@@ -44,6 +67,37 @@ $currentPage = 'feedback';
         </p>
       </div>
     </div>
+
+    <!-- ===== ADMIN REPLIES SECTION ===== -->
+    <!-- Shows replies the admin has sent to this user's previous feedback submissions -->
+    <?php if (!empty($myFeedback)): ?>
+    <section class="section" style="padding-bottom:0;">
+      <div class="container" style="max-width:760px;">
+        <?php foreach ($myFeedback as $fb): ?>
+          <?php if (!empty($fb['admin_reply'])): ?>
+          <div class="feedback-reply-notification">
+            <div class="frn-header">
+              <div class="frn-icon"><i class="fa-solid fa-reply"></i></div>
+              <div>
+                <strong>SkillHub replied to your feedback</strong>
+                <span><?= date('M j, Y · g:i A', strtotime($fb['submitted_at'])) ?></span>
+              </div>
+            </div>
+            <?php if ($fb['comments']): ?>
+              <div class="frn-your-comment">
+                <i class="fa-solid fa-quote-left"></i> <?= h($fb['comments']) ?>
+              </div>
+            <?php endif; ?>
+            <div class="frn-reply">
+              <div class="frn-reply-label">Admin Reply</div>
+              <p><?= h($fb['admin_reply']) ?></p>
+            </div>
+          </div>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <?php endif; ?>
 
     <!-- ===== FEEDBACK FORM ===== -->
     <section class="section">

@@ -20,6 +20,21 @@ $stmt = $pdo->query("
 
 $workshops = $stmt->fetchAll();
 
+// Load workshop IDs the current user has already booked
+// so we can grey out and label those Book buttons as "Already Booked"
+$bookedWorkshopIds = [];
+if (is_logged_in() && !is_admin()) {
+    try {
+        $bookedStmt = $pdo->prepare(
+            'SELECT DISTINCT workshop_id FROM bookings WHERE email = :email'
+        );
+        $bookedStmt->execute(['email' => $_SESSION['email'] ?? '']);
+        $bookedWorkshopIds = array_column($bookedStmt->fetchAll(), 'workshop_id');
+    } catch (PDOException $e) {
+        $bookedWorkshopIds = [];
+    }
+}
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -39,6 +54,7 @@ $workshops = $stmt->fetchAll();
   <!-- Attributes inside Body tag lets main.js know if the user is logged in -->
   <body
     data-logged-in="<?= is_logged_in() ? '1' : '0' ?>"
+    data-is-admin="<?= is_admin() ? '1' : '0' ?>"
     data-user-name="<?= h($_SESSION['full_name'] ?? '') ?>"
     data-user-email="<?= h($_SESSION['email'] ?? '') ?>"
   >
@@ -76,10 +92,12 @@ $workshops = $stmt->fetchAll();
 
             <select id="categoryFilter">
               <option value="">All Categories</option>
-              <option value="Web Development">Web Development</option>
-              <option value="UI/UX Design">UI/UX Design</option>
-              <option value="Data Analysis">Data Analysis</option>
-              <option value="Cybersecurity">Cybersecurity</option>
+              <?php
+                $catStmt = $pdo->query("SELECT category_name FROM categories ORDER BY category_name ASC");
+                foreach ($catStmt->fetchAll() as $cat):
+              ?>
+                <option value="<?= h($cat['category_name']) ?>"><?= h($cat['category_name']) ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
         </div>
@@ -88,11 +106,24 @@ $workshops = $stmt->fetchAll();
 
     <div class="card">
 
+        <?php
+            // Show image if path exists, otherwise show a styled placeholder
+            $imgPath = $workshop['image_path'] ?? '';
+            $hasImg  = $imgPath !== '' && $imgPath !== null;
+        ?>
+        <?php if ($hasImg): ?>
         <img
-            src="<?php echo htmlspecialchars($workshop['image_path']); ?>"
-            alt="<?php echo $workshop['title']; ?>"
+            src="<?= h($imgPath) ?>"
+            alt="<?= h($workshop['title']) ?>"
             class="card-img"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
         />
+        <?php endif; ?>
+        <!-- Default placeholder shown when no image is set or image fails to load -->
+        <div class="card-img-placeholder" <?= $hasImg ? 'style="display:none"' : '' ?>>
+            <i class="fa-solid fa-book-open"></i>
+            <span><?= h($workshop['category_name']) ?></span>
+        </div>
 
         <div class="card-body">
 
@@ -120,6 +151,15 @@ $workshops = $stmt->fetchAll();
 
             </div>
 
+          <?php
+            $isBooked = in_array($workshop['workshop_id'], $bookedWorkshopIds);
+          ?>
+          <?php if ($isBooked): ?>
+            <button type="button" class="btn btn-booked-already" disabled>
+              <i class="fa-solid fa-circle-check"></i>
+              Already Booked
+            </button>
+          <?php else: ?>
           <button
             type="button"
             class="btn btn-primary book-btn workshop-book-btn"
@@ -132,6 +172,7 @@ $workshops = $stmt->fetchAll();
             <i class="fa-solid fa-calendar-days"></i>
             Book Workshop
           </button>
+          <?php endif; ?>
 
         </div>
 

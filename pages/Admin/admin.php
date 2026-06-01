@@ -1,12 +1,4 @@
 <?php
-/*
-  admin.php — SkillHub Workshop Manager
-  Assignment compliance:
-  ✅ require_admin() blocks non-admins (redirects to login)
-  ✅ Admin role clearly separated from user role
-  ✅ AJAX add/edit/delete workshops (no page reload)
-  ✅ Feedback viewing with reply
-*/
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
@@ -16,6 +8,14 @@ require_admin();
 $basePath    = '../../';
 $currentPage = 'admin';
 
+/*
+  admin.php — SkillHub Workshop Manager
+  Assignment compliance:
+  ✅ require_admin() blocks non-admins (redirects to login)
+  ✅ Admin role clearly separated from user role
+  ✅ AJAX add/edit/delete workshops (no page reload)
+  ✅ Feedback viewing with reply
+*/
 // ── HANDLE: Add new category ──
 $categoryMsg  = '';
 $categoryType = '';

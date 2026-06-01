@@ -756,6 +756,33 @@ function initProfileNameEdit() {
   });
 }
 
+// ===== LOCAL TIME DISPLAY =====
+/*
+  Converts UTC timestamps printed by PHP into the user's browser timezone.
+  This avoids showing IONOS/MySQL server time directly to users.
+*/
+function initLocalTimeDisplay() {
+  var timeElements = document.querySelectorAll(".js-local-time");
+  if (!timeElements.length) return;
+
+  timeElements.forEach(function (element) {
+    var utcTime = element.dataset.utcTime;
+    if (!utcTime) return;
+
+    var date = new Date(utcTime);
+    if (Number.isNaN(date.getTime())) return;
+
+    element.textContent = date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  });
+}
+
 /*
   This event runs after the HTML document finishes loading.
   It starts the main website features by calling the functions
@@ -776,4 +803,5 @@ document.addEventListener("DOMContentLoaded", function () {
   initWorkshopSearch(); // enables live workshop search and filtering
   initBookingButtons(); // controls guest redirect and logged-in booking modal
   initBookingConfirmation(); // controls booking confirmation, loading, and success states
+  initLocalTimeDisplay(); // formats UTC timestamps using the user's browser timezone
 });

@@ -52,9 +52,9 @@ try {
     // user_id links to the logged-in user so admin knows who sent it
     $stmt = $pdo->prepare("
         INSERT INTO feedback 
-            (user_id, name, email, rating, workshops_interested, preferred_time, comments)
+            (user_id, name, email, rating, workshops_interested, preferred_time, comments, submitted_at)
         VALUES 
-            (:user_id, :name, :email, :rating, :workshops, :preference, :comments)
+            (:user_id, :name, :email, :rating, :workshops, :preference, :comments, UTC_TIMESTAMP())
     ");
 
     $stmt->execute([

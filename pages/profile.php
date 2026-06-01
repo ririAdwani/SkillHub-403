@@ -194,7 +194,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($_FILES['profile_image']) || $_FILES['profile_image']['error'] === UPLOAD_ERR_NO_FILE) {
             $errors[] = 'Please choose a profile picture to upload.';
         } elseif ($_FILES['profile_image']['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = 'The file could not be uploaded. Please try again.';
+            // Map PHP upload error codes to human-readable messages
+            $uploadErrors = [
+                UPLOAD_ERR_INI_SIZE   => 'File is too large. Maximum allowed by server is ' . ini_get('upload_max_filesize') . '.',
+                UPLOAD_ERR_FORM_SIZE  => 'File exceeds the 2MB limit.',
+                UPLOAD_ERR_PARTIAL    => 'Upload was interrupted. Please try again.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Server temporary folder is missing. Contact admin.',
+                UPLOAD_ERR_CANT_WRITE => 'Cannot write to disk. Check folder permissions on uploads/profile_pictures/',
+                UPLOAD_ERR_EXTENSION  => 'Upload blocked by server extension.',
+            ];
+            $errCode = $_FILES['profile_image']['error'];
+            $errors[] = $uploadErrors[$errCode] ?? 'Upload error code ' . $errCode . '. Please try again.';
         } elseif ($_FILES['profile_image']['size'] > $maxFileSize) {
             $errors[] = 'Profile picture must not exceed 2MB.';
         } elseif (!is_uploaded_file($_FILES['profile_image']['tmp_name'])) {

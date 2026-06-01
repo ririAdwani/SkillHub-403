@@ -36,6 +36,23 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 try {
     $pdo->beginTransaction();
 
+    // Check if this user has already booked this workshop
+    // Prevents the same person from booking the same workshop multiple times
+    $checkDupe = $pdo->prepare(
+        "SELECT COUNT(*) FROM bookings WHERE workshop_id = :workshop_id AND email = :email"
+    );
+    $checkDupe->execute([':workshop_id' => $workshop_id, ':email' => $email]);
+    
+    if ($checkDupe->fetchColumn() > 0) {
+        $pdo->rollBack();
+        echo json_encode([
+            'success' => false,
+            'message' => 'You have already booked this workshop.',
+            'already_booked' => true
+        ]);
+        exit;
+    }
+
     $bookingStmt = $pdo->prepare("
         INSERT INTO bookings (workshop_id, first_name, last_name, email)
         VALUES (:workshop_id, :first_name, :last_name, :email)

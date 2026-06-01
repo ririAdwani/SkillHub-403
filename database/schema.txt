@@ -170,7 +170,8 @@ INSERT IGNORE INTO instructors (instructor_id, full_name, title, email) VALUES
     (3, 'Sarah Kim',    'Dr.',   's.kim@skillhub.edu'),
     (4, 'James Park',   'Mr.',   'j.park@skillhub.edu');
 
-
+INSERT INTO instructors (title, full_name, email)
+VALUES ('Dr.', 'Omar Al-Farsi', 'o.alfarsi@skillhub.edu');
 
 -- ────────────────────────────────────────────────────────────
 -- TABLE: feedback

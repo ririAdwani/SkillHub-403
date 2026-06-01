@@ -5,6 +5,22 @@ require_once __DIR__ . '/includes/db.php';
 $basePath = '';
 $currentPage = 'home';
 
+// Load homepage statistics from the database so the hero numbers stay accurate.
+$categoryCount = 0;
+$workshopCount = 0;
+$instructorCount = 0;
+
+try {
+    $categoryCount = (int) $pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn();
+    $workshopCount = (int) $pdo->query('SELECT COUNT(*) FROM workshops')->fetchColumn();
+    $instructorCount = (int) $pdo->query('SELECT COUNT(*) FROM instructors')->fetchColumn();
+} catch (PDOException $e) {
+    // Fallbacks keep the homepage readable if one stats query fails.
+    $categoryCount = 5;
+    $workshopCount = 10;
+    $instructorCount = 5;
+}
+
 // Load up to 4 featured workshops from the database
 // These replace the static hardcoded cards
 $featuredWorkshops = $pdo->query("
@@ -62,17 +78,19 @@ $categoryIcons = [
               <i class="fa-solid fa-calendar-days"></i> View Schedule
             </a>
           </div>
-          <div id="hero-stats">
+         <div id="hero-stats">
             <div class="stat-item">
-              <span class="stat-number">20+</span>
+              <span class="stat-number"><?= h((string) $categoryCount) ?>+</span>
+              <span class="stat-label">Categories</span>
+            </div>
+
+            <div class="stat-item">
+              <span class="stat-number"><?= h((string) $workshopCount) ?>+</span>
               <span class="stat-label">Workshops</span>
             </div>
+
             <div class="stat-item">
-              <span class="stat-number">500+</span>
-              <span class="stat-label">Students</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number">15+</span>
+              <span class="stat-number"><?= h((string) $instructorCount) ?>+</span>
               <span class="stat-label">Instructors</span>
             </div>
           </div>
@@ -148,7 +166,7 @@ $categoryIcons = [
 
           <?php if (empty($featuredWorkshops)): ?>
           <!-- Fallback if no workshops in DB yet -->
-          <div class="card"><div class="card-body"><p style="color:#94a3b8">No workshops yet. Admin can add them from the dashboard.</p></div></div>
+          <div class="card"><div class="card-body"><p style="color:#94a3b8">No workshops yet.</p></div></div>
           <?php endif; ?>
         </div>
 

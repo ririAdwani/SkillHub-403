@@ -1,3 +1,8 @@
+<!--
+ /* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
+/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
+/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
+-->
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 
@@ -32,11 +37,6 @@ if (is_logged_in() && !is_admin()) {
 
 ?>
 <!doctype html>
-<!--
-  /* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
-/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
-/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
--->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -331,6 +331,11 @@ if (is_logged_in() && !is_admin()) {
 </div>
 
     <script>
+// Pass booked workshop IDs to JS so search results show correct button state
+window.bookedWorkshopIds = <?= json_encode(array_map('intval', $bookedWorkshopIds)) ?>;
+</script>
+
+<script>
 const searchInput = document.getElementById('searchInput');
 const categoryFilter = document.getElementById('categoryFilter');
 const grid = document.querySelector('.grid-2');
@@ -347,42 +352,60 @@ async function loadWorkshops() {
 
     grid.innerHTML = '';
 
+    // Get list of already-booked workshop IDs from the page
+    const bookedIds = window.bookedWorkshopIds || [];
+    const isAdmin   = document.body.dataset.isAdmin === '1';
+
     workshops.forEach(workshop => {
+        const hasImg = workshop.image_path && workshop.image_path.trim() !== '';
+
+        // Image or placeholder — matches PHP rendering
+        const imgHtml = hasImg
+            ? `<img src="${workshop.image_path}" alt="${workshop.title}" class="card-img"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />`
+            : '';
+
+        const placeholderStyle = hasImg ? 'style="display:none"' : '';
+        const placeholderHtml  = `<div class="card-img-placeholder" ${placeholderStyle}>
+            <i class="fa-solid fa-book-open"></i>
+            <span>${workshop.category_name}</span>
+        </div>`;
+
+        // Book button or Already Booked
+        let btnHtml;
+        if (isAdmin) {
+            btnHtml = ''; // Admin can't book
+        } else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
+            btnHtml = `<button type="button" class="btn btn-booked-already" disabled>
+                <i class="fa-solid fa-circle-check"></i> Already Booked
+            </button>`;
+        } else {
+            btnHtml = `<button type="button"
+                class="btn btn-primary book-btn workshop-book-btn"
+                data-workshop-id="${workshop.workshop_id}"
+                data-workshop-title="${workshop.title}"
+                data-workshop-date="${workshop.workshop_date}"
+                data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
+                data-workshop-link="#">
+                <i class="fa-solid fa-calendar-days"></i> Book Workshop
+            </button>`;
+        }
+
         grid.innerHTML += `
             <div class="card">
-                <img
-                    src="${workshop.image_path}"
-                    alt="${workshop.title}"
-                    class="card-img"
-                />
-
+                ${imgHtml}
+                ${placeholderHtml}
                 <div class="card-body">
                     <div class="card-icon card-icon-web">
                         <i class="fa-solid fa-laptop-code"></i>
                     </div>
-
                     <h3>${workshop.title}</h3>
                     <p>${workshop.description}</p>
-
-                    <div class="card-tags" style="margin-top: 16px">
+                    <div class="card-tags" style="margin-top:16px">
                         <span class="tag tag-primary">${workshop.category_name}</span>
                         <span class="tag tag-secondary">${workshop.available_seats} Seats</span>
                     </div>
-
-                              <button
-              class="btn btn-primary book-btn"
-              style="margin-top: 18px; width: 100%"
-              onclick="openBookingModal(
-    '${workshop.workshop_id}',
-    '${workshop.title}',
-    '${workshop.workshop_date}',
-    '${workshop.start_time} - ${workshop.end_time}',
-    '#'
-)"
-          >
-              <i class="fa-solid fa-calendar-days"></i>
-              Book Workshop
-          </button>
+                    ${btnHtml}
                 </div>
             </div>
         `;

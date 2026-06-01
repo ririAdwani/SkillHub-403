@@ -1,12 +1,18 @@
 <?php
 // Temporary setup file to create one admin account.
 // Delete this file immediately after running it once.
+// 1. Upload create_admin.php
+// 2. Open it once in browser:
+//    http://s1098733524.onlinehome.us/create_admin.php
+// 3. Confirm it says admin created
+// 4. Delete create_admin.php immediately
+// 5. Log in using created account. 
 
 require_once __DIR__ . '/includes/db.php';
 
 $fullName = 'SkillHub Admin';
-$email = 'admin@skillhub.com';
-$password = 'Admin@123';
+$email = 'admin73541@skillhub.edu';
+$password = 'cbhw249s@mdkA';
 $role = 'admin';
 
 try {

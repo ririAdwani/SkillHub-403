@@ -526,9 +526,14 @@ if (!is_admin()) {
           <input type="hidden" name="action" value="upload_profile_picture" />
           <input type="hidden" name="MAX_FILE_SIZE" value="2097152" />
 
-          <label for="profile_image" class="profile-upload-box">
-            <i class="fa-solid fa-plus"></i>
-            <span>Choose picture</span>
+          <label for="profile_image" class="profile-upload-box" id="profile-upload-box">
+            <i class="fa-solid fa-plus" id="profile-upload-icon"></i>
+
+            <span id="profile-upload-label">Choose picture</span>
+
+            <small class="profile-upload-selected-name" id="profile-upload-selected-name">
+              JPG, JPEG, or PNG
+            </small>
           </label>
 
           <input
@@ -540,8 +545,6 @@ if (!is_admin()) {
             required
           />
 
-          <p class="profile-file-name" id="profile-file-name">No file selected</p>
-
           <div class="profile-upload-rules">
             <strong>Upload rules</strong>
             <ul>
@@ -550,9 +553,9 @@ if (!is_admin()) {
             </ul>
           </div>
 
-          <button type="submit" class="btn btn-primary profile-upload-submit">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Picture
-          </button>
+        <button type="submit" class="btn btn-primary profile-upload-submit" id="profile-upload-submit" disabled>
+          <i class="fa-solid fa-cloud-arrow-up"></i> Upload Picture
+        </button>
         </form>
       </div>
     </div>

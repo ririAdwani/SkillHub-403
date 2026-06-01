@@ -2366,14 +2366,44 @@ input[type="password"]:focus {
   opacity: 0;
   pointer-events: none;
 }
-
-.profile-file-name {
-  margin-bottom: 0;
-  text-align: center;
-  font-size: 0.82rem;
+.profile-upload-selected-name {
+  display: block;
+  max-width: 90%;
   color: var(--text-light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  word-break: break-word;
+}
+/* Shows that the user already selected an image and can now upload it. */
+.profile-upload-box.has-file {
+  border-style: solid;
+  border-color: rgba(16, 185, 129, 0.45);
+  background: var(--secondary-light);
+  color: var(--secondary);
 }
 
+.profile-upload-box.has-file i {
+  display: none;
+}
+
+.profile-upload-box.has-file .profile-upload-selected-name {
+  color: #047857;
+}
+
+/* Upload button stays inactive until the user chooses a valid file. */
+.profile-upload-submit:disabled {
+  background: #CBD5E1;
+  color: white;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.profile-upload-submit:disabled:hover {
+  background: #CBD5E1;
+  box-shadow: none;
+  transform: none;
+}
 .profile-upload-rules {
   padding: 14px 16px;
   border: 1px solid var(--border);

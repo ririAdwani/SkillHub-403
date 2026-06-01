@@ -574,7 +574,10 @@ function initProfilePictureUpload() {
   var overlay = document.getElementById("profile-upload-overlay");
   var closeButton = document.getElementById("profile-upload-close");
   var fileInput = document.getElementById("profile_image");
-  var fileName = document.getElementById("profile-file-name");
+var uploadBox = document.getElementById('profile-upload-box');
+var uploadLabel = document.getElementById('profile-upload-label');
+var selectedName = document.getElementById('profile-upload-selected-name');
+var submitButton = document.getElementById('profile-upload-submit');
 
   if (!openButton || !overlay) return;
 
@@ -606,11 +609,24 @@ function initProfilePictureUpload() {
     }
   });
 
-  if (fileInput && fileName) {
-    fileInput.addEventListener("change", function () {
-      fileName.textContent = fileInput.files.length
-        ? fileInput.files[0].name
-        : "No file selected";
+  if (fileInput && uploadBox && uploadLabel && selectedName && submitButton) {
+    fileInput.addEventListener('change', function () {
+      var hasFile = fileInput.files.length > 0;
+
+      // Update the upload box so the selected state is obvious.
+      if (hasFile) {
+        uploadBox.classList.add('has-file');
+        uploadLabel.textContent = 'Picture selected';
+        selectedName.textContent = fileInput.files[0].name;
+        submitButton.disabled = false;
+        return;
+      }
+
+      // Reset the modal if the user clears the file picker.
+      uploadBox.classList.remove('has-file');
+      uploadLabel.textContent = 'Choose picture';
+      selectedName.textContent = 'JPG, JPEG, or PNG';
+      submitButton.disabled = true;
     });
   }
 }

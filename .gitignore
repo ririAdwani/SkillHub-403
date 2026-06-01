@@ -1,0 +1,7 @@
+.DS_Store
+Web_behavior.txt
+uploads/profile_pictures/*
+uploads/certificates/*
+check_upload
+check_upload.php
+test_access.php

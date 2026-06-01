@@ -1,8 +1,3 @@
-<!--
- /* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
-/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
-/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
--->
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 
@@ -37,6 +32,11 @@ if (is_logged_in() && !is_admin()) {
 
 ?>
 <!doctype html>
+<!--
+  /* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
+/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
+/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
+-->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />

@@ -1,7 +1,4 @@
 <?php
-// SkillHub authentication helpers.
-// Include this file on pages that need login or role checks.
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

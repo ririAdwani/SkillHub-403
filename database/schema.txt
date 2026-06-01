@@ -1,7 +1,7 @@
 -- This file contains the database table structure for SkillHub.
 -- Run these SQL commands in the MySQL database before using the website.
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   full_name VARCHAR(100) NOT NULL,
   email VARCHAR(150) NOT NULL UNIQUE,
@@ -11,6 +11,70 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE TABLE categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE workshops (
+    workshop_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    workshop_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    available_seats INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_workshops_category
+        FOREIGN KEY (category_id)
+        REFERENCES categories(category_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE bookings (
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    workshop_id INT NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NULL,
+    email VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_bookings_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_bookings_workshop
+        FOREIGN KEY (workshop_id)
+        REFERENCES workshops(workshop_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT uq_booking_email_workshop
+        UNIQUE (email, workshop_id)
+);
+
+Admin query: INSERT INTO users (full_name, email, password_hash, role)
+
+VALUES (
+
+  'Admin',
+
+  'admin_skilhub@outlook.sa',
+
+  'cbhw249s@mdkA',
+
+  'admin'
+
+);
+
 
 
 

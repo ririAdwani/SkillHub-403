@@ -1,8 +1,3 @@
-<!--
-  /* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
-/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
-/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
--->
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 
@@ -10,6 +5,11 @@ $basePath = '../';
 $currentPage = 'guide';
 ?>
 <!doctype html>
+<!--
+  /* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
+/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
+/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
+-->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -62,17 +62,13 @@ $currentPage = 'guide';
             <h2>About This Guide</h2>
           </div>
           <p>
-            This tutorial video covers the complete walkthrough of the SkillHub
-            platform, including:
+            This short guide gives a quick overview of how users can use SkillHub to explore available workshops,
+            book a session, and understand what happens after booking.
           </p>
-
-          <ol style="margin-top: 12px; line-height: 2">
-            <li>Creating your student account and setting up your profile</li>
-            <li>Browsing and filtering available workshop categories</li>
-            <li>Registering for workshops and managing your schedule</li>
-            <li>Tracking your learning progress and earning certificates</li>
-            <li>Providing feedback and connecting with instructors</li>
-          </ol>
+          <p>
+            The video mainly shows browsing workshops, choosing a workshop,
+            and receiving the booking confirmation email.
+          </p>
         </div>
 
         <!-- AI tools note -->

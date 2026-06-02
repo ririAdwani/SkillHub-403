@@ -680,7 +680,7 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
             <div class="feedback-details">
               <?php if ($fb['workshops_interested']): ?>
               <div class="feedback-detail-row">
-                <span class="feedback-detail-label"><i class="fa-solid fa-bookmark"></i> Interested in</span>
+                <span class="feedback-detail-label"><i class="fa-solid fa-bookmark"></i> Wants more of</span>
                 <span><?= h($fb['workshops_interested']) ?></span>
               </div>
               <?php endif; ?>

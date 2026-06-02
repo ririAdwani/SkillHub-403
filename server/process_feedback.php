@@ -25,11 +25,12 @@ if (!is_logged_in()) {
 }
 
 // Collect and sanitize all form fields
-$name       = trim($_POST['name']       ?? '');
-$email      = trim($_POST['email']      ?? '');
-$rating     = trim($_POST['rating']     ?? '');
+// Name and email come from the logged-in account, not from editable user input.
+$name       = trim($_SESSION['full_name'] ?? '');
+$email      = trim($_SESSION['email'] ?? '');
+$rating     = trim($_POST['rating'] ?? '');
 $preference = trim($_POST['preference'] ?? '');
-$comments   = trim($_POST['comments']   ?? '');
+$comments   = trim($_POST['comments'] ?? '');
 
 // workshops[] is an array of checkbox values — join them as a readable string
 $workshopsArray = $_POST['workshops'] ?? [];

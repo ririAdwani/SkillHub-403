@@ -1,8 +1,3 @@
-<!--
-/* Name=Aseel Musaid Alamri, ID=2108290, Section=DAR, Date=20/3 */
-/* Name=Shahenaz Abushanab , ID=2215050, Section=DAR, Date=20/3 */
-/* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
--->
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/db.php';
@@ -11,6 +6,22 @@ require_login();
 
 $basePath    = '../';
 $currentPage = 'feedback';
+
+// Load categories for the feedback checkbox section.
+// Admins manage categories, so the feedback form should use database categories.
+$feedbackCategories = [];
+
+try {
+    $categoryStmt = $pdo->query(
+        'SELECT category_id, category_name
+         FROM categories
+         ORDER BY category_name ASC'
+    );
+
+    $feedbackCategories = $categoryStmt->fetchAll();
+} catch (PDOException $e) {
+    $feedbackCategories = [];
+}
 
 // Handle user resolving (hiding) a feedback thread from their view
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_resolve_feedback_id'])) {
@@ -137,32 +148,61 @@ foreach ($myFeedback as $fb) {
             <div class="card" style="padding: 0;">
               <div class="card-body" style="padding: 40px;">
             <form id="feedback-form" novalidate>
+              <!-- Explain the purpose of the feedback form before asking for input. -->
+              <div class="feedback-form-intro">
+                <h3>Help us plan better workshops</h3>
+                <p>
+                  Share how useful your SkillHub experience was, which workshop topics you want to see more often,
+                  and what session times work best for students.
+                </p>
+              </div>
+
+              <!-- Account identity is auto-filled because feedback is submitted by logged-in users. -->
               <div class="form-row">
                 <div class="form-group">
-                  <label for="feedback-name">Full Name <span style="color:#ef4444">*</span></label>
-                  <input type="text" id="name" name="name" placeholder="Enter your full name"
-                    value="<?= h($_SESSION['full_name'] ?? '') ?>" />
+                  <label for="name">Full Name <span class="required">*</span></label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value="<?= h($_SESSION['full_name'] ?? '') ?>"
+                    readonly
+                  />
                   <span id="name-error" class="field-error"></span>
                 </div>
+
                 <div class="form-group">
-                  <label for="feedback-email">Email Address <span style="color:#ef4444">*</span></label>
-                  <input type="email" id="email" name="email" placeholder="your.email@example.com"
-                    value="<?= h($_SESSION['email'] ?? '') ?>" />
+                  <label for="email">Email Address <span class="required">*</span></label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value="<?= h($_SESSION['email'] ?? '') ?>"
+                    readonly
+                  />
                   <span id="email-error" class="field-error"></span>
                 </div>
               </div>
 
+              <p class="feedback-account-note">
+                <i class="fa-solid fa-lock"></i>
+                Your name and email are taken from your account.
+              </p>
+
+              <!-- Rating focuses on the user's SkillHub experience, not a vague overall score. -->
               <div class="form-group">
-                <label>Overall Rating <span style="color:#ef4444">*</span></label>
+                <label>How useful was your SkillHub experience? <span class="required">*</span></label>
                 <div class="rating-group">
                   <label class="rating-card">
                     <input type="radio" name="rating" value="Good" />
                     <span><i class="fa-solid fa-face-smile"></i> Good</span>
                   </label>
+
                   <label class="rating-card">
                     <input type="radio" name="rating" value="Average" />
                     <span><i class="fa-solid fa-face-meh"></i> Average</span>
                   </label>
+
                   <label class="rating-card">
                     <input type="radio" name="rating" value="Poor" />
                     <span><i class="fa-solid fa-face-frown"></i> Poor</span>
@@ -171,27 +211,42 @@ foreach ($myFeedback as $fb) {
                 <span id="rating-error" class="field-error"></span>
               </div>
 
+              <!-- Category choices come from the database so they match admin-managed categories. -->
               <div class="form-group">
-                <label>Interested Workshops</label>
-                <p style="font-size:0.82rem; color:#94a3b8; margin-bottom:10px;">Select all that apply</p>
+                <label>Workshop Topics You Want More Of</label>
+                <p class="feedback-field-help">Select all topics you would like SkillHub to offer more often.</p>
+
                 <div class="checkbox-grid">
-                  <?php
-                  try {
-                      $wsStmt = $pdo->query("SELECT workshop_id, title, category_id FROM workshops ORDER BY title ASC");
-                      $allWorkshops = $wsStmt->fetchAll();
-                      $icons = [1=>'fa-laptop-code',2=>'fa-palette',3=>'fa-robot',4=>'fa-briefcase',5=>'fa-chart-bar',6=>'fa-shield-halved'];
-                      foreach ($allWorkshops as $ws):
-                  ?>
-                  <label class="checkbox-option">
-                    <input type="checkbox" name="workshops[]" value="<?= h($ws['title']) ?>" />
-                    <span>
-                      <i class="fa-solid <?= $icons[$ws['category_id']] ?? 'fa-book-open' ?>"></i>
-                      <?= h($ws['title']) ?>
-                    </span>
-                  </label>
-                  <?php endforeach; } catch(PDOException $e) {} ?>
+                  <?php if (empty($feedbackCategories)): ?>
+                    <p class="feedback-field-help">No workshop categories are available right now.</p>
+                  <?php else: ?>
+                    <?php
+                      $icons = [
+                          1 => 'fa-laptop-code',
+                          2 => 'fa-palette',
+                          3 => 'fa-chart-line',
+                          4 => 'fa-shield-halved',
+                          5 => 'fa-robot',
+                          6 => 'fa-briefcase',
+                      ];
+
+                      foreach ($feedbackCategories as $category):
+                    ?>
+                      <label class="checkbox-option">
+                        <input
+                          type="checkbox"
+                          name="workshops[]"
+                          value="<?= h($category['category_name']) ?>"
+                        />
+                        <span>
+                          <i class="fa-solid <?= h($icons[$category['category_id']] ?? 'fa-book-open') ?>"></i>
+                          <?= h($category['category_name']) ?>
+                        </span>
+                      </label>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
                 </div>
-              </div>
+  </div>
 
               <div class="form-group">
                 <label for="feedback-preference">Preferred Session Time</label>

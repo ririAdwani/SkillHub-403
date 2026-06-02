@@ -1006,6 +1006,46 @@ textarea { min-height: 120px; resize: vertical; }
   margin-top: 8px;
 }
 
+/* Short explanation shown above the feedback form fields. */
+.feedback-form-intro {
+  padding: 18px 20px;
+  margin-bottom: 28px;
+  border: 1px solid rgba(44, 123, 229, 0.18);
+  border-radius: 18px;
+  background: var(--primary-light);
+}
+
+.feedback-form-intro h3 {
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.feedback-form-intro p {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* Small note explaining that account fields are auto-filled. */
+.feedback-account-note,
+.feedback-field-help {
+  margin-top: -12px;
+  margin-bottom: 24px;
+  color: var(--text-light);
+  font-size: 0.84rem;
+}
+
+.feedback-account-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feedback-account-note i {
+  color: var(--primary);
+}
+
 /* ===== SUCCESS MESSAGE ===== */
 #success-message {
   display: none;
@@ -1022,6 +1062,8 @@ textarea { min-height: 120px; resize: vertical; }
   font-size: 1.5rem;
   margin-bottom: 8px;
 }
+
+
 
 /* ===== VIDEO PAGE ===== */
 .video-placeholder {

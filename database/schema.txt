@@ -266,3 +266,21 @@ VALUES (
 -- Stores when user last opened the My Replies tab
 -- Used to determine which admin replies are unread
 ALTER TABLE users ADD COLUMN replies_seen_at DATETIME DEFAULT NULL;
+-- ────────────────────────────────────────────────────────────
+-- SCHEMA ADDITIONS: Instructor details + Workshop learning points
+-- Run these in phpMyAdmin once, then add to schema.txt
+-- ────────────────────────────────────────────────────────────
+
+-- Add specialty to instructors table
+-- Stores the instructor's area of expertise e.g. "Machine Learning, Python"
+ALTER TABLE instructors ADD COLUMN specialty VARCHAR(255) DEFAULT NULL;
+
+-- Add experience to instructors table  
+-- Dropdown value e.g. "1-3 years", "10+ years"
+ALTER TABLE instructors ADD COLUMN experience VARCHAR(50) DEFAULT NULL;
+
+-- Add learning_points to workshops table
+-- Admin writes bullet points of what students will learn
+-- Stored as plain text, each point separated by newline
+-- e.g. "Understand Python syntax\nBuild a web scraper\nWork with APIs"
+ALTER TABLE workshops ADD COLUMN learning_points TEXT DEFAULT NULL;

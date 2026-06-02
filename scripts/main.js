@@ -344,6 +344,49 @@ function closeBookingModal() {
 }
 
 /*
+  ASEEL ADDITION:
+  Opens the workshop details modal and fills it using the selected
+  card button data attributes.
+*/
+function openDetailsModal(button) {
+  document.getElementById("details-title").textContent = button.dataset.title;
+  document.getElementById("details-description").textContent = button.dataset.description;
+  document.getElementById("details-instructor").textContent = "Instructor: " + button.dataset.instructor;
+  document.getElementById("details-date").textContent = "Date: " + button.dataset.date;
+  document.getElementById("details-time").textContent = "Time: " + button.dataset.time;
+  document.getElementById("details-location").textContent = "Location: " + button.dataset.location;
+  document.getElementById("details-price").textContent = "Price: " + button.dataset.price + " SAR";
+  document.getElementById("details-seats").textContent = "Available Seats: " + button.dataset.seats;
+
+  var overlay = document.getElementById("details-overlay");
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+/*
+  ASEEL ADDITION:
+  Handles opening and closing the workshop details modal.
+*/
+function initWorkshopDetailsModal() {
+  document.addEventListener("click", function (event) {
+    var detailsButton = event.target.closest(".view-details-btn");
+
+    if (detailsButton) {
+      openDetailsModal(detailsButton);
+      return;
+    }
+
+    if (
+      event.target.classList.contains("details-close-btn") ||
+      event.target.id === "details-overlay"
+    ) {
+      document.getElementById("details-overlay").hidden = true;
+      document.body.style.overflow = "";
+    }
+  });
+}
+
+/*
   This function sends the booking request to the PHP API, then updates
   the modal state based on whether the booking succeeds or fails.
 */
@@ -469,7 +512,6 @@ async function initWorkshopSearch() {
   const categoryFilter = document.getElementById("categoryFilter");
   const grid = document.querySelector(".grid-2");
 
-  // Stop if the current page does not contain the workshop search elements.
   if (!searchInput || !categoryFilter || !grid) return;
 
   async function loadWorkshops() {
@@ -480,7 +522,7 @@ async function initWorkshopSearch() {
       "../api/search_workshops.php?search=" +
         encodeURIComponent(searchValue) +
         "&category=" +
-        encodeURIComponent(categoryValue),
+        encodeURIComponent(categoryValue)
     );
 
     const workshops = await response.json();
@@ -488,13 +530,37 @@ async function initWorkshopSearch() {
     grid.innerHTML = "";
 
     workshops.forEach(function (workshop) {
+      var seats = parseInt(workshop.available_seats);
+      var isFull = seats <= 0;
+      var btnHtml = "";
+
+      if (isFull) {
+        btnHtml = `
+          <button type="button" class="btn btn-secondary" disabled>
+            <i class="fa-solid fa-circle-xmark"></i>
+            Full
+          </button>
+        `;
+      } else {
+        btnHtml = `
+          <button
+            type="button"
+            class="btn btn-primary book-btn workshop-book-btn"
+            data-workshop-id="${workshop.workshop_id}"
+            data-workshop-title="${workshop.title}"
+            data-workshop-date="${workshop.workshop_date}"
+            data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
+            data-workshop-link="#"
+          >
+            <i class="fa-solid fa-calendar-days"></i>
+            Book Workshop
+          </button>
+        `;
+      }
+
       grid.innerHTML += `
         <div class="card">
-          <img
-            src="${workshop.image_path}"
-            alt="${workshop.title}"
-            class="card-img"
-          />
+          <img src="${workshop.image_path}" alt="${workshop.title}" class="card-img" />
 
           <div class="card-body">
             <div class="card-icon card-icon-web">
@@ -509,18 +575,23 @@ async function initWorkshopSearch() {
               <span class="tag tag-secondary">${workshop.available_seats} Seats</span>
             </div>
 
-                <button
-            type="button"
-            class="btn btn-primary book-btn workshop-book-btn"
-            data-workshop-id="${workshop.workshop_id}"
-            data-workshop-title="${workshop.title}"
-            data-workshop-date="${workshop.workshop_date}"
-            data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
-            data-workshop-link="#"
-          >
-            <i class="fa-solid fa-calendar-days"></i>
-            Book Workshop
-          </button>
+            <button
+              type="button"
+              class="btn btn-secondary view-details-btn"
+              data-title="${workshop.title}"
+              data-description="${workshop.description}"
+              data-instructor="${workshop.instructor || ""}"
+              data-date="${workshop.workshop_date}"
+              data-time="${workshop.start_time} - ${workshop.end_time}"
+              data-location="${workshop.location || "Online"}"
+              data-price="${workshop.price || "0.00"}"
+              data-seats="${workshop.available_seats}"
+            >
+              <i class="fa-solid fa-eye"></i>
+              View Details
+            </button>
+
+            ${btnHtml}
           </div>
         </div>
       `;
@@ -530,7 +601,6 @@ async function initWorkshopSearch() {
   searchInput.addEventListener("keyup", loadWorkshops);
   categoryFilter.addEventListener("change", loadWorkshops);
 }
-
 /*
   This function handles clicks on Book Workshop buttons through event delegation.
   It works for both initial workshop cards and cards added later by live search.
@@ -790,7 +860,39 @@ function initLocalTimeDisplay() {
     });
   });
 }
+/*
+  ASEEL ADDITION:
+  Enables the View Details modal for both PHP-rendered cards
+  and AJAX search/filter cards.
+*/
+function initWorkshopDetailsModal() {
+  document.addEventListener("click", function (event) {
+    var detailsButton = event.target.closest(".view-details-btn");
 
+    if (detailsButton) {
+      document.getElementById("details-title").textContent = detailsButton.dataset.title || "";
+      document.getElementById("details-description").textContent = detailsButton.dataset.description || "";
+      document.getElementById("details-instructor").textContent = "Instructor: " + (detailsButton.dataset.instructor || "Not assigned");
+      document.getElementById("details-date").textContent = "Date: " + (detailsButton.dataset.date || "");
+      document.getElementById("details-time").textContent = "Time: " + (detailsButton.dataset.time || "");
+      document.getElementById("details-location").textContent = "Location: " + (detailsButton.dataset.location || "Online");
+      document.getElementById("details-price").textContent = "Price: " + (detailsButton.dataset.price || "0.00") + " SAR";
+      document.getElementById("details-seats").textContent = "Available Seats: " + (detailsButton.dataset.seats || "0");
+
+      document.getElementById("details-overlay").hidden = false;
+      document.body.style.overflow = "hidden";
+      return;
+    }
+
+    if (
+      event.target.classList.contains("details-close-btn") ||
+      event.target.id === "details-overlay"
+    ) {
+      document.getElementById("details-overlay").hidden = true;
+      document.body.style.overflow = "";
+    }
+  });
+}
 /*
   This event runs after the HTML document finishes loading.
   It starts the main website features by calling the functions
@@ -800,6 +902,7 @@ function initLocalTimeDisplay() {
 */
 // ===== INITIALIZE =====
 document.addEventListener("DOMContentLoaded", function () {
+  initWorkshopDetailsModal(); // enables the workshop View Details modal
   initMobileNav(); // initializes the navigation menu toggle behavior
   setActiveNavLink(); // highlights the link of the current page in the navigation menu
   initScrollAnimations(); // activates fade-in animations for selected page elements during scrolling
@@ -812,4 +915,5 @@ document.addEventListener("DOMContentLoaded", function () {
   initBookingButtons(); // controls guest redirect and logged-in booking modal
   initBookingConfirmation(); // controls booking confirmation, loading, and success states
   initLocalTimeDisplay(); // formats UTC timestamps using the user's browser timezone
+  
 });

@@ -151,28 +151,53 @@ if (is_logged_in() && !is_admin()) {
 
             </div>
 
-          <?php
-            $isBooked = in_array($workshop['workshop_id'], $bookedWorkshopIds);
-          ?>
-          <?php if ($isBooked): ?>
-            <button type="button" class="btn btn-booked-already" disabled>
-              <i class="fa-solid fa-circle-check"></i>
-              Already Booked
-            </button>
-          <?php else: ?>
-          <button
-            type="button"
-            class="btn btn-primary book-btn workshop-book-btn"
-            data-workshop-id="<?= h((string) $workshop['workshop_id']) ?>"
-            data-workshop-title="<?= h($workshop['title']) ?>"
-            data-workshop-date="<?= h($workshop['workshop_date']) ?>"
-            data-workshop-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
-            data-workshop-link="#"
-          >
-            <i class="fa-solid fa-calendar-days"></i>
-            Book Workshop
-          </button>
-          <?php endif; ?>
+         <?php
+  $isBooked = in_array($workshop['workshop_id'], $bookedWorkshopIds);
+  $isFull = (int) $workshop['available_seats'] <= 0;
+?>
+
+<!-- ASEEL ADDITION: View Details button -->
+<button
+  type="button"
+  class="btn btn-secondary view-details-btn"
+  data-title="<?= h($workshop['title']) ?>"
+  data-description="<?= h($workshop['description']) ?>"
+  data-instructor="<?= h($workshop['instructor']) ?>"
+  data-date="<?= h($workshop['workshop_date']) ?>"
+  data-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
+  data-location="<?= h($workshop['location']) ?>"
+  data-price="<?= h((string) $workshop['price']) ?>"
+  data-seats="<?= h((string) $workshop['available_seats']) ?>"
+>
+  <i class="fa-solid fa-eye"></i>
+  View Details
+</button>
+
+<!-- ASEEL ADDITION: Show Full button when no seats are available -->
+<?php if ($isFull): ?>
+  <button type="button" class="btn btn-secondary" disabled>
+    <i class="fa-solid fa-circle-xmark"></i>
+    Full
+  </button>
+<?php elseif ($isBooked): ?>
+  <button type="button" class="btn btn-booked-already" disabled>
+    <i class="fa-solid fa-circle-check"></i>
+    Already Booked
+  </button>
+<?php else: ?>
+  <button
+    type="button"
+    class="btn btn-primary book-btn workshop-book-btn"
+    data-workshop-id="<?= h((string) $workshop['workshop_id']) ?>"
+    data-workshop-title="<?= h($workshop['title']) ?>"
+    data-workshop-date="<?= h($workshop['workshop_date']) ?>"
+    data-workshop-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
+    data-workshop-link="#"
+  >
+    <i class="fa-solid fa-calendar-days"></i>
+    Book Workshop
+  </button>
+<?php endif; ?>
 
         </div>
 
@@ -330,6 +355,33 @@ if (is_logged_in() && !is_admin()) {
   </div>
 </div>
 
+<!-- ASEEL ADDITION: Workshop details modal -->
+<div id="details-overlay" hidden>
+  <div id="details-modal">
+
+    <button
+      type="button"
+      class="details-close-btn"
+      aria-label="Close details modal">
+      &times;
+    </button>
+
+    <h2 id="details-title"></h2>
+
+    <p id="details-description"></p>
+
+    <ul class="details-list">
+      <li id="details-instructor"></li>
+      <li id="details-date"></li>
+      <li id="details-time"></li>
+      <li id="details-location"></li>
+      <li id="details-price"></li>
+      <li id="details-seats"></li>
+    </ul>
+
+  </div>
+</div>
+
     <script>
 // Pass booked workshop IDs to JS so search results show correct button state
 window.bookedWorkshopIds = <?= json_encode(array_map('intval', $bookedWorkshopIds)) ?>;
@@ -371,40 +423,79 @@ async function loadWorkshops() {
             <span>${workshop.category_name}</span>
         </div>`;
 
-        // Book button or Already Booked
+        // Book button, Already Booked, or Full
         let btnHtml;
+
         if (isAdmin) {
             btnHtml = ''; // Admin can't book
-        } else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
-            btnHtml = `<button type="button" class="btn btn-booked-already" disabled>
-                <i class="fa-solid fa-circle-check"></i> Already Booked
-            </button>`;
+        }
+
+        /* =========================================================
+           ASEEL ADDITION:
+           Show "Full" button when no seats are available
+        ========================================================= */
+        else if (parseInt(workshop.available_seats) <= 0) {
+            btnHtml = `
+                <button type="button" class="btn btn-secondary" disabled>
+                    <i class="fa-solid fa-circle-xmark"></i> Full
+                </button>
+            `;
+        }
+
+        else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
+            btnHtml = `
+                <button type="button" class="btn btn-booked-already" disabled>
+                    <i class="fa-solid fa-circle-check"></i> Already Booked
+                </button>
+            `;
         } else {
-            btnHtml = `<button type="button"
-                class="btn btn-primary book-btn workshop-book-btn"
-                data-workshop-id="${workshop.workshop_id}"
-                data-workshop-title="${workshop.title}"
-                data-workshop-date="${workshop.workshop_date}"
-                data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
-                data-workshop-link="#">
-                <i class="fa-solid fa-calendar-days"></i> Book Workshop
-            </button>`;
+            btnHtml = `
+                <button type="button"
+                    class="btn btn-primary book-btn workshop-book-btn"
+                    data-workshop-id="${workshop.workshop_id}"
+                    data-workshop-title="${workshop.title}"
+                    data-workshop-date="${workshop.workshop_date}"
+                    data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
+                    data-workshop-link="#">
+                    <i class="fa-solid fa-calendar-days"></i> Book Workshop
+                </button>
+            `;
         }
 
         grid.innerHTML += `
             <div class="card">
                 ${imgHtml}
                 ${placeholderHtml}
+
                 <div class="card-body">
                     <div class="card-icon card-icon-web">
                         <i class="fa-solid fa-laptop-code"></i>
                     </div>
+
                     <h3>${workshop.title}</h3>
                     <p>${workshop.description}</p>
+
                     <div class="card-tags" style="margin-top:16px">
                         <span class="tag tag-primary">${workshop.category_name}</span>
                         <span class="tag tag-secondary">${workshop.available_seats} Seats</span>
                     </div>
+
+                    
+                    <button
+                        type="button"
+                        class="btn btn-secondary view-details-btn"
+                        data-title="${workshop.title}"
+                        data-description="${workshop.description}"
+                        data-instructor="${workshop.instructor}"
+                        data-date="${workshop.workshop_date}"
+                        data-time="${workshop.start_time} - ${workshop.end_time}"
+                        data-location="${workshop.location}"
+                        data-price="${workshop.price}"
+                        data-seats="${workshop.available_seats}">
+                        <i class="fa-solid fa-eye"></i>
+                        View Details
+                    </button>
+
                     ${btnHtml}
                 </div>
             </div>
@@ -415,9 +506,29 @@ async function loadWorkshops() {
 searchInput.addEventListener('keyup', loadWorkshops);
 categoryFilter.addEventListener('change', loadWorkshops);
 </script>
-    
-    <script src="../scripts/main.js"></script>
- 
 
-  </body>
+<!-- ASEEL ADDITION: Workshop details modal structure -->
+<!-- <div id="details-overlay" class="modal-overlay" hidden>
+    <div class="modal-box details-modal-box">
+        <button type="button" class="modal-close details-close-btn" aria-label="Close details modal">
+            &times;
+        </button>
+
+        <h2 id="details-title"></h2>
+        <p id="details-description"></p>
+
+        <ul class="details-list">
+            <li id="details-instructor"></li>
+            <li id="details-date"></li>
+            <li id="details-time"></li>
+            <li id="details-location"></li>
+            <li id="details-price"></li>
+            <li id="details-seats"></li>
+        </ul>
+    </div>
+</div> -->
+
+<script src="../scripts/main.js"></script>
+
+</body>
 </html>

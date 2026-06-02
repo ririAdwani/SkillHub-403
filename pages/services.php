@@ -163,6 +163,9 @@ if (is_logged_in() && !is_admin()) {
   data-title="<?= h($workshop['title']) ?>"
   data-description="<?= h($workshop['description']) ?>"
   data-instructor="<?= h($workshop['instructor']) ?>"
+data-specialty="<?= h($workshop['instructor_specialty']) ?>"
+data-experience="<?= h($workshop['instructor_experience']) ?>"
+data-bio="<?= h($workshop['instructor_bio']) ?>"
   data-date="<?= h($workshop['workshop_date']) ?>"
   data-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
   data-location="<?= h($workshop['location']) ?>"
@@ -389,7 +392,17 @@ if (is_logged_in() && !is_admin()) {
 
       <div class="details-item">
         <span class="details-label">Instructor</span>
-        <p id="details-instructor"></p>
+        <p id="details-instructor" class="instructor-hover">
+  <span id="details-instructor-name"></span>
+  <i class="fa-solid fa-circle-info"></i>
+
+  <span class="instructor-popup">
+    <strong id="details-instructor-popup-name"></strong>
+    <small id="details-instructor-specialty"></small>
+    <small id="details-instructor-experience"></small>
+    <span id="details-instructor-bio"></span>
+  </span>
+</p>
       </div>
 
       <div class="details-item">
@@ -530,6 +543,9 @@ async function loadWorkshops() {
                         data-title="${workshop.title}"
                         data-description="${workshop.description}"
                         data-instructor="${workshop.instructor}"
+                        data-specialty="${workshop.instructor_specialty}"
+                        data-experience="${workshop.instructor_experience}"
+                        data-bio="${workshop.instructor_bio}"
                         data-date="${workshop.workshop_date}"
                         data-time="${workshop.start_time} - ${workshop.end_time}"
                         data-location="${workshop.location}"

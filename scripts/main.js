@@ -581,6 +581,9 @@ async function initWorkshopSearch() {
               data-title="${workshop.title}"
               data-description="${workshop.description}"
               data-instructor="${workshop.instructor || ""}"
+              data-specialty="${workshop.instructor_specialty || ""}"
+              data-experience="${workshop.instructor_experience || ""}"
+              data-bio="${workshop.instructor_bio || ""}"
               data-date="${workshop.workshop_date}"
               data-time="${workshop.start_time} - ${workshop.end_time}"
               data-location="${workshop.location || "Online"}"
@@ -872,8 +875,22 @@ function initWorkshopDetailsModal() {
     if (detailsButton) {
       document.getElementById("details-title").textContent = detailsButton.dataset.title || "";
       document.getElementById("details-description").textContent = detailsButton.dataset.description || "";
-      document.getElementById("details-instructor").textContent =
+  //     document.getElementById("details-instructor").textContent =
+  // detailsButton.dataset.instructor || "Not assigned";
+  document.getElementById("details-instructor-name").textContent =
   detailsButton.dataset.instructor || "Not assigned";
+
+document.getElementById("details-instructor-popup-name").textContent =
+  detailsButton.dataset.instructor || "Not assigned";
+
+document.getElementById("details-instructor-specialty").textContent =
+  "Specialty: " + (detailsButton.dataset.specialty || "Not specified");
+
+document.getElementById("details-instructor-experience").textContent =
+  "Experience: " + (detailsButton.dataset.experience || "Not specified");
+
+document.getElementById("details-instructor-bio").textContent =
+  detailsButton.dataset.bio || "No instructor bio available.";
 
 document.getElementById("details-date").textContent =
   detailsButton.dataset.date || "";

@@ -1877,6 +1877,59 @@ nav#main-nav.open ul li a {
   cursor: not-allowed;
 }
 
+.instructor-hover {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.instructor-hover i {
+  font-size: 0.85rem;
+  color: #0f766e;
+}
+
+.instructor-popup {
+  position: absolute;
+  bottom: 130%;
+  left: 0;
+  width: 260px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid #0f766e;
+  display: none;
+  z-index: 1000;
+}
+
+.instructor-popup strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.instructor-popup small {
+  display: block;
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+.instructor-popup span {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.5;
+  color: #4b5563;
+  font-size: 0.85rem;
+}
+
+.instructor-hover:hover .instructor-popup {
+  display: block;
+}
+
 /* ===== AUTH PAGES / LOGIN + REGISTER ===== */
 /*
   This section styles login and register pages.

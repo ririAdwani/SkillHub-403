@@ -6,22 +6,28 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 
-$basePath = '../';
+$basePath    = '../';
 $currentPage = 'services';
 
 require_once __DIR__ . '/../includes/db.php';
 
+// ── LOAD ALL WORKSHOPS ────────────────────────────────────────
+// JOIN instructors so instructor_name is available for the View Details modal.
+// LEFT JOIN means workshops without an instructor still appear (instructor_name = '').
 $stmt = $pdo->query("
-    SELECT workshops.*, categories.category_name
+    SELECT workshops.*,
+           categories.category_name,
+           TRIM(CONCAT(COALESCE(i.title,''), ' ', COALESCE(i.full_name,''))) AS instructor_name
     FROM workshops
-    JOIN categories
-    ON workshops.category_id = categories.category_id
+    JOIN categories ON workshops.category_id = categories.category_id
+    LEFT JOIN instructors i ON workshops.instructor_id = i.instructor_id
 ");
 
 $workshops = $stmt->fetchAll();
 
-// Load workshop IDs the current user has already booked
-// so we can grey out and label those Book buttons as "Already Booked"
+// ── LOAD BOOKED WORKSHOP IDs FOR CURRENT USER ─────────────────
+// Used to show "Already Booked" button state on cards.
+// Only runs for logged-in non-admin users.
 $bookedWorkshopIds = [];
 if (is_logged_in() && !is_admin()) {
     try {
@@ -34,7 +40,6 @@ if (is_logged_in() && !is_admin()) {
         $bookedWorkshopIds = [];
     }
 }
-
 ?>
 <!doctype html>
 <html lang="en">
@@ -42,54 +47,45 @@ if (is_logged_in() && !is_admin()) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Services – SkillHub</title>
-    <!-- Font Awesome CDN -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="../global/main.css" />
     <link rel="stylesheet" href="../global/print.css" media="print" />
   </head>
 
-  <!-- Attributes inside Body tag lets main.js know if the user is logged in -->
+  <!-- Body attributes let main.js know the login state and user info -->
   <body
     data-logged-in="<?= is_logged_in() ? '1' : '0' ?>"
     data-is-admin="<?= is_admin() ? '1' : '0' ?>"
     data-user-name="<?= h($_SESSION['full_name'] ?? '') ?>"
     data-user-email="<?= h($_SESSION['email'] ?? '') ?>"
   >
-    <!-- ===== HEADER ===== -->
+    <!-- HEADER -->
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <!-- ===== PAGE HERO ===== -->
+    <!-- PAGE HERO -->
     <div class="page-hero services-hero">
-        <div class="container">
+      <div class="container">
         <div class="badge"><i class="fa-solid fa-swatchbook"></i> Our Workshops</div>
         <h1>Workshop Categories</h1>
         <p>
-          Choose from our selected range of workshops designed specifically for students who want to build practical, 
+          Choose from our selected range of workshops designed specifically for students who want to build practical,
           in-demand skills. Each workshop is a focused, hands-on session that fits into your busy schedule.
         </p>
       </div>
     </div>
 
-    <!-- ===== WORKSHOP CARDS SECTION ===== -->
-<section class="section services-section">
-        <div class="container">
-        <!-- Search and category filter for workshop browsing. -->
+    <!-- WORKSHOP CARDS SECTION -->
+    <section class="section services-section">
+      <div class="container">
+
+        <!-- Search and category filter -->
         <div class="services-search-panel">
           <div class="services-search-copy">
             <h2>Search Workshops</h2>
             <p>Find workshops by title, description, or category.</p>
           </div>
-
           <div class="services-search-controls">
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search workshops..."
-            />
-
+            <input type="text" id="searchInput" placeholder="Search workshops..." />
             <select id="categoryFilter">
               <option value="">All Categories</option>
               <?php
@@ -101,55 +97,49 @@ if (is_logged_in() && !is_admin()) {
             </select>
           </div>
         </div>
+
+        <!-- Workshop cards grid -->
         <div class="grid-2">
-              <?php foreach ($workshops as $workshop): ?>
-
-    <div class="card">
-
-        <?php
-            // Show image if path exists, otherwise show a styled placeholder
+          <?php foreach ($workshops as $workshop):
+            // Determine card image state
             $imgPath = $workshop['image_path'] ?? '';
             $hasImg  = $imgPath !== '' && $imgPath !== null;
-        ?>
-        <?php if ($hasImg): ?>
-        <img
-            src="<?= h($imgPath) ?>"
-            alt="<?= h($workshop['title']) ?>"
-            class="card-img"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-        />
-        <?php endif; ?>
-        <!-- Default placeholder shown when no image is set or image fails to load -->
-        <div class="card-img-placeholder" <?= $hasImg ? 'style="display:none"' : '' ?>>
-            <i class="fa-solid fa-book-open"></i>
-            <span><?= h($workshop['category_name']) ?></span>
-        </div>
 
-        <div class="card-body">
+            // Determine booking state for button rendering
+            $isBooked = in_array($workshop['workshop_id'], $bookedWorkshopIds);
+            $isFull   = (int)$workshop['available_seats'] <= 0;
 
-            <div class="card-icon card-icon-web">
+            // Instructor name — dash if none assigned
+            $instructorName = trim($workshop['instructor_name'] ?? '');
+          ?>
+          <div class="card">
+
+            <!-- Workshop image or gradient placeholder -->
+            <?php if ($hasImg): ?>
+            <img
+              src="<?= h($imgPath) ?>"
+              alt="<?= h($workshop['title']) ?>"
+              class="card-img"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <?php endif; ?>
+            <div class="card-img-placeholder" <?= $hasImg ? 'style="display:none"' : '' ?>>
+              <i class="fa-solid fa-book-open"></i>
+              <span><?= h($workshop['category_name']) ?></span>
+            </div>
+
+            <div class="card-body">
+              <div class="card-icon card-icon-web">
                 <i class="fa-solid fa-laptop-code"></i>
-            </div>
+              </div>
 
-            <h3>
-                <?php echo $workshop['title']; ?>
-            </h3>
+              <h3><?= h($workshop['title']) ?></h3>
+              <p><?= h($workshop['description']) ?></p>
 
-            <p>
-                <?php echo $workshop['description']; ?>
-            </p>
-
-            <div class="card-tags" style="margin-top: 16px">
-
-                <span class="tag tag-primary">
-                    <?php echo $workshop['category_name']; ?>
-                </span>
-
-                <span class="tag tag-secondary">
-                    <?php echo $workshop['available_seats']; ?> Seats
-                </span>
-
-            </div>
+              <div class="card-tags" style="margin-top:16px">
+                <span class="tag tag-primary"><?= h($workshop['category_name']) ?></span>
+                <span class="tag tag-secondary"><?= h((string)$workshop['available_seats']) ?> Seats</span>
+              </div>
 
          <?php
   $isBooked = in_array($workshop['workshop_id'], $bookedWorkshopIds);
@@ -176,38 +166,35 @@ data-bio="<?= h($workshop['instructor_bio']) ?>"
   View Details
 </button>
 
-<!-- ASEEL ADDITION: Show Full button when no seats are available -->
-<?php if ($isFull): ?>
-  <button type="button" class="btn btn-secondary" disabled>
-    <i class="fa-solid fa-circle-xmark"></i>
-    Full
-  </button>
-<?php elseif ($isBooked): ?>
-  <button type="button" class="btn btn-booked-already" disabled>
-    <i class="fa-solid fa-circle-check"></i>
-    Already Booked
-  </button>
-<?php else: ?>
-  <button
-    type="button"
-    class="btn btn-primary book-btn workshop-book-btn"
-    data-workshop-id="<?= h((string) $workshop['workshop_id']) ?>"
-    data-workshop-title="<?= h($workshop['title']) ?>"
-    data-workshop-date="<?= h($workshop['workshop_date']) ?>"
-    data-workshop-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
-    data-workshop-link="#"
-  >
-    <i class="fa-solid fa-calendar-days"></i>
-    Book Workshop
-  </button>
-<?php endif; ?>
+              <!-- ASEEL ADDITION: Full / Already Booked / Book Workshop -->
+              <?php if ($isFull): ?>
+                <button type="button" class="btn btn-secondary workshop-book-btn" disabled style="margin-top:8px;">
+                  <i class="fa-solid fa-circle-xmark"></i>
+                  Full
+                </button>
+              <?php elseif ($isBooked): ?>
+                <button type="button" class="btn btn-booked-already" disabled>
+                  <i class="fa-solid fa-circle-check"></i>
+                  Already Booked
+                </button>
+              <?php else: ?>
+                <button
+                  type="button"
+                  class="btn btn-primary book-btn workshop-book-btn"
+                  data-workshop-id="<?= h((string)$workshop['workshop_id']) ?>"
+                  data-workshop-title="<?= h($workshop['title']) ?>"
+                  data-workshop-date="<?= h($workshop['workshop_date']) ?>"
+                  data-workshop-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
+                  data-workshop-link="#"
+                >
+                  <i class="fa-solid fa-calendar-days"></i>
+                  Book Workshop
+                </button>
+              <?php endif; ?>
 
-        </div>
-
-    </div>
-
-    <?php endforeach; ?>
-            
+            </div>
+          </div>
+          <?php endforeach; ?>
         </div>
 
         <blockquote>
@@ -218,16 +205,13 @@ data-bio="<?= h($workshop['instructor_bio']) ?>"
       </div>
     </section>
 
-    <!-- ===== FOOTER ===== -->
+    <!-- FOOTER -->
     <footer>
       <div class="container">
         <div id="footer-grid">
           <div id="footer-brand">
             <h3><i class="fa-solid fa-book-open"></i> SkillHub</h3>
-            <p>
-              Empowering students to discover and develop new skills through
-              short, focused workshops.
-            </p>
+            <p>Empowering students to discover and develop new skills through short, focused workshops.</p>
           </div>
           <div id="footer-links">
             <p class="footer-heading">Quick Links</p>
@@ -236,17 +220,15 @@ data-bio="<?= h($workshop['instructor_bio']) ?>"
               <li><a href="services.php">Services</a></li>
               <li><a href="schedule.php">Schedule</a></li>
               <li><a href="video.php">Guide</a></li>
-<?php if (is_logged_in()): ?>
-  <li><a href="<?= $basePath ?>pages/feedback.php">Feedback</a></li>
-<?php endif; ?>
+              <?php if (is_logged_in()): ?>
+                <li><a href="<?= $basePath ?>pages/feedback.php">Feedback</a></li>
+              <?php endif; ?>
               <li><a href="about.php">About</a></li>
             </ul>
           </div>
           <div id="footer-contact">
             <p class="footer-heading">Contact</p>
-            <address>
-              Email: info@skillhub.edu<br />
-            </address>
+            <address>Email: info@skillhub.edu</address>
           </div>
         </div>
       </div>
@@ -255,138 +237,107 @@ data-bio="<?= h($workshop['instructor_bio']) ?>"
       </div>
     </footer>
 
-<!-- ===== BOOKING MODAL ===== -->
-<div id="booking-overlay" hidden>
-  <div id="booking-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div id="modal-header">
-      <div>
-        <p id="modal-badge">
-          <i class="fa-solid fa-calendar-days"></i> Workshop Booking
-        </p>
-        <h2 id="modal-title">Confirm Booking</h2>
-      </div>
-
-      <button
-        type="button"
-        id="modal-close"
-        aria-label="Close booking window"
-      >
-        &times;
-      </button>
-    </div>
-
-    <div id="booking-state-confirm" class="booking-state">
-      <div id="modal-workshop-info">
-        <p id="info-name"></p>
-
-        <div id="info-details">
-          <span id="info-date"></span>
-          <span id="info-time"></span>
+    <!-- ===== BOOKING MODAL ===== -->
+    <div id="booking-overlay" hidden>
+      <div id="booking-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div id="modal-header">
+          <div>
+            <p id="modal-badge">
+              <i class="fa-solid fa-calendar-days"></i> Workshop Booking
+            </p>
+            <h2 id="modal-title">Confirm Booking</h2>
+          </div>
+          <button type="button" id="modal-close" aria-label="Close booking window">&times;</button>
         </div>
 
-        <p id="info-email-note">
-          <i class="fa-solid fa-envelope"></i>
-          A booking confirmation email will be sent with the workshop details.
-        </p>
-      </div>
+        <!-- Confirm state -->
+        <div id="booking-state-confirm" class="booking-state">
+          <div id="modal-workshop-info">
+            <p id="info-name"></p>
+            <div id="info-details">
+              <span id="info-date"></span>
+              <span id="info-time"></span>
+            </div>
+            <p id="info-email-note">
+              <i class="fa-solid fa-envelope"></i>
+              A booking confirmation email will be sent with the workshop details.
+            </p>
+          </div>
+          <div class="booking-confirm-actions">
+            <button type="button" class="btn btn-outline" id="booking-cancel-btn">Back</button>
+            <button type="button" class="btn btn-primary" id="booking-confirm-btn">
+              <i class="fa-solid fa-circle-check"></i> Confirm Booking
+            </button>
+          </div>
+        </div>
 
-      <div class="booking-confirm-actions">
-        <button type="button" class="btn btn-outline" id="booking-cancel-btn">
-          Back
+        <!-- Loading state -->
+        <div id="booking-state-loading" class="booking-state" hidden>
+          <div class="booking-feedback-card">
+            <div class="booking-loader" aria-hidden="true"></div>
+            <h3>Booking your workshop...</h3>
+            <p>Please wait while we reserve your seat.</p>
+          </div>
+        </div>
+
+        <!-- Success state -->
+        <div id="booking-state-success" class="booking-state" hidden>
+          <div class="booking-feedback-card booking-success-card">
+            <div class="booking-success-icon">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <h3>Workshop booked successfully</h3>
+            <p id="booking-success-message">
+              Your seat has been reserved successfully.
+              A confirmation email was sent with your booking details.
+            </p>
+            <div class="booking-zoom-note">
+              <i class="fa-solid fa-video"></i>
+              <span>The Zoom meeting link for this workshop will be sent to your email before it starts.</span>
+            </div>
+            <div class="booking-success-actions">
+              <a href="profile.php" class="btn btn-primary">
+                <i class="fa-solid fa-user"></i> View My Bookings
+              </a>
+              <button type="button" class="btn btn-outline" id="booking-back-btn">
+                Back to Workshops
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error state -->
+        <div id="booking-state-error" class="booking-state" hidden>
+          <div class="booking-feedback-card booking-error-card">
+            <div class="booking-error-icon">
+              <i class="fa-solid fa-xmark"></i>
+            </div>
+            <h3>Booking failed</h3>
+            <p id="booking-error-message">Something went wrong while booking this workshop.</p>
+            <button type="button" class="btn btn-outline" id="booking-error-back-btn">Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== WORKSHOP DETAILS MODAL ===== -->
+    <!-- ASEEL ADDITION: Shows full workshop info with What you'll learn section -->
+    <div id="details-overlay" hidden>
+      <div id="details-modal">
+
+        <button type="button" class="details-close-btn" aria-label="Close details modal">
+          &times;
         </button>
 
-        <button type="button" class="btn btn-primary" id="booking-confirm-btn">
-          <i class="fa-solid fa-circle-check"></i>
-          Confirm Booking
-        </button>
-      </div>
-    </div>
-
-    <div id="booking-state-loading" class="booking-state" hidden>
-      <div class="booking-feedback-card">
-        <div class="booking-loader" aria-hidden="true"></div>
-        <h3>Booking your workshop...</h3>
-        <p>Please wait while we reserve your seat.</p>
-      </div>
-    </div>
-
-    <div id="booking-state-success" class="booking-state" hidden>
-      <div class="booking-feedback-card booking-success-card">
-        <div class="booking-success-icon">
-          <i class="fa-solid fa-check"></i>
+        <!-- Header: category badge, seats badge, title, description -->
+        <div class="details-header">
+          <div class="details-badges">
+            <span class="details-badge-category" id="details-category">Workshop</span>
+            <span class="details-badge-seats" id="details-seats-badge">Seats Available</span>
+          </div>
+          <h2 id="details-title"></h2>
+          <p id="details-description"></p>
         </div>
-
-        <h3>Workshop booked successfully</h3>
-
-        <p id="booking-success-message">
-          Your seat has been reserved successfully.
-          A confirmation email was sent with your booking details.
-        </p>
-
-        <div class="booking-zoom-note">
-          <i class="fa-solid fa-video"></i>
-          <span>The Zoom meeting link for this workshop will be sent to your email before it starts.</span>
-        </div>
-
-        <div class="booking-success-actions">
-          <a href="profile.php" class="btn btn-primary">
-            <i class="fa-solid fa-user"></i>
-            View My Bookings
-          </a>
-
-          <button type="button" class="btn btn-outline" id="booking-back-btn">
-            Back to Workshops
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div id="booking-state-error" class="booking-state" hidden>
-      <div class="booking-feedback-card booking-error-card">
-        <div class="booking-error-icon">
-          <i class="fa-solid fa-xmark"></i>
-        </div>
-
-        <h3>Booking failed</h3>
-        <p id="booking-error-message">Something went wrong while booking this workshop.</p>
-
-        <button type="button" class="btn btn-outline" id="booking-error-back-btn">
-          Back
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ASEEL ADDITION: Workshop details modal -->
-<div id="details-overlay" hidden>
-
-  <div id="details-modal">
-
-    <button
-      type="button"
-      class="details-close-btn"
-      aria-label="Close details modal">
-      &times;
-    </button>
-
-    <div class="details-header">
-
-      <div class="details-badges">
-        <span class="details-badge-category" id="details-category">
-          Workshop
-        </span>
-
-        <span class="details-badge-seats" id="details-seats-badge">
-          Seats Available
-        </span>
-      </div>
-
-      <h2 id="details-title"></h2>
-
-      <p id="details-description"></p>
-
-    </div>
 
     <div class="details-grid">
 
@@ -432,91 +383,101 @@ data-bio="<?= h($workshop['instructor_bio']) ?>"
 
     </div>
 
-    
+        <!-- What you'll learn — generated from description by JS -->
+        <!-- Always visible when a description exists -->
+        <div id="details-learn-section" style="margin-top:4px;">
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:16px; padding:18px 20px;">
+            <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#059669; margin-bottom:12px;">
+              <i class="fa-solid fa-graduation-cap" style="margin-right:6px;"></i>
+              What you'll learn
+            </p>
+            <ul id="details-learn" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;"></ul>
+          </div>
+        </div>
 
-  </div>
+      </div>
+    </div>
 
-</div>
-
+    <!-- Pass booked workshop IDs to JS for correct button state in search results -->
     <script>
-// Pass booked workshop IDs to JS so search results show correct button state
-window.bookedWorkshopIds = <?= json_encode(array_map('intval', $bookedWorkshopIds)) ?>;
-</script>
+      window.bookedWorkshopIds = <?= json_encode(array_map('intval', $bookedWorkshopIds)) ?>;
+    </script>
 
-<script>
-const searchInput = document.getElementById('searchInput');
-const categoryFilter = document.getElementById('categoryFilter');
-const grid = document.querySelector('.grid-2');
+    <!-- Live search + category filter using AJAX -->
+    <!-- Fetches workshops from API on every keystroke and category change -->
+    <script>
+    const searchInput    = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const grid           = document.querySelector('.grid-2');
 
-async function loadWorkshops() {
-    const searchValue = searchInput.value;
-    const categoryValue = categoryFilter.value;
+    async function loadWorkshops() {
+      const searchValue   = searchInput.value;
+      const categoryValue = categoryFilter.value;
 
-    const response = await fetch(
+      const response = await fetch(
         `../api/search_workshops.php?search=${encodeURIComponent(searchValue)}&category=${encodeURIComponent(categoryValue)}`
-    );
+      );
 
-    const workshops = await response.json();
+      const workshops = await response.json();
+      grid.innerHTML  = '';
 
-    grid.innerHTML = '';
+      const bookedIds = window.bookedWorkshopIds || [];
+      const isAdmin   = document.body.dataset.isAdmin === '1';
 
-    // Get list of already-booked workshop IDs from the page
-    const bookedIds = window.bookedWorkshopIds || [];
-    const isAdmin   = document.body.dataset.isAdmin === '1';
-
-    workshops.forEach(workshop => {
+      workshops.forEach(workshop => {
         const hasImg = workshop.image_path && workshop.image_path.trim() !== '';
 
-        // Image or placeholder — matches PHP rendering
+        // Image + placeholder — matches PHP card rendering
         const imgHtml = hasImg
-            ? `<img src="${workshop.image_path}" alt="${workshop.title}" class="card-img"
-                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />`
-            : '';
-
+          ? `<img src="${workshop.image_path}" alt="${workshop.title}" class="card-img"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />`
+          : '';
         const placeholderStyle = hasImg ? 'style="display:none"' : '';
         const placeholderHtml  = `<div class="card-img-placeholder" ${placeholderStyle}>
-            <i class="fa-solid fa-book-open"></i>
-            <span>${workshop.category_name}</span>
+          <i class="fa-solid fa-book-open"></i>
+          <span>${workshop.category_name}</span>
         </div>`;
 
-        // Book button, Already Booked, or Full
-        let btnHtml;
+        // Instructor name from API — dash if unassigned
+        const instructorName = (workshop.instructor_name || '').trim() || '—';
 
-        if (isAdmin) {
-            btnHtml = ''; // Admin can't book
+        // Action button: Full / Already Booked / Book Workshop
+        let btnHtml = '';
+        if (!isAdmin) {
+          if (parseInt(workshop.available_seats) <= 0) {
+            btnHtml = `<button type="button" class="btn btn-secondary workshop-book-btn" disabled style="margin-top:8px;">
+              <i class="fa-solid fa-circle-xmark"></i> Full
+            </button>`;
+          } else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
+            btnHtml = `<button type="button" class="btn btn-booked-already" disabled>
+              <i class="fa-solid fa-circle-check"></i> Already Booked
+            </button>`;
+          } else {
+            btnHtml = `<button type="button"
+              class="btn btn-primary book-btn workshop-book-btn"
+              data-workshop-id="${workshop.workshop_id}"
+              data-workshop-title="${workshop.title}"
+              data-workshop-date="${workshop.workshop_date}"
+              data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
+              data-workshop-link="#">
+              <i class="fa-solid fa-calendar-days"></i> Book Workshop
+            </button>`;
+          }
         }
 
-        /* =========================================================
-           ASEEL ADDITION:
-           Show "Full" button when no seats are available
-        ========================================================= */
-        else if (parseInt(workshop.available_seats) <= 0) {
-            btnHtml = `
-                <button type="button" class="btn btn-secondary" disabled>
-                    <i class="fa-solid fa-circle-xmark"></i> Full
-                </button>
-            `;
-        }
-
-        else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
-            btnHtml = `
-                <button type="button" class="btn btn-booked-already" disabled>
-                    <i class="fa-solid fa-circle-check"></i> Already Booked
-                </button>
-            `;
-        } else {
-            btnHtml = `
-                <button type="button"
-                    class="btn btn-primary book-btn workshop-book-btn"
-                    data-workshop-id="${workshop.workshop_id}"
-                    data-workshop-title="${workshop.title}"
-                    data-workshop-date="${workshop.workshop_date}"
-                    data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
-                    data-workshop-link="#">
-                    <i class="fa-solid fa-calendar-days"></i> Book Workshop
-                </button>
-            `;
-        }
+        // View Details button — outlined, not green/blue filled
+        const viewDetailsBtn = `<button
+          type="button"
+          class="btn view-details-btn"
+          data-title="${workshop.title}"
+          data-description="${workshop.description}"
+          data-category="${workshop.category_name}"
+          data-instructor="${instructorName}"
+          data-date="${workshop.workshop_date}"
+          data-time="${workshop.start_time} - ${workshop.end_time}"
+          data-seats="${workshop.available_seats}">
+          <i class="fa-solid fa-eye"></i> View Details
+        </button>`;
 
         grid.innerHTML += `
             <div class="card">
@@ -559,35 +520,13 @@ async function loadWorkshops() {
                 </div>
             </div>
         `;
-    });
-}
+      });
+    }
 
-searchInput.addEventListener('keyup', loadWorkshops);
-categoryFilter.addEventListener('change', loadWorkshops);
-</script>
+    searchInput.addEventListener('keyup',    loadWorkshops);
+    categoryFilter.addEventListener('change', loadWorkshops);
+    </script>
 
-<!-- ASEEL ADDITION: Workshop details modal structure -->
-<!-- <div id="details-overlay" class="modal-overlay" hidden>
-    <div class="modal-box details-modal-box">
-        <button type="button" class="modal-close details-close-btn" aria-label="Close details modal">
-            &times;
-        </button>
-
-        <h2 id="details-title"></h2>
-        <p id="details-description"></p>
-
-        <ul class="details-list">
-            <li id="details-instructor"></li>
-            <li id="details-date"></li>
-            <li id="details-time"></li>
-            <li id="details-location"></li>
-            <li id="details-price"></li>
-            <li id="details-seats"></li>
-        </ul>
-    </div>
-</div> -->
-
-<script src="../scripts/main.js"></script>
-
-</body>
+    <script src="../scripts/main.js"></script>
+  </body>
 </html>

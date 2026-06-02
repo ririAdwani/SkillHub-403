@@ -1854,20 +1854,31 @@ nav#main-nav.open ul li a {
 }
 
 /* ASEEL ADDITION: Workshop action buttons */
+/* View Details — outlined secondary style so it doesn't compete with Book */
 .view-details-btn {
-  background: #10b981;
-  color: #ffffff;
-  border: 0;
+  background: white;
+  color: var(--text);
+  border: 2px solid var(--border);
   border-radius: 999px;
-  padding: 12px 22px;
+  padding: 10px 22px;
   font-weight: 700;
-  box-shadow: 0 10px 22px rgba(16, 185, 129, 0.22);
+  box-shadow: none;
+  width: 100%;
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.2s;
 }
 
 .view-details-btn:hover {
-  background: #059669;
+  background: var(--background);
+  color: var(--text);
+  border-color: var(--text-light);
+  box-shadow: none;
+  transform: none;
 }
-
 .btn-secondary:disabled {
   background: #e2e8f0;
   color: #64748b;

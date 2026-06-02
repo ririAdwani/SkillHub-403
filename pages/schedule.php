@@ -425,7 +425,7 @@ $WEEKEND_DAYS = [5, 6];
         <table id="schedule-table">
           <caption>
             Weekly Workshop Schedule
-            <p>Pulled live from the database · Friday &amp; Saturday are off days</p>
+            <p>Delivering Workshops Sunday through Thursday· Friday &amp; Saturday are off days</p>
           </caption>
           <thead>
             <tr>

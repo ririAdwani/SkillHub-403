@@ -1,4 +1,11 @@
 <?php
+/*
+ * feedback.php — Student Feedback Page
+ *
+ * FIX: replies_seen_at is now loaded from the DATABASE (users table),
+ * not from $_SESSION. This means "read" state persists across logout/login.
+ * Only messages sent AFTER the user's replies_seen_at are counted as unread.
+ */
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/db.php';
 
@@ -7,26 +14,22 @@ require_login();
 $basePath    = '../';
 $currentPage = 'feedback';
 
-// Load categories for the feedback checkbox section.
-// Admins manage categories, so the feedback form should use database categories.
+// ── LOAD CATEGORIES FOR CHECKBOX LIST ────────────────────────
+// Categories come from DB so they match what admin manages
 $feedbackCategories = [];
-
 try {
     $categoryStmt = $pdo->query(
-        'SELECT category_id, category_name
-         FROM categories
-         ORDER BY category_name ASC'
+        'SELECT category_id, category_name FROM categories ORDER BY category_name ASC'
     );
-
     $feedbackCategories = $categoryStmt->fetchAll();
 } catch (PDOException $e) {
     $feedbackCategories = [];
 }
 
-// Handle user resolving (hiding) a feedback thread from their view
+// ── HANDLE: User hiding a reply thread ───────────────────────
+// Stores hidden thread IDs in session — does NOT delete from DB
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_resolve_feedback_id'])) {
     $fid = (int)$_POST['user_resolve_feedback_id'];
-    // Store resolved thread IDs in session so they're hidden for this user
     $_SESSION['user_resolved_feedback'] = $_SESSION['user_resolved_feedback'] ?? [];
     if (!in_array($fid, $_SESSION['user_resolved_feedback'])) {
         $_SESSION['user_resolved_feedback'][] = $fid;
@@ -35,11 +38,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_resolve_feedback
     exit;
 }
 
-// Load this user's feedback submissions + full message history
-$myFeedback   = [];
-$feedbackMsgs = [];
+// ── LOAD replies_seen_at FROM DATABASE ────────────────────────
+// KEY FIX: Read from the DB, not $_SESSION.
+// Session disappears on logout; DB value persists permanently.
+// This is how we know which replies the user has already seen.
+$repliesSeenAt = null;
+try {
+    $seenStmt = $pdo->prepare(
+        "SELECT replies_seen_at FROM users WHERE user_id = :uid"
+    );
+    $seenStmt->execute([':uid' => current_user_id()]);
+    $seenRow = $seenStmt->fetch();
+    if ($seenRow && !empty($seenRow['replies_seen_at'])) {
+        $repliesSeenAt = $seenRow['replies_seen_at'];
+        // Also sync session so navbar dot works on this request
+        $_SESSION['replies_seen_at'] = $repliesSeenAt;
+    }
+} catch (PDOException $e) {
+    // replies_seen_at column may not exist yet (auto-created on first mark-seen)
+    // Fall back to null = treat all replies as unread
+    $repliesSeenAt = null;
+}
+
+// ── LOAD THIS USER'S FEEDBACK + MESSAGE HISTORY ───────────────
+$myFeedback     = [];
+$feedbackMsgs   = [];
 $hasUnreadReply = false;
-$userResolved = $_SESSION['user_resolved_feedback'] ?? [];
+$userResolved   = $_SESSION['user_resolved_feedback'] ?? [];
 
 try {
     $fbStmt = $pdo->prepare(
@@ -56,11 +81,22 @@ try {
             $msgStmt->execute([':id' => $fb['feedback_id']]);
             $msgs = $msgStmt->fetchAll();
             $feedbackMsgs[$fb['feedback_id']] = $msgs;
-            // Show notification dot if any non-resolved thread has messages
+
+            // Unread = has messages AND thread not hidden AND
+            // latest message is newer than replies_seen_at
             if (!empty($msgs) && !in_array($fb['feedback_id'], $userResolved)) {
-                $hasUnreadReply = true;
+                if ($repliesSeenAt === null) {
+                    // Never seen anything — all are unread
+                    $hasUnreadReply = true;
+                } else {
+                    $latestMsg = end($msgs);
+                    if ($latestMsg['sent_at'] > $repliesSeenAt) {
+                        $hasUnreadReply = true;
+                    }
+                }
             }
         } catch (PDOException $e2) {
+            // feedback_messages table may not exist — fall back
             if (!empty($fb['admin_reply']) && !in_array($fb['feedback_id'], $userResolved)) {
                 $hasUnreadReply = true;
             }
@@ -70,14 +106,28 @@ try {
     $myFeedback = [];
 }
 
-// Count threads that have replies and are not resolved by user
+// ── COUNT UNREAD REPLY THREADS FOR TAB BADGE ─────────────────
+// Only threads with messages newer than replies_seen_at are counted
 $activeReplies = 0;
 foreach ($myFeedback as $fb) {
-    $msgs = $feedbackMsgs[$fb['feedback_id']] ?? [];
-    $hasMsg = !empty($msgs) || !empty($fb['admin_reply']);
-    if ($hasMsg && !in_array($fb['feedback_id'], $userResolved)) {
-        $activeReplies++;
+    $msgs       = $feedbackMsgs[$fb['feedback_id']] ?? [];
+    $isResolved = in_array($fb['feedback_id'], $userResolved);
+    if ($isResolved) continue;
+
+    if (!empty($msgs)) {
+        if ($repliesSeenAt === null) {
+            // Never opened replies — count everything
+            $activeReplies++;
+        } else {
+            // Only count if latest message is newer than last seen
+            $latestMsg = end($msgs);
+            if ($latestMsg['sent_at'] > $repliesSeenAt) {
+                $activeReplies++;
+            }
+        }
     }
+    // NOTE: No fallback for admin_reply field — that field has no timestamp
+    // so we cannot know if it's been seen. Only feedback_messages are counted.
 }
 ?>
 <!doctype html>
@@ -89,7 +139,7 @@ foreach ($myFeedback as $fb) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="../global/main.css" />
   <link rel="stylesheet" href="../global/print.css" media="print" />
-  </head>
+</head>
 <body>
   <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
@@ -107,7 +157,7 @@ foreach ($myFeedback as $fb) {
     <div class="feedback-page-wrapper">
       <div class="feedback-main">
 
-        <!-- TABS -->
+        <!-- TAB SWITCHER -->
         <div class="feedback-tabs">
           <button class="feedback-tab active" id="tab-form" onclick="switchTab('form', this)">
             <i class="fa-solid fa-pen-to-square"></i> Submit Feedback
@@ -115,6 +165,7 @@ foreach ($myFeedback as $fb) {
           <button class="feedback-tab" id="tab-replies" onclick="switchTab('replies', this)">
             <i class="fa-solid fa-inbox"></i> My Replies
             <?php if ($activeReplies > 0): ?>
+              <!-- Badge shows count of unread reply threads -->
               <span class="feedback-tab-badge"><?= $activeReplies ?></span>
             <?php endif; ?>
           </button>
@@ -122,8 +173,9 @@ foreach ($myFeedback as $fb) {
 
         <!-- PANEL: Submit Feedback Form -->
         <div class="feedback-panel active" id="panel-form">
+
           <?php if (is_admin()): ?>
-          <!-- Admin message shown ABOVE the form -->
+          <!-- Admin sees this notice — form is visible but greyed out -->
           <div style="text-align:center; padding:32px 24px 28px; background:#eff6ff; border-radius:16px; margin-bottom:24px;">
             <i class="fa-solid fa-shield-halved" style="font-size:2.5rem; color:#2563eb; margin-bottom:12px; display:block;"></i>
             <h3 style="color:#0f172a; margin:0 0 8px; font-size:1.25rem;">Viewing as Admin</h3>
@@ -132,166 +184,159 @@ foreach ($myFeedback as $fb) {
               <strong>Feedback submission is for students only.</strong>
             </p>
           </div>
-          <!-- Form shown below, greyed out so admin can see the questions -->
+          <!-- Greyed-out non-interactive form for admin preview -->
           <div style="opacity:0.55; pointer-events:none; user-select:none;">
           <?php endif; ?>
+
           <div>
+            <div id="feedback-form-wrap">
 
-          <div id="feedback-form-wrap">
-            <div id="success-message" style="display:none; border:2px solid #86efac; background:#f0fdf4; border-radius:16px; text-align:center; padding:48px 24px; margin-bottom:24px;">
-              <div style="width:56px;height:56px;background:#0f172a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
-                <i class="fa-solid fa-check" style="color:#fff;font-size:1.4rem;"></i>
+              <!-- Success banner shown after successful submission (hidden by default) -->
+              <div id="success-message" style="display:none; border:2px solid #86efac; background:#f0fdf4; border-radius:16px; text-align:center; padding:48px 24px; margin-bottom:24px;">
+                <div style="width:56px;height:56px;background:#0f172a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                  <i class="fa-solid fa-check" style="color:#fff;font-size:1.4rem;"></i>
+                </div>
+                <h3 style="color:#16a34a; margin-bottom:8px;">Thank You!</h3>
+                <p style="color:#475569;">Your feedback has been submitted successfully. We appreciate your input!</p>
               </div>
-              <h3 style="color:#16a34a; margin-bottom:8px;">Thank You!</h3>
-              <p style="color:#475569;">Your feedback has been submitted successfully. We appreciate your input!</p>
+
+              <div class="card" style="padding: 0;">
+                <div class="card-body" style="padding: 40px;">
+                  <form id="feedback-form" novalidate>
+
+                    <!-- Form intro -->
+                    <div class="feedback-form-intro">
+                      <h3>Help us plan better workshops</h3>
+                      <p>
+                        Share how useful your SkillHub experience was, which workshop topics
+                        you want to see more often, and what session times work best for students.
+                      </p>
+                    </div>
+
+                    <!-- Name and email auto-filled from session, read-only -->
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="name">Full Name <span class="required">*</span></label>
+                        <input type="text" id="name" name="name"
+                          value="<?= h($_SESSION['full_name'] ?? '') ?>" readonly />
+                        <span id="name-error" class="field-error"></span>
+                      </div>
+                      <div class="form-group">
+                        <label for="email">Email Address <span class="required">*</span></label>
+                        <input type="email" id="email" name="email"
+                          value="<?= h($_SESSION['email'] ?? '') ?>" readonly />
+                        <span id="email-error" class="field-error"></span>
+                      </div>
+                    </div>
+
+                    <p class="feedback-account-note">
+                      <i class="fa-solid fa-lock"></i>
+                      Your name and email are taken from your account.
+                    </p>
+
+                    <!-- Overall experience rating -->
+                    <div class="form-group">
+                      <label>How useful was your SkillHub experience? <span class="required">*</span></label>
+                      <div class="rating-group">
+                        <label class="rating-card">
+                          <input type="radio" name="rating" value="Good" />
+                          <span><i class="fa-solid fa-face-smile"></i> Good</span>
+                        </label>
+                        <label class="rating-card">
+                          <input type="radio" name="rating" value="Average" />
+                          <span><i class="fa-solid fa-face-meh"></i> Average</span>
+                        </label>
+                        <label class="rating-card">
+                          <input type="radio" name="rating" value="Poor" />
+                          <span><i class="fa-solid fa-face-frown"></i> Poor</span>
+                        </label>
+                      </div>
+                      <span id="rating-error" class="field-error"></span>
+                    </div>
+
+                    <!-- Workshop topic checkboxes from DB -->
+                    <div class="form-group">
+                      <label>Workshop Topics You Want More Of</label>
+                      <p class="feedback-field-help">Select all topics you would like SkillHub to offer more often.</p>
+                      <div class="checkbox-grid">
+                        <?php if (empty($feedbackCategories)): ?>
+                          <p class="feedback-field-help">No workshop categories available right now.</p>
+                        <?php else: ?>
+                          <?php
+                            $icons = [
+                                1 => 'fa-laptop-code', 2 => 'fa-palette',
+                                3 => 'fa-chart-line',  4 => 'fa-shield-halved',
+                                5 => 'fa-robot',       6 => 'fa-briefcase',
+                            ];
+                            foreach ($feedbackCategories as $category):
+                          ?>
+                            <label class="checkbox-option">
+                              <input type="checkbox" name="workshops[]"
+                                value="<?= h($category['category_name']) ?>" />
+                              <span>
+                                <i class="fa-solid <?= h($icons[$category['category_id']] ?? 'fa-book-open') ?>"></i>
+                                <?= h($category['category_name']) ?>
+                              </span>
+                            </label>
+                          <?php endforeach; ?>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+
+                    <!-- Preferred time dropdown -->
+                    <div class="form-group">
+                      <label for="feedback-preference">Preferred Session Time</label>
+                      <select id="preference" name="preference">
+                        <option value="">Select preferred time</option>
+                        <option value="morning">Morning Sessions (9 AM – 12 PM)</option>
+                        <option value="afternoon">Afternoon Sessions (1 PM – 5 PM)</option>
+                        <option value="evening">Evening Sessions (6 PM – 9 PM)</option>
+                        <option value="no-pref">No Preference</option>
+                      </select>
+                    </div>
+
+                    <!-- Free text comments -->
+                    <div class="form-group">
+                      <label for="feedback-comments">Additional Comments</label>
+                      <textarea id="comments" name="comments" rows="4"
+                        placeholder="Share any additional thoughts or suggestions..."></textarea>
+                    </div>
+
+                    <div style="text-align:center; margin-top:8px;">
+                      <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane"></i> Submit Feedback
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
+              </div>
             </div>
-            <div class="card" style="padding: 0;">
-              <div class="card-body" style="padding: 40px;">
-            <form id="feedback-form" novalidate>
-              <!-- Explain the purpose of the feedback form before asking for input. -->
-              <div class="feedback-form-intro">
-                <h3>Help us plan better workshops</h3>
-                <p>
-                  Share how useful your SkillHub experience was, which workshop topics you want to see more often,
-                  and what session times work best for students.
-                </p>
-              </div>
-
-              <!-- Account identity is auto-filled because feedback is submitted by logged-in users. -->
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="name">Full Name <span class="required">*</span></label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value="<?= h($_SESSION['full_name'] ?? '') ?>"
-                    readonly
-                  />
-                  <span id="name-error" class="field-error"></span>
-                </div>
-
-                <div class="form-group">
-                  <label for="email">Email Address <span class="required">*</span></label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value="<?= h($_SESSION['email'] ?? '') ?>"
-                    readonly
-                  />
-                  <span id="email-error" class="field-error"></span>
-                </div>
-              </div>
-
-              <p class="feedback-account-note">
-                <i class="fa-solid fa-lock"></i>
-                Your name and email are taken from your account.
-              </p>
-
-              <!-- Rating focuses on the user's SkillHub experience, not a vague overall score. -->
-              <div class="form-group">
-                <label>How useful was your SkillHub experience? <span class="required">*</span></label>
-                <div class="rating-group">
-                  <label class="rating-card">
-                    <input type="radio" name="rating" value="Good" />
-                    <span><i class="fa-solid fa-face-smile"></i> Good</span>
-                  </label>
-
-                  <label class="rating-card">
-                    <input type="radio" name="rating" value="Average" />
-                    <span><i class="fa-solid fa-face-meh"></i> Average</span>
-                  </label>
-
-                  <label class="rating-card">
-                    <input type="radio" name="rating" value="Poor" />
-                    <span><i class="fa-solid fa-face-frown"></i> Poor</span>
-                  </label>
-                </div>
-                <span id="rating-error" class="field-error"></span>
-              </div>
-
-              <!-- Category choices come from the database so they match admin-managed categories. -->
-              <div class="form-group">
-                <label>Workshop Topics You Want More Of</label>
-                <p class="feedback-field-help">Select all topics you would like SkillHub to offer more often.</p>
-
-                <div class="checkbox-grid">
-                  <?php if (empty($feedbackCategories)): ?>
-                    <p class="feedback-field-help">No workshop categories are available right now.</p>
-                  <?php else: ?>
-                    <?php
-                      $icons = [
-                          1 => 'fa-laptop-code',
-                          2 => 'fa-palette',
-                          3 => 'fa-chart-line',
-                          4 => 'fa-shield-halved',
-                          5 => 'fa-robot',
-                          6 => 'fa-briefcase',
-                      ];
-
-                      foreach ($feedbackCategories as $category):
-                    ?>
-                      <label class="checkbox-option">
-                        <input
-                          type="checkbox"
-                          name="workshops[]"
-                          value="<?= h($category['category_name']) ?>"
-                        />
-                        <span>
-                          <i class="fa-solid <?= h($icons[$category['category_id']] ?? 'fa-book-open') ?>"></i>
-                          <?= h($category['category_name']) ?>
-                        </span>
-                      </label>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                </div>
-  </div>
-
-              <div class="form-group">
-                <label for="feedback-preference">Preferred Session Time</label>
-                <select id="preference" name="preference">
-                  <option value="">Select preferred time</option>
-                  <option value="morning">Morning Sessions (9 AM – 12 PM)</option>
-                  <option value="afternoon">Afternoon Sessions (1 PM – 5 PM)</option>
-                  <option value="evening">Evening Sessions (6 PM – 9 PM)</option>
-                  <option value="no-pref">No Preference</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="feedback-comments">Additional Comments</label>
-                <textarea id="comments" name="comments" rows="4"
-                  placeholder="Share any additional thoughts or suggestions..."></textarea>
-              </div>
-
-              <div style="text-align:center; margin-top:8px;">
-                <button type="submit" class="btn btn-primary">
-                  <i class="fa-solid fa-paper-plane"></i> Submit Feedback
-                </button>
-              </div>
-            </form>
-              </div><!-- /.card-body -->
-            </div><!-- /.card -->
-          </div><!-- /.feedback-form-wrap -->
-            </div><!-- close greyed preview -->
-          </div><!-- close relative wrapper -->
-          
-          <?php if (is_admin()): ?></div><?php endif; ?>
           </div>
 
+          <?php if (is_admin()): ?>
+          </div><!-- close admin greyed wrapper -->
+          <?php endif; ?>
+
+        </div><!-- /#panel-form -->
+
         <!-- PANEL: My Replies -->
-        <div class="feedback-panel" id="panel-replies">
+        <!-- padding-top keeps cards from sitting behind the tab bar -->
+        <div class="feedback-panel" id="panel-replies" style="padding-top: 24px;">
+
           <?php
             $shownAny = false;
             foreach ($myFeedback as $fb):
-              $msgs = $feedbackMsgs[$fb['feedback_id']] ?? [];
-              $hasMsg = !empty($msgs) || !empty($fb['admin_reply']);
+              $msgs       = $feedbackMsgs[$fb['feedback_id']] ?? [];
+              $hasMsg     = !empty($msgs) || !empty($fb['admin_reply']);
               $isResolved = in_array($fb['feedback_id'], $userResolved);
               if (!$hasMsg || $isResolved) continue;
               $shownAny = true;
           ?>
+
+          <!-- Reply thread card for one feedback submission -->
           <div class="reply-thread-card" id="user-thread-<?= $fb['feedback_id'] ?>">
+
             <div class="reply-thread-header">
               <div>
                 <strong style="font-size:0.9rem; color:#0f172a;">
@@ -306,13 +351,14 @@ foreach ($myFeedback as $fb) {
               </div>
             </div>
 
+            <!-- User's original comment -->
             <?php if ($fb['comments']): ?>
             <div class="reply-thread-comment">
               <i class="fa-solid fa-quote-left"></i> <?= h($fb['comments']) ?>
             </div>
             <?php endif; ?>
 
-            <!-- All admin messages stacked -->
+            <!-- Admin messages stacked in chronological order -->
             <?php if (!empty($msgs)): ?>
               <?php foreach ($msgs as $msg): ?>
               <div class="reply-msg">
@@ -324,13 +370,14 @@ foreach ($myFeedback as $fb) {
               </div>
               <?php endforeach; ?>
             <?php elseif (!empty($fb['admin_reply'])): ?>
+              <!-- Fallback for threads without message history -->
               <div class="reply-msg">
                 <div class="reply-msg-label"><i class="fa-solid fa-reply"></i> Admin Reply</div>
                 <p><?= h($fb['admin_reply']) ?></p>
               </div>
             <?php endif; ?>
 
-            <!-- User can hide this thread -->
+            <!-- User can hide this thread from their view -->
             <div class="reply-thread-footer">
               <form method="post" style="display:inline;">
                 <input type="hidden" name="user_resolve_feedback_id" value="<?= $fb['feedback_id'] ?>" />
@@ -340,11 +387,14 @@ foreach ($myFeedback as $fb) {
               </form>
             </div>
           </div>
+
           <?php endforeach; ?>
 
+          <!-- Empty state: shown for admin or when no reply threads exist -->
           <?php if (is_admin() || !$shownAny): ?>
-          <div class="replies-empty" style="width:100%; max-width:100%; box-sizing:border-box; padding-top: 80px;">
-            <i class="fa-solid fa-<?= is_admin() ? 'chalkboard-user' : 'inbox' ?>" style="font-size:2.5rem; margin-bottom:16px; display:block; opacity:0.4; color:#94a3b8;"></i>
+          <div class="replies-empty" style="width:100%; box-sizing:border-box; padding-top:60px; text-align:center;">
+            <i class="fa-solid fa-<?= is_admin() ? 'chalkboard-user' : 'inbox' ?>"
+               style="font-size:2.5rem; margin-bottom:16px; display:block; opacity:0.4; color:#94a3b8;"></i>
             <?php if (is_admin()): ?>
               <h4 style="color:#0f172a; margin-bottom:10px;">Admin Panel</h4>
               <p style="color:#64748b; line-height:1.7; margin:0 auto;">
@@ -359,7 +409,8 @@ foreach ($myFeedback as $fb) {
             <?php endif; ?>
           </div>
           <?php endif; ?>
-        </div>
+
+        </div><!-- /#panel-replies -->
 
       </div><!-- /.feedback-main -->
     </div><!-- /.feedback-page-wrapper -->
@@ -397,35 +448,43 @@ foreach ($myFeedback as $fb) {
 
   <script src="../scripts/main.js"></script>
   <script>
-  // ── TAB SWITCHING ──────────────────────────────────────────
+  // ── TAB SWITCHING ─────────────────────────────────────────
   function switchTab(tabName, btn) {
-    document.querySelectorAll('.feedback-panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.feedback-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('panel-' + tabName).classList.add('active');
-    btn.classList.add('active');
+  document.querySelectorAll('.feedback-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.feedback-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + tabName).classList.add('active');
+  btn.classList.add('active');
 
-    // When user opens replies tab, clear the badge and navbar dot
-    if (tabName === 'replies') {
-      // Remove the red badge from the tab
-      const badge = btn.querySelector('.feedback-tab-badge');
-      if (badge) badge.remove();
-      // Remove the navbar notification dot
-      fetch('../api/mark_replies_seen.php', { method: 'POST' });
-    }
+  if (tabName === 'replies') {
+    // Remove badge from tab immediately
+    const badge = btn.querySelector('.feedback-tab-badge');
+    if (badge) badge.remove();
+
+    // Remove navbar dot immediately without waiting for fetch
+    const navDot = document.querySelector('nav #main-nav a[href*="feedback"] span[style*="border-radius:50%"]');
+    if (navDot) navDot.remove();
+
+    // Also remove any inline dot spans inside the feedback nav link
+    document.querySelectorAll('#main-nav a').forEach(a => {
+      if (a.href && a.href.includes('feedback')) {
+        a.querySelectorAll('span').forEach(s => {
+          if (s.style && s.style.background && s.style.background.includes('ef4444')) {
+            s.remove();
+          }
+        });
+      }
+    });
+
+    // Save seen timestamp to DB — persists across logout/login
+    fetch('../api/mark_replies_seen.php', { method: 'POST' });
   }
+}
 
-  // Auto-switch to replies tab if URL has #replies-panel
+  // Auto-switch to replies tab if URL hash is #replies-panel
   if (window.location.hash === '#replies-panel') {
     const repliesBtn = document.getElementById('tab-replies');
     if (repliesBtn) switchTab('replies', repliesBtn);
   }
-
-  // If user has unread replies, auto-open replies tab on load
-  <?php if ($activeReplies > 0 && empty($_GET['submitted'])): ?>
-  // Only auto-open if there are active replies waiting
-  // Comment this out if you don't want auto-open behaviour
-  // switchTab('replies', document.getElementById('tab-replies'));
-  <?php endif; ?>
   </script>
 </body>
 </html>

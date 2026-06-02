@@ -340,7 +340,7 @@ foreach ($myFeedback as $fb) {
             <div class="reply-thread-header">
               <div>
                 <strong style="font-size:0.9rem; color:#0f172a;">
-                  Feedback from <?= date('M j, Y', strtotime($fb['submitted_at'])) ?>
+                  Feedback from <?= date('M j, Y', strtotime($fb['submitted_at']) + 10800) ?>
                 </strong>
                 <div class="reply-thread-date">
                   Rating: <?= h($fb['rating']) ?>

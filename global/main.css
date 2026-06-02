@@ -762,50 +762,207 @@ blockquote cite {
   font-weight: 600;
 }
 
-/* ASEEL ADDITION: Workshop details modal */
+/* =========================================================
+   ASEEL ADDITION:
+   Modern Workshop Details Modal
+========================================================= */
+
 #details-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  padding: 24px;
+
   background: rgba(15, 23, 42, 0.55);
-  padding: 20px;
+  backdrop-filter: blur(6px);
 }
 
 #details-overlay[hidden] {
   display: none;
 }
 
-#details-modal,
-.details-modal-box {
-  width: min(520px, 100%);
+#details-modal {
+  width: min(680px, 100%);
   background: #ffffff;
-  border-radius: 22px;
-  padding: 28px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+
+  border-radius: 28px;
+
+  padding: 32px;
+
   position: relative;
+
+  box-shadow:
+    0 24px 80px rgba(15, 23, 42, 0.18),
+    0 8px 24px rgba(15, 23, 42, 0.08);
+
+  animation: detailsModalFade 0.25s ease;
 }
+
+@keyframes detailsModalFade {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===== CLOSE BUTTON ===== */
 
 .details-close-btn {
   position: absolute;
-  top: 16px;
+
+  top: 18px;
   right: 18px;
+
+  width: 42px;
+  height: 42px;
+
   border: 0;
-  background: transparent;
-  font-size: 28px;
+  border-radius: 50%;
+
+  background: #f1f5f9;
+
+  color: #0f172a;
+
+  font-size: 24px;
+
   cursor: pointer;
+
+  transition: 0.2s ease;
 }
 
-.details-list {
-  list-style: none;
-  padding: 0;
-  margin: 18px 0 0;
+.details-close-btn:hover {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
-.details-list li {
-  margin-bottom: 10px;
+/* ===== HEADER ===== */
+
+.details-header {
+  margin-bottom: 28px;
+}
+
+.details-badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 18px;
+}
+
+.details-badge-category,
+.details-badge-seats {
+  padding: 8px 14px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.details-badge-category {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.details-badge-seats {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+#details-title {
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 800;
+
+  color: #0f172a;
+
+  margin-bottom: 16px;
+}
+
+#details-description {
+  color: #475569;
+
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+/* ===== DETAILS GRID ===== */
+
+.details-grid {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 18px;
+
+  margin-bottom: 28px;
+}
+
+.details-item {
+  background: #f8fafc;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 18px;
+
+  padding: 18px;
+}
+
+.details-label {
+  display: block;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  color: #64748b;
+
+  margin-bottom: 8px;
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.details-item p {
+  color: #0f172a;
+
+  font-size: 16px;
+  font-weight: 600;
+
+  line-height: 1.5;
+}
+
+/* ===== ACTIONS ===== */
+
+.details-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 640px) {
+  #details-modal {
+    padding: 24px;
+    border-radius: 22px;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #details-title {
+    font-size: 24px;
+  }
 }
 
 /* ===== TABLE STYLES (Schedule page) ===== */
@@ -1695,6 +1852,31 @@ nav#main-nav.open ul li a {
   border-radius: 12px;
   display: block;
 }
+
+/* ASEEL ADDITION: Workshop action buttons */
+.view-details-btn {
+  background: #10b981;
+  color: #ffffff;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(16, 185, 129, 0.22);
+}
+
+.view-details-btn:hover {
+  background: #059669;
+}
+
+.btn-secondary:disabled {
+  background: #e2e8f0;
+  color: #64748b;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 /* ===== AUTH PAGES / LOGIN + REGISTER ===== */
 /*
   This section styles login and register pages.

@@ -872,12 +872,29 @@ function initWorkshopDetailsModal() {
     if (detailsButton) {
       document.getElementById("details-title").textContent = detailsButton.dataset.title || "";
       document.getElementById("details-description").textContent = detailsButton.dataset.description || "";
-      document.getElementById("details-instructor").textContent = "Instructor: " + (detailsButton.dataset.instructor || "Not assigned");
-      document.getElementById("details-date").textContent = "Date: " + (detailsButton.dataset.date || "");
-      document.getElementById("details-time").textContent = "Time: " + (detailsButton.dataset.time || "");
-      document.getElementById("details-location").textContent = "Location: " + (detailsButton.dataset.location || "Online");
-      document.getElementById("details-price").textContent = "Price: " + (detailsButton.dataset.price || "0.00") + " SAR";
-      document.getElementById("details-seats").textContent = "Available Seats: " + (detailsButton.dataset.seats || "0");
+      document.getElementById("details-instructor").textContent =
+  detailsButton.dataset.instructor || "Not assigned";
+
+document.getElementById("details-date").textContent =
+  detailsButton.dataset.date || "";
+
+document.getElementById("details-time").textContent =
+  detailsButton.dataset.time || "";
+
+// document.getElementById("details-location").textContent =
+//   detailsButton.dataset.location || "Online";
+
+// document.getElementById("details-price").textContent =
+//   (detailsButton.dataset.price || "0.00") + " SAR";
+
+// document.getElementById("details-seats").textContent =
+//   detailsButton.dataset.seats || "0";
+
+document.getElementById("details-category").textContent =
+  "Workshop";
+
+document.getElementById("details-seats-badge").textContent =
+  (detailsButton.dataset.seats || "0") + " Seats";
 
       document.getElementById("details-overlay").hidden = false;
       document.body.style.overflow = "hidden";

@@ -166,7 +166,7 @@ if (is_logged_in() && !is_admin()) {
   data-date="<?= h($workshop['workshop_date']) ?>"
   data-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
   data-location="<?= h($workshop['location']) ?>"
-  data-price="<?= h((string) $workshop['price']) ?>"
+  
   data-seats="<?= h((string) $workshop['available_seats']) ?>"
 >
   <i class="fa-solid fa-eye"></i>
@@ -357,6 +357,7 @@ if (is_logged_in() && !is_admin()) {
 
 <!-- ASEEL ADDITION: Workshop details modal -->
 <div id="details-overlay" hidden>
+
   <div id="details-modal">
 
     <button
@@ -366,20 +367,62 @@ if (is_logged_in() && !is_admin()) {
       &times;
     </button>
 
-    <h2 id="details-title"></h2>
+    <div class="details-header">
 
-    <p id="details-description"></p>
+      <div class="details-badges">
+        <span class="details-badge-category" id="details-category">
+          Workshop
+        </span>
 
-    <ul class="details-list">
-      <li id="details-instructor"></li>
-      <li id="details-date"></li>
-      <li id="details-time"></li>
-      <li id="details-location"></li>
-      <li id="details-price"></li>
-      <li id="details-seats"></li>
-    </ul>
+        <span class="details-badge-seats" id="details-seats-badge">
+          Seats Available
+        </span>
+      </div>
+
+      <h2 id="details-title"></h2>
+
+      <p id="details-description"></p>
+
+    </div>
+
+    <div class="details-grid">
+
+      <div class="details-item">
+        <span class="details-label">Instructor</span>
+        <p id="details-instructor"></p>
+      </div>
+
+      <div class="details-item">
+        <span class="details-label">Date</span>
+        <p id="details-date"></p>
+      </div>
+
+      <div class="details-item">
+        <span class="details-label">Time</span>
+        <p id="details-time"></p>
+      </div>
+
+      <!-- <div class="details-item">
+        <span class="details-label">Location</span>
+        <p id="details-location"></p>
+      </div> -->
+
+      <!-- <div class="details-item">
+        <span class="details-label">Price</span>
+        <p id="details-price"></p>
+      </div> -->
+
+      <!-- <div class="details-item">
+        <span class="details-label">Available Seats</span>
+        <p id="details-seats"></p>
+      </div> -->
+
+    </div>
+
+    
 
   </div>
+
 </div>
 
     <script>
@@ -490,7 +533,7 @@ async function loadWorkshops() {
                         data-date="${workshop.workshop_date}"
                         data-time="${workshop.start_time} - ${workshop.end_time}"
                         data-location="${workshop.location}"
-                        data-price="${workshop.price}"
+                        
                         data-seats="${workshop.available_seats}">
                         <i class="fa-solid fa-eye"></i>
                         View Details

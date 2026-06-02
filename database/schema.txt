@@ -261,3 +261,8 @@ VALUES (
 
 -- Admin account should be created manually later using a hashed password.
 -- Do not store plain-text passwords.
+
+-- Add replies_seen_at to users table
+-- Stores when user last opened the My Replies tab
+-- Used to determine which admin replies are unread
+ALTER TABLE users ADD COLUMN replies_seen_at DATETIME DEFAULT NULL;

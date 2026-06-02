@@ -3,23 +3,14 @@
 /* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
 
 /*
-  This JavaScript file controls the main interactive features of the website.
-  It handles navigation behavior through initMobileNav() and setActiveNavLink(),
-  adds visual effects using initScrollAnimations() and initRippleEffect(),
-  validates the feedback form with initFormValidation(), and manages the
-  workshop booking process through openBookingModal(), closeBookingModal(),
-  clearBookingErrors(), and initBookingForm(). Finally, all main features are
-  initialized when the page finishes loading inside the DOMContentLoaded event.
+  main.js — SkillHub frontend logic.
+  Handles navigation, scroll animations, feedback form validation,
+  booking modal (with instant seat counter update + Already Booked swap),
+  workshop details modal (with instructor hover popup + What you'll learn bullets),
+  profile page modals, live search, and local time display.
 */
 
 // ===== MOBILE NAVIGATION TOGGLE =====
-/*
-  This function handles the navigation menu behavior.
-  It gets the menu button and navigation container, then checks that both
-  elements exist before continuing. When the user clicks the menu button,
-  it opens or closes the navigation menu and changes the button symbol
-  to match the current state.
-*/
 function initMobileNav() {
   const toggle = document.getElementById("menu-toggle");
   const nav = document.getElementById("main-nav");
@@ -32,12 +23,6 @@ function initMobileNav() {
 }
 
 // ===== ACTIVE NAV LINK =====
-/*
-  This function highlights the navigation link of the current page.
-  It reads the current file name from the page URL, then selects all
-  navigation links inside the main menu and adds the active class to
-  the matching link.
-*/
 function setActiveNavLink() {
   const currentPage = window.location.pathname.split("/").pop() || "index.php";
   const navLinks = document.querySelectorAll("nav#main-nav ul li a");
@@ -45,7 +30,6 @@ function setActiveNavLink() {
   navLinks.forEach(function (link) {
     const href = link.getAttribute("href");
     if (!href) return;
-
     if (
       href === currentPage ||
       (currentPage === "index.php" && href === "../index.php") ||
@@ -57,11 +41,6 @@ function setActiveNavLink() {
 }
 
 // ===== SCROLL ANIMATIONS =====
-/*
-  This function adds a fade-in scroll animation to selected page elements.
-  It uses IntersectionObserver to detect when each element appears on screen
-  and adds the visible class so the animation plays only once.
-*/
 function initScrollAnimations() {
   const targets = document.querySelectorAll(
     ".card, .info-card, .section-header, .page-hero, .table-wrapper",
@@ -87,12 +66,6 @@ function initScrollAnimations() {
 }
 
 // ===== FEEDBACK FORM VALIDATION =====
-/*
-  This function handles validation for the feedback form before submission.
-  It checks that the name, email, and rating fields are filled correctly,
-  shows error messages for invalid inputs, and prevents submission until
-  the required data is valid.
-*/
 function initFormValidation() {
   const form = document.getElementById("feedback-form");
   if (!form) return;
@@ -158,7 +131,6 @@ function initFormValidation() {
       return;
     }
 
-    // Save feedback to database via AJAX — silent fail
     try {
       var feedbackData = new FormData(form);
       fetch("../server/process_feedback.php", {
@@ -189,9 +161,6 @@ function initFormValidation() {
 }
 
 // ===== BUTTON RIPPLE EFFECT =====
-/*
-  This function adds a ripple click effect to website buttons.
-*/
 function initRippleEffect() {
   document.querySelectorAll(".btn").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -208,12 +177,11 @@ function initRippleEffect() {
 }
 
 // ===== BOOKING MODAL =====
-
-// Stores the currently selected workshop data for use during booking
+// Stores the currently selected workshop data for the booking request
 var currentWorkshop = {};
 
 /*
-  Switches the booking modal between confirm / loading / success / error states.
+  Switches the booking modal between: confirm / loading / success / error
 */
 function setBookingState(state) {
   [
@@ -225,35 +193,31 @@ function setBookingState(state) {
     var el = document.getElementById(id);
     if (el) el.hidden = true;
   });
-
   var active = document.getElementById("booking-state-" + state);
   if (active) active.hidden = false;
 }
 
 /*
-  Opens the booking modal and fills it with the selected workshop details.
+  Opens the booking modal and fills in workshop details.
+  Redirects guest users to the login page.
 */
 function openBookingModal(id, name, date, time, link) {
   if (document.body.dataset.loggedIn === "0") {
     window.location.href = "login.php?reason=booking";
     return;
   }
-
   currentWorkshop = { id: id, name: name, date: date, time: time, link: link };
-
   document.getElementById("info-name").textContent = name;
   document.getElementById("info-date").textContent = "Date: " + date;
   document.getElementById("info-time").textContent = "Time: " + time;
-
   setBookingState("confirm");
-
   var overlay = document.getElementById("booking-overlay");
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
 }
 
 /*
-  Closes the booking modal and restores page scrolling.
+  Closes the booking modal and restores scrolling.
 */
 function closeBookingModal() {
   var overlay = document.getElementById("booking-overlay");
@@ -265,76 +229,129 @@ function closeBookingModal() {
 // ===== WORKSHOP DETAILS MODAL =====
 /*
   ASEEL ADDITION:
-  Opens the workshop details modal, fills in all fields,
-  and generates a "What you'll learn" section from the description.
-  Works for both PHP-rendered cards and AJAX search result cards.
-
-  FIX: removed references to details-location, details-price, details-seats
-  (those elements are commented out in the HTML).
-  FIX: "What you'll learn" now always shows — if description can be split
-  into sentences it shows bullets, otherwise shows the full description.
+  Opens the details modal and populates all fields:
+  - Title, description, category, seats badge
+  - Instructor name + hover popup (specialty, experience, email)
+  - Date, Time info cards
+  - "What you'll learn" section from learning_points (admin-written bullets)
+    NOT the description — these are separate admin-written points
 */
 function initWorkshopDetailsModal() {
   document.addEventListener("click", function (event) {
-    // ── Open details modal ──
-    var detailsButton = event.target.closest(".view-details-btn");
-    if (detailsButton) {
-      var title = detailsButton.dataset.title || "";
-      var description = detailsButton.dataset.description || "";
-      var instructor = detailsButton.dataset.instructor || "Not assigned";
-      var date = detailsButton.dataset.date || "";
-      var time = detailsButton.dataset.time || "";
-      var seats = detailsButton.dataset.seats || "0";
-      var category = detailsButton.dataset.category || "Workshop";
+    // ── Open modal ──
+    var btn = event.target.closest(".view-details-btn");
+    if (btn) {
+      var title = btn.dataset.title || "";
+      var description = btn.dataset.description || "";
+      var instructor = btn.dataset.instructor || "Not assigned";
+      var instructorEmail = btn.dataset.instructorEmail || "";
+      var instructorSpecialty = btn.dataset.instructorSpecialty || "";
+      var instructorExp = btn.dataset.instructorExperience || "";
+      // learning_points is a newline-separated string written by admin in the add/edit modal
+      var learningPoints = btn.dataset.learningPoints || "";
+      var date = btn.dataset.date || "";
+      var time = btn.dataset.time || "";
+      var seats = btn.dataset.seats || "0";
+      var category = btn.dataset.category || "Workshop";
 
+      // Fill header fields
       document.getElementById("details-title").textContent = title;
       document.getElementById("details-description").textContent = description;
-      document.getElementById("details-instructor").textContent = instructor;
-      document.getElementById("details-date").textContent = date;
-      document.getElementById("details-time").textContent = time;
       document.getElementById("details-category").textContent = category;
-      // Seats badge at top of modal — just the number
       document.getElementById("details-seats-badge").textContent =
         seats + " seats available";
 
+      // Fill date and time cards
+      document.getElementById("details-date").textContent = date;
+      document.getElementById("details-time").textContent = time;
+
+      // ── Instructor popup ──
+      // Shows name, specialty, experience, and email on hover
+      var nameEl = document.getElementById("details-instructor-name");
+      if (nameEl) nameEl.textContent = instructor;
+
+      var popupNameEl = document.getElementById(
+        "details-instructor-popup-name",
+      );
+      if (popupNameEl) popupNameEl.textContent = instructor;
+
+      // Specialty line — hidden if empty
+      var specEl = document.getElementById("details-instructor-specialty");
+      if (specEl) {
+        if (instructorSpecialty) {
+          specEl.textContent = "Specialty: " + instructorSpecialty;
+          specEl.style.display = "block";
+        } else {
+          specEl.textContent = "";
+          specEl.style.display = "none";
+        }
+      }
+
+      // Experience line — hidden if empty
+      var expEl = document.getElementById("details-instructor-experience");
+      if (expEl) {
+        if (instructorExp) {
+          expEl.textContent = "Experience: " + instructorExp;
+          expEl.style.display = "block";
+        } else {
+          expEl.textContent = "";
+          expEl.style.display = "none";
+        }
+      }
+
+      // Email line — hidden if empty
+     var emailEl = document.getElementById("details-instructor-email");
+     if (emailEl) {
+       if (instructorEmail) {
+         emailEl.textContent = instructorEmail;
+         emailEl.style.display = "block";
+       } else {
+         emailEl.textContent = "";
+         emailEl.style.display = "none";
+       }
+     }
+
       // ── "What you'll learn" section ──
-      // Split description into sentences and show as bullet points.
-      // If description is a single sentence, show it as one bullet.
-      // Never hide the section when there is a description.
+      // Uses learning_points field written by admin — NOT the description.
+      // learning_points is stored as newline-separated points.
+      // Each non-empty line becomes one bullet point.
       var learnSection = document.getElementById("details-learn-section");
       var learnEl = document.getElementById("details-learn");
 
-      if (learnEl && learnSection && description.trim()) {
-        // Split by sentence-ending punctuation followed by whitespace
-        var sentences = description
-          .split(/(?<=[.!?])\s+/)
-          .map(function (s) {
-            return s.trim();
-          })
-          .filter(function (s) {
-            return s.length > 10;
-          })
-          .slice(0, 4);
+      if (learnEl && learnSection) {
+        if (learningPoints.trim()) {
+          // Split by newline and filter empty lines
+          var points = learningPoints
+            .split("\n")
+            .map(function (p) {
+              return p.trim();
+            })
+            .filter(function (p) {
+              return p.length > 0;
+            });
 
-        // Use sentences as bullets if we got 2+, otherwise use full description
-        var items = sentences.length >= 2 ? sentences : [description.trim()];
-
-        learnEl.innerHTML = items
-          .map(function (s) {
-            return (
-              '<li style="display:flex;align-items:flex-start;gap:9px;' +
-              'font-size:0.9rem;color:#065f46;line-height:1.6;">' +
-              '<i class="fa-solid fa-circle-check" style="color:#10b981;' +
-              'margin-top:3px;font-size:0.7rem;flex-shrink:0;"></i>' +
-              s +
-              "</li>"
-            );
-          })
-          .join("");
-
-        learnSection.style.display = "";
-      } else if (learnSection) {
-        learnSection.style.display = "none";
+          if (points.length > 0) {
+            learnEl.innerHTML = points
+              .map(function (p) {
+                return (
+                  '<li style="display:flex;align-items:flex-start;gap:9px;' +
+                  'font-size:0.9rem;color:#065f46;line-height:1.6;">' +
+                  '<i class="fa-solid fa-circle-check" style="color:#10b981;' +
+                  'margin-top:3px;font-size:0.7rem;flex-shrink:0;"></i>' +
+                  p +
+                  "</li>"
+                );
+              })
+              .join("");
+            learnSection.style.display = "";
+          } else {
+            // No valid points — hide section
+            learnSection.style.display = "none";
+          }
+        } else {
+          // No learning_points set — hide section
+          learnSection.style.display = "none";
+        }
       }
 
       document.getElementById("details-overlay").hidden = false;
@@ -342,7 +359,7 @@ function initWorkshopDetailsModal() {
       return;
     }
 
-    // ── Close details modal ──
+    // ── Close modal ──
     if (
       event.target.classList.contains("details-close-btn") ||
       event.target.id === "details-overlay"
@@ -355,9 +372,11 @@ function initWorkshopDetailsModal() {
 
 // ===== SUBMIT BOOKING =====
 /*
-  Sends the booking request to the PHP API, then updates the modal state.
-  On success: instantly replaces the Book Workshop button with Already Booked
-  so the user sees the change without refreshing the page.
+  Sends the booking to the PHP API.
+  On success:
+  1. Instantly swaps Book Workshop button to Already Booked — no page reload.
+  2. Instantly reduces the seats counter on the card by 1 — no page reload.
+  3. Updates the global bookedWorkshopIds array for search results.
 */
 async function submitWorkshopBooking() {
   var confirmButton = document.getElementById("booking-confirm-btn");
@@ -388,7 +407,7 @@ async function submitWorkshopBooking() {
     var result = await response.json();
 
     if (result.success) {
-      // Update success message text based on whether email was sent
+      // Update success message text
       var successMessage = document.getElementById("booking-success-message");
       if (successMessage) {
         successMessage.textContent = result.email_sent
@@ -396,11 +415,10 @@ async function submitWorkshopBooking() {
           : "Your seat has been reserved successfully, but the confirmation email could not be sent. You can still view the booking from your profile.";
       }
 
-      // ── INSTANT Already Booked swap ──
-      // Replace the Book Workshop button immediately without page reload.
-      // Targets the specific button by its workshop ID data attribute.
       var bookedId = currentWorkshop.id;
       if (bookedId) {
+        // ── FIX 1: Instantly swap Book button to Already Booked ──
+        // Targets the specific workshop's book button by data-workshop-id
         var bookBtn = document.querySelector(
           '.workshop-book-btn[data-workshop-id="' + bookedId + '"]',
         );
@@ -414,7 +432,16 @@ async function submitWorkshopBooking() {
           bookBtn.replaceWith(alreadyBtn);
         }
 
-        // Keep global booked IDs array in sync so search results also show correct state
+        // ── FIX 2: Instantly reduce seats counter on the card ──
+        // Finds the seats tag by its id (seats-tag-{workshop_id}) and decrements by 1
+        var seatsTag = document.getElementById("seats-tag-" + bookedId);
+        if (seatsTag) {
+          var currentSeats = parseInt(seatsTag.textContent) || 0;
+          var newSeats = Math.max(0, currentSeats - 1);
+          seatsTag.textContent = newSeats + " Seats";
+        }
+
+        // ── FIX 3: Keep global booked IDs in sync for search results ──
         if (window.bookedWorkshopIds) {
           window.bookedWorkshopIds.push(parseInt(bookedId));
         }
@@ -424,7 +451,7 @@ async function submitWorkshopBooking() {
       return;
     }
 
-    // Already booked — show success state with friendly message instead of error
+    // Already booked — show success state with friendly message (no error popup)
     if (result.already_booked) {
       var successMessage = document.getElementById("booking-success-message");
       if (successMessage) {
@@ -436,16 +463,14 @@ async function submitWorkshopBooking() {
     }
 
     // Other error
-    if (errorMessage) {
+    if (errorMessage)
       errorMessage.textContent =
         result.message || "Booking failed. Please try again.";
-    }
     setBookingState("error");
   } catch (error) {
-    if (errorMessage) {
+    if (errorMessage)
       errorMessage.textContent =
         "Something went wrong while submitting your booking.";
-    }
     setBookingState("error");
   } finally {
     if (confirmButton) confirmButton.disabled = false;
@@ -454,7 +479,7 @@ async function submitWorkshopBooking() {
 
 // ===== BOOKING CONFIRMATION WIRING =====
 /*
-  Wires the booking modal buttons without inline JavaScript.
+  Wires all booking modal buttons without inline JavaScript.
 */
 function initBookingConfirmation() {
   var overlay = document.getElementById("booking-overlay");
@@ -483,16 +508,19 @@ function initBookingConfirmation() {
   });
 }
 
-// ===== LIVE WORKSHOP SEARCH (initWorkshopSearch) =====
+// ===== LIVE WORKSHOP SEARCH =====
 /*
-  This function handles live workshop search and category filtering.
-  Sends the current search text and selected category to the PHP API,
-  receives matching workshops as JSON, and updates the cards without reload.
-
-  FIX: uses instructor_name from API (not instructor/location which don't exist).
-  FIX: includes Already Booked state for search results using bookedWorkshopIds.
-  FIX: includes image/placeholder logic matching the PHP card rendering.
+  Fetches workshops from the API on every keystroke and category change.
+  Renders cards with correct button state (Full/Already Booked/Book Workshop).
+  Passes all instructor fields + learning_points to View Details buttons.
 */
+function formatTimeStr(t) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return hour + ":" + String(m).padStart(2, "0") + " " + ampm;
+}
 async function initWorkshopSearch() {
   const searchInput = document.getElementById("searchInput");
   const categoryFilter = document.getElementById("categoryFilter");
@@ -510,7 +538,6 @@ async function initWorkshopSearch() {
         "&category=" +
         encodeURIComponent(categoryValue),
     );
-
     const workshops = await response.json();
     grid.innerHTML = "";
 
@@ -521,7 +548,7 @@ async function initWorkshopSearch() {
       const seats = parseInt(workshop.available_seats);
       const isFull = seats <= 0;
 
-      // Image or placeholder — same logic as PHP rendering
+      // Image or placeholder
       const hasImg = workshop.image_path && workshop.image_path.trim() !== "";
       const imgHtml = hasImg
         ? `<img src="${workshop.image_path}" alt="${workshop.title}" class="card-img"
@@ -533,10 +560,14 @@ async function initWorkshopSearch() {
         <span>${workshop.category_name}</span>
       </div>`;
 
-      // Instructor name from API — fallback to dash
+      // Instructor fields
       const instructorName = (workshop.instructor_name || "").trim() || "—";
+      const instructorEmail = (workshop.instructor_email || "").trim();
+      const instructorSpecialty = (workshop.instructor_specialty || "").trim();
+      const instructorExp = (workshop.instructor_experience || "").trim();
+      const learningPoints = (workshop.learning_points || "").trim();
 
-      // Action button: Full / Already Booked / Book Workshop
+      // Action button
       let btnHtml = "";
       if (!isAdmin) {
         if (isFull) {
@@ -560,7 +591,7 @@ async function initWorkshopSearch() {
         }
       }
 
-      // View Details button — outlined style
+      // View Details button — passes all fields including instructor popup data
       const viewDetailsBtn = `<button
         type="button"
         class="btn view-details-btn"
@@ -568,9 +599,14 @@ async function initWorkshopSearch() {
         data-description="${workshop.description}"
         data-category="${workshop.category_name}"
         data-instructor="${instructorName}"
+        data-instructor-email="${instructorEmail}"
+        data-instructor-specialty="${instructorSpecialty}"
+        data-instructor-experience="${instructorExp}"
+        data-learning-points="${learningPoints}"
         data-date="${workshop.workshop_date}"
-        data-time="${workshop.start_time} - ${workshop.end_time}"
-        data-seats="${workshop.available_seats}">
+        data-time="${formatTimeStr(workshop.start_time)} – ${formatTimeStr(workshop.end_time)}"
+        data-seats="${workshop.available_seats}"
+        data-workshop-id="${workshop.workshop_id}">
         <i class="fa-solid fa-eye"></i> View Details
       </button>`;
 
@@ -586,28 +622,9 @@ async function initWorkshopSearch() {
             <p>${workshop.description}</p>
             <div class="card-tags" style="margin-top:16px">
               <span class="tag tag-primary">${workshop.category_name}</span>
-              <span class="tag tag-secondary">${workshop.available_seats} Seats</span>
+              <span class="tag tag-secondary seats-tag" id="seats-tag-${workshop.workshop_id}">${workshop.available_seats} Seats</span>
             </div>
-
-            <button
-              type="button"
-              class="btn btn-secondary view-details-btn"
-              data-title="${workshop.title}"
-              data-description="${workshop.description}"
-              data-instructor="${workshop.instructor || ""}"
-              data-specialty="${workshop.instructor_specialty || ""}"
-              data-experience="${workshop.instructor_experience || ""}"
-              data-bio="${workshop.instructor_bio || ""}"
-              data-date="${workshop.workshop_date}"
-              data-time="${workshop.start_time} - ${workshop.end_time}"
-              data-location="${workshop.location || "Online"}"
-              data-price="${workshop.price || "0.00"}"
-              data-seats="${workshop.available_seats}"
-            >
-              <i class="fa-solid fa-eye"></i>
-              View Details
-            </button>
-
+            ${viewDetailsBtn}
             ${btnHtml}
           </div>
         </div>
@@ -622,13 +639,12 @@ async function initWorkshopSearch() {
 // ===== BOOKING BUTTONS =====
 /*
   Handles clicks on Book Workshop buttons through event delegation.
-  Works for both initial PHP-rendered cards and AJAX search result cards.
+  Works for both PHP-rendered cards and AJAX search result cards.
   Admins cannot book workshops.
 */
 function initBookingButtons() {
   var isAdmin = document.body.dataset.isAdmin === "1";
 
-  // Hide all booking buttons for admin users immediately
   if (isAdmin) {
     document
       .querySelectorAll(".book-btn, .workshop-book-btn")
@@ -659,11 +675,6 @@ function initBookingButtons() {
 }
 
 // ===== PROFILE PICTURE UPLOAD MODAL =====
-/*
-  Controls the profile picture upload modal.
-  The avatar button opens it; close button, overlay click, and Escape close it.
-  Shows the selected filename before the user submits.
-*/
 function initProfilePictureUpload() {
   var openButton = document.getElementById("profile-avatar-open");
   var overlay = document.getElementById("profile-upload-overlay");
@@ -716,9 +727,6 @@ function initProfilePictureUpload() {
 }
 
 // ===== PROFILE PASSWORD MODAL =====
-/*
-  Controls the change password modal on the profile page.
-*/
 function initProfilePasswordModal() {
   var openButton = document.getElementById("profile-password-open");
   var overlay = document.getElementById("profile-password-overlay");
@@ -748,11 +756,6 @@ function initProfilePasswordModal() {
 }
 
 // ===== PROFILE NAME EDIT MODE =====
-/*
-  Controls the profile name edit field.
-  The name starts read-only. Clicking the pen enables editing;
-  Enter or the check button submits; Escape cancels.
-*/
 function initProfileNameEdit() {
   var form = document.getElementById("profile-name-form");
   var input = document.getElementById("full_name");
@@ -831,10 +834,8 @@ function initLocalTimeDisplay() {
   timeElements.forEach(function (element) {
     var utcTime = element.dataset.utcTime;
     if (!utcTime) return;
-
     var date = new Date(utcTime);
     if (Number.isNaN(date.getTime())) return;
-
     element.textContent = date.toLocaleString(undefined, {
       month: "short",
       day: "numeric",
@@ -845,89 +846,24 @@ function initLocalTimeDisplay() {
     });
   });
 }
+
+// ===== INITIALIZE =====
 /*
-  ASEEL ADDITION:
-  Enables the View Details modal for both PHP-rendered cards
-  and AJAX search/filter cards.
-*/
-function initWorkshopDetailsModal() {
-  document.addEventListener("click", function (event) {
-    var detailsButton = event.target.closest(".view-details-btn");
-
-    if (detailsButton) {
-      document.getElementById("details-title").textContent = detailsButton.dataset.title || "";
-      document.getElementById("details-description").textContent = detailsButton.dataset.description || "";
-  //     document.getElementById("details-instructor").textContent =
-  // detailsButton.dataset.instructor || "Not assigned";
-  document.getElementById("details-instructor-name").textContent =
-  detailsButton.dataset.instructor || "Not assigned";
-
-document.getElementById("details-instructor-popup-name").textContent =
-  detailsButton.dataset.instructor || "Not assigned";
-
-document.getElementById("details-instructor-specialty").textContent =
-  "Specialty: " + (detailsButton.dataset.specialty || "Not specified");
-
-document.getElementById("details-instructor-experience").textContent =
-  "Experience: " + (detailsButton.dataset.experience || "Not specified");
-
-document.getElementById("details-instructor-bio").textContent =
-  detailsButton.dataset.bio || "No instructor bio available.";
-
-document.getElementById("details-date").textContent =
-  detailsButton.dataset.date || "";
-
-document.getElementById("details-time").textContent =
-  detailsButton.dataset.time || "";
-
-// document.getElementById("details-location").textContent =
-//   detailsButton.dataset.location || "Online";
-
-// document.getElementById("details-price").textContent =
-//   (detailsButton.dataset.price || "0.00") + " SAR";
-
-// document.getElementById("details-seats").textContent =
-//   detailsButton.dataset.seats || "0";
-
-document.getElementById("details-category").textContent =
-  "Workshop";
-
-document.getElementById("details-seats-badge").textContent =
-  (detailsButton.dataset.seats || "0") + " Seats";
-
-      document.getElementById("details-overlay").hidden = false;
-      document.body.style.overflow = "hidden";
-      return;
-    }
-
-    if (
-      event.target.classList.contains("details-close-btn") ||
-      event.target.id === "details-overlay"
-    ) {
-      document.getElementById("details-overlay").hidden = true;
-      document.body.style.overflow = "";
-    }
-  });
-}
-/*
-  This event runs after the HTML document finishes loading.
-  It starts the main website features by calling the functions
-  responsible for navigation behavior, active link highlighting,
-  scroll animations, feedback form validation, button ripple effects,
-  and booking form handling.
+  Runs after the HTML document finishes loading.
+  Starts all main website features.
 */
 document.addEventListener("DOMContentLoaded", function () {
-  initWorkshopDetailsModal(); // enables the workshop View Details modal
-  initMobileNav(); // initializes the navigation menu toggle behavior
-  setActiveNavLink(); // highlights the link of the current page in the navigation menu
-  initScrollAnimations(); // activates fade-in animations for selected page elements during scrolling
-  initFormValidation(); // enables validation for the feedback form
-  initRippleEffect(); // enables the ripple click effect on buttons
-  initProfilePictureUpload(); // enables the profile picture upload modal behavior
-  initProfilePasswordModal(); // enables the profile password change modal behavior
-  initProfileNameEdit(); // enables edit mode for the profile name field
-  initWorkshopSearch(); // enables live workshop search and filtering
-  initBookingButtons(); // controls guest redirect and logged-in booking modal
-  initBookingConfirmation(); // controls booking confirmation, loading, and success states
-  initLocalTimeDisplay(); // formats UTC timestamps using the user's browser timezone
+  initWorkshopDetailsModal(); // details modal with instructor popup + learning points
+  initMobileNav(); // mobile nav toggle
+  setActiveNavLink(); // highlight current page in nav
+  initScrollAnimations(); // fade-in on scroll
+  initFormValidation(); // feedback form validation
+  initRippleEffect(); // button ripple clicks
+  initProfilePictureUpload(); // profile picture upload modal
+  initProfilePasswordModal(); // profile password change modal
+  initProfileNameEdit(); // profile name inline edit
+  initWorkshopSearch(); // live search + category filter
+  initBookingButtons(); // book buttons with guest redirect
+  initBookingConfirmation(); // booking modal wiring
+  initLocalTimeDisplay(); // UTC → browser timezone
 });

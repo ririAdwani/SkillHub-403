@@ -3337,3 +3337,22 @@ input[type="password"]:focus {
   cursor: not-allowed;
   opacity: 0.75;
 }
+/* ===== HOOK MESSAGE ON WORKSHOP CARD ===== */
+.card-hook-message {
+  font-size: 0.82rem; font-weight: 600; color: #b45309;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 8px; padding: 7px 12px; margin-top: 8px; margin-bottom: 0;
+  display: flex; align-items: flex-start; gap: 6px; line-height: 1.5;
+}
+.card-hook-message i { color: #f59e0b; margin-top: 1px; flex-shrink: 0; font-size: 0.72rem; }
+
+/* ===== DETAILS MODAL BOTTOM GRID ===== */
+.details-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
+@media (max-width: 640px) { .details-bottom-grid { grid-template-columns: 1fr; } }
+.details-info-box { border-radius: 16px; padding: 16px 18px; height: 100%; }
+.details-info-box-label { font-size: 0.75rem !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px !important; display: flex; align-items: center; gap: 6px; }
+.details-info-box ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.details-info-box-green { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.details-info-box-green .details-info-box-label { color: #059669; }
+.details-info-box-purple { background: #f5f3ff; border: 1px solid #ddd6fe; }
+.details-info-box-purple .details-info-box-label { color: #7c3aed; }

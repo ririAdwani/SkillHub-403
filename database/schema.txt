@@ -255,27 +255,24 @@ VALUES (
 
 
 
-
-
-
-
 -- Admin account should be created manually later using a hashed password.
 -- Do not store plain-text passwords.
+
+-- ────────────────────────────────────────────────────────────
+-- SCHEMA ADDITIONS — applied via ALTER TABLE after initial setup
+-- Run each block once in phpMyAdmin if not already applied.
+-- ────────────────────────────────────────────────────────────
 
 -- Add replies_seen_at to users table
 -- Stores when user last opened the My Replies tab
 -- Used to determine which admin replies are unread
 ALTER TABLE users ADD COLUMN replies_seen_at DATETIME DEFAULT NULL;
--- ────────────────────────────────────────────────────────────
--- SCHEMA ADDITIONS: Instructor details + Workshop learning points
--- Run these in phpMyAdmin once, then add to schema.txt
--- ────────────────────────────────────────────────────────────
 
 -- Add specialty to instructors table
 -- Stores the instructor's area of expertise e.g. "Machine Learning, Python"
 ALTER TABLE instructors ADD COLUMN specialty VARCHAR(255) DEFAULT NULL;
 
--- Add experience to instructors table  
+-- Add experience to instructors table
 -- Dropdown value e.g. "1-3 years", "10+ years"
 ALTER TABLE instructors ADD COLUMN experience VARCHAR(50) DEFAULT NULL;
 
@@ -285,6 +282,17 @@ ALTER TABLE instructors ADD COLUMN experience VARCHAR(50) DEFAULT NULL;
 -- e.g. "Understand Python syntax\nBuild a web scraper\nWork with APIs"
 ALTER TABLE workshops ADD COLUMN learning_points TEXT DEFAULT NULL;
 
--- make it acceptable to have null workshop image:
-ALTER TABLE workshops
-MODIFY image_path VARCHAR(255) DEFAULT NULL;
+-- Widen image_path to TEXT to support long URLs
+-- Original VARCHAR(255) was too short for some image URLs and base64 data
+ALTER TABLE workshops MODIFY COLUMN image_path TEXT DEFAULT NULL;
+
+-- Add hook_message to workshops table
+-- Short punchy 1-2 sentence message shown on the workshop card
+-- Max 500 characters — admin writes this to grab student attention
+ALTER TABLE workshops ADD COLUMN hook_message VARCHAR(500) DEFAULT NULL;
+
+-- Add good_fit_for to workshops table
+-- Admin writes bullet points describing who this workshop suits
+-- Stored as newline-separated text, shown in the details modal
+-- alongside "What you'll learn" but in a purple box
+ALTER TABLE workshops ADD COLUMN good_fit_for TEXT DEFAULT NULL;

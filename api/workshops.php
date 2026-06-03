@@ -4,6 +4,7 @@
   ================================================
   Receives POST requests from admin.js and returns JSON.
   Actions: create, update, delete
+  Now includes learning_points field for "What you'll learn" bullets.
 */
 
 header('Content-Type: application/json');
@@ -98,11 +99,11 @@ function createWorkshop(PDO $pdo): void
                 'available_seats' => $seats,
                 'image_path'      => $imagePath,
                 'learning_points' => $learningPoints,
+                'learning_points' => $learningPoints,
             ]
         ]);
 
     } catch (PDOException $e) {
-        // Return the actual error during development so you can see what's wrong
         echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     }
 }

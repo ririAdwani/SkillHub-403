@@ -157,7 +157,7 @@ if (is_logged_in() && !is_admin()) {
               data-instructor-specialty="<?= h($instructorSpecialty) ?>"
               data-instructor-experience="<?= h($instructorExp) ?>"
               data-learning-points="<?= h($learningPoints) ?>"
-              data-date="<?= h($workshop['workshop_date']) ?>"
+              data-date="<?= h(date('M j, Y', strtotime($workshop['workshop_date']))) ?>"
               data-time="<?= h(date('g:i A', strtotime($workshop['start_time'])) . ' – ' . date('g:i A', strtotime($workshop['end_time']))) ?>"
               data-seats="<?= h((string)$workshop['available_seats']) ?>"
               data-workshop-id="<?= h((string)$workshop['workshop_id']) ?>"

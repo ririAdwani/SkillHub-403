@@ -354,6 +354,7 @@
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 #workshops-table tbody tr:last-child td {

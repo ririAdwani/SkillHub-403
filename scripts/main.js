@@ -5,48 +5,41 @@
 /*
   main.js — SkillHub frontend logic.
   Handles navigation, scroll animations, feedback form validation,
-  booking modal (with instant seat counter update + Already Booked swap),
-  workshop details modal (with instructor hover popup + What you'll learn bullets),
-  profile page modals, live search, and local time display.
+  booking modal (instant seat counter + Already Booked swap),
+  workshop details modal (instructor hover popup, What you'll learn,
+  Good Fit For), profile modals, live search, and local time display.
 */
 
-// ===== MOBILE NAVIGATION TOGGLE =====
 function initMobileNav() {
   const toggle = document.getElementById("menu-toggle");
   const nav = document.getElementById("main-nav");
   if (!toggle || !nav) return;
-
   toggle.addEventListener("click", function () {
     nav.classList.toggle("open");
     toggle.textContent = nav.classList.contains("open") ? "✕" : "☰";
   });
 }
 
-// ===== ACTIVE NAV LINK =====
 function setActiveNavLink() {
   const currentPage = window.location.pathname.split("/").pop() || "index.php";
-  const navLinks = document.querySelectorAll("nav#main-nav ul li a");
-
-  navLinks.forEach(function (link) {
+  document.querySelectorAll("nav#main-nav ul li a").forEach(function (link) {
     const href = link.getAttribute("href");
     if (!href) return;
     if (
       href === currentPage ||
-      (currentPage === "index.php" && href === "../index.php") ||
-      (currentPage === "index.php" && href === "index.php")
+      (currentPage === "index.php" &&
+        (href === "../index.php" || href === "index.php"))
     ) {
       link.classList.add("active");
     }
   });
 }
 
-// ===== SCROLL ANIMATIONS =====
 function initScrollAnimations() {
   const targets = document.querySelectorAll(
     ".card, .info-card, .section-header, .page-hero, .table-wrapper",
   );
   if (!targets.length) return;
-
   const observer = new IntersectionObserver(
     function (entries) {
       entries.forEach(function (entry) {
@@ -58,24 +51,19 @@ function initScrollAnimations() {
     },
     { threshold: 0.12 },
   );
-
   targets.forEach(function (el) {
     el.classList.add("fade-in");
     observer.observe(el);
   });
 }
 
-// ===== FEEDBACK FORM VALIDATION =====
 function initFormValidation() {
   const form = document.getElementById("feedback-form");
   if (!form) return;
-
   form.addEventListener("submit", function (e) {
     e.preventDefault();
-
     let isValid = true;
     const errors = [];
-
     const nameInput = document.getElementById("name");
     const nameError = document.getElementById("name-error");
     if (!nameInput.value.trim()) {
@@ -87,11 +75,9 @@ function initFormValidation() {
       nameInput.classList.remove("error");
       nameError.classList.remove("visible");
     }
-
     const emailInput = document.getElementById("email");
     const emailError = document.getElementById("email-error");
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (!emailInput.value.trim()) {
       emailInput.classList.add("error");
       emailError.classList.add("visible");
@@ -108,13 +94,11 @@ function initFormValidation() {
       emailInput.classList.remove("error");
       emailError.classList.remove("visible");
     }
-
     const ratingInputs = document.querySelectorAll('input[name="rating"]');
     const ratingError = document.getElementById("rating-error");
     const ratingSelected = Array.from(ratingInputs).some(function (r) {
       return r.checked;
     });
-
     if (!ratingSelected) {
       if (ratingError) ratingError.classList.add("visible");
       errors.push("Please select a rating.");
@@ -122,7 +106,6 @@ function initFormValidation() {
     } else {
       if (ratingError) ratingError.classList.remove("visible");
     }
-
     if (!isValid) {
       alert(
         "Please fix the following errors before submitting:\n\n• " +
@@ -130,17 +113,12 @@ function initFormValidation() {
       );
       return;
     }
-
     try {
-      var feedbackData = new FormData(form);
       fetch("../server/process_feedback.php", {
         method: "POST",
-        body: feedbackData,
+        body: new FormData(form),
       });
-    } catch (e) {
-      /* silent */
-    }
-
+    } catch (e) {}
     form.style.display = "none";
     const successMsg = document.getElementById("success-message");
     if (successMsg) {
@@ -148,7 +126,6 @@ function initFormValidation() {
       successMsg.scrollIntoView({ behavior: "smooth" });
     }
   });
-
   ["name", "email"].forEach(function (id) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -160,7 +137,6 @@ function initFormValidation() {
   });
 }
 
-// ===== BUTTON RIPPLE EFFECT =====
 function initRippleEffect() {
   document.querySelectorAll(".btn").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -177,12 +153,8 @@ function initRippleEffect() {
 }
 
 // ===== BOOKING MODAL =====
-// Stores the currently selected workshop data for the booking request
 var currentWorkshop = {};
 
-/*
-  Switches the booking modal between: confirm / loading / success / error
-*/
 function setBookingState(state) {
   [
     "booking-state-confirm",
@@ -197,10 +169,6 @@ function setBookingState(state) {
   if (active) active.hidden = false;
 }
 
-/*
-  Opens the booking modal and fills in workshop details.
-  Redirects guest users to the login page.
-*/
 function openBookingModal(id, name, date, time, link) {
   if (document.body.dataset.loggedIn === "0") {
     window.location.href = "login.php?reason=booking";
@@ -216,9 +184,6 @@ function openBookingModal(id, name, date, time, link) {
   document.body.style.overflow = "hidden";
 }
 
-/*
-  Closes the booking modal and restores scrolling.
-*/
 function closeBookingModal() {
   var overlay = document.getElementById("booking-overlay");
   if (!overlay) return;
@@ -229,16 +194,16 @@ function closeBookingModal() {
 // ===== WORKSHOP DETAILS MODAL =====
 /*
   ASEEL ADDITION:
-  Opens the details modal and populates all fields:
+  Populates the details modal with:
   - Title, description, category, seats badge
-  - Instructor name + hover popup (specialty, experience, email)
-  - Date, Time info cards
-  - "What you'll learn" section from learning_points (admin-written bullets)
-    NOT the description — these are separate admin-written points
+  - Instructor hover popup (name, specialty, experience, email)
+  - Date, Time cards
+  - "What you'll learn" (green) from learning_points — admin-written bullets
+  - "Good fit for" (purple) from good_fit_for — admin-written bullets
+  Both sections are hidden if the field is empty.
 */
 function initWorkshopDetailsModal() {
   document.addEventListener("click", function (event) {
-    // ── Open modal ──
     var btn = event.target.closest(".view-details-btn");
     if (btn) {
       var title = btn.dataset.title || "";
@@ -247,35 +212,29 @@ function initWorkshopDetailsModal() {
       var instructorEmail = btn.dataset.instructorEmail || "";
       var instructorSpecialty = btn.dataset.instructorSpecialty || "";
       var instructorExp = btn.dataset.instructorExperience || "";
-      // learning_points is a newline-separated string written by admin in the add/edit modal
       var learningPoints = btn.dataset.learningPoints || "";
+      var goodFitFor = btn.dataset.goodFitFor || "";
       var date = btn.dataset.date || "";
       var time = btn.dataset.time || "";
       var seats = btn.dataset.seats || "0";
       var category = btn.dataset.category || "Workshop";
 
-      // Fill header fields
       document.getElementById("details-title").textContent = title;
       document.getElementById("details-description").textContent = description;
       document.getElementById("details-category").textContent = category;
       document.getElementById("details-seats-badge").textContent =
         seats + " seats available";
-
-      // Fill date and time cards
       document.getElementById("details-date").textContent = date;
       document.getElementById("details-time").textContent = time;
 
-      // ── Instructor popup ──
-      // Shows name, specialty, experience, and email on hover
+      // Instructor popup
       var nameEl = document.getElementById("details-instructor-name");
       if (nameEl) nameEl.textContent = instructor;
-
       var popupNameEl = document.getElementById(
         "details-instructor-popup-name",
       );
       if (popupNameEl) popupNameEl.textContent = instructor;
 
-      // Specialty line — hidden if empty
       var specEl = document.getElementById("details-instructor-specialty");
       if (specEl) {
         if (instructorSpecialty) {
@@ -287,7 +246,6 @@ function initWorkshopDetailsModal() {
         }
       }
 
-      // Experience line — hidden if empty
       var expEl = document.getElementById("details-instructor-experience");
       if (expEl) {
         if (instructorExp) {
@@ -299,28 +257,23 @@ function initWorkshopDetailsModal() {
         }
       }
 
-      // Email line — hidden if empty
-     var emailEl = document.getElementById("details-instructor-email");
-     if (emailEl) {
-       if (instructorEmail) {
-         emailEl.textContent = instructorEmail;
-         emailEl.style.display = "block";
-       } else {
-         emailEl.textContent = "";
-         emailEl.style.display = "none";
-       }
-     }
+      var emailEl = document.getElementById("details-instructor-email");
+      if (emailEl) {
+        if (instructorEmail) {
+          emailEl.textContent = instructorEmail;
+          emailEl.style.display = "block";
+        } else {
+          emailEl.textContent = "";
+          emailEl.style.display = "none";
+        }
+      }
 
-      // ── "What you'll learn" section ──
-      // Uses learning_points field written by admin — NOT the description.
-      // learning_points is stored as newline-separated points.
-      // Each non-empty line becomes one bullet point.
+      // ── "What you'll learn" (green) ──
+      // Admin-written bullet points from learning_points field. NOT the description.
       var learnSection = document.getElementById("details-learn-section");
       var learnEl = document.getElementById("details-learn");
-
       if (learnEl && learnSection) {
         if (learningPoints.trim()) {
-          // Split by newline and filter empty lines
           var points = learningPoints
             .split("\n")
             .map(function (p) {
@@ -329,15 +282,12 @@ function initWorkshopDetailsModal() {
             .filter(function (p) {
               return p.length > 0;
             });
-
           if (points.length > 0) {
             learnEl.innerHTML = points
               .map(function (p) {
                 return (
-                  '<li style="display:flex;align-items:flex-start;gap:9px;' +
-                  'font-size:0.9rem;color:#065f46;line-height:1.6;">' +
-                  '<i class="fa-solid fa-circle-check" style="color:#10b981;' +
-                  'margin-top:3px;font-size:0.7rem;flex-shrink:0;"></i>' +
+                  '<li style="display:flex;align-items:flex-start;gap:9px;font-size:0.9rem;color:#065f46;line-height:1.6;">' +
+                  '<i class="fa-solid fa-circle-check" style="color:#10b981;margin-top:3px;font-size:0.7rem;flex-shrink:0;"></i>' +
                   p +
                   "</li>"
                 );
@@ -345,12 +295,45 @@ function initWorkshopDetailsModal() {
               .join("");
             learnSection.style.display = "";
           } else {
-            // No valid points — hide section
             learnSection.style.display = "none";
           }
         } else {
-          // No learning_points set — hide section
           learnSection.style.display = "none";
+        }
+      }
+
+      // ── "Good Fit For" (purple) ──
+      // Admin-written bullet points from good_fit_for field.
+      // Uses purple color scheme to distinguish from the green learn section.
+      var fitSection = document.getElementById("details-fit-section");
+      var fitEl = document.getElementById("details-fit");
+      if (fitEl && fitSection) {
+        if (goodFitFor.trim()) {
+          var fitPoints = goodFitFor
+            .split("\n")
+            .map(function (p) {
+              return p.trim();
+            })
+            .filter(function (p) {
+              return p.length > 0;
+            });
+          if (fitPoints.length > 0) {
+            fitEl.innerHTML = fitPoints
+              .map(function (p) {
+                return (
+                  '<li style="display:flex;align-items:flex-start;gap:9px;font-size:0.9rem;color:#5b21b6;line-height:1.6;">' +
+                  '<i class="fa-solid fa-user-check" style="color:#8b5cf6;margin-top:3px;font-size:0.7rem;flex-shrink:0;"></i>' +
+                  p +
+                  "</li>"
+                );
+              })
+              .join("");
+            fitSection.style.display = "";
+          } else {
+            fitSection.style.display = "none";
+          }
+        } else {
+          fitSection.style.display = "none";
         }
       }
 
@@ -359,7 +342,6 @@ function initWorkshopDetailsModal() {
       return;
     }
 
-    // ── Close modal ──
     if (
       event.target.classList.contains("details-close-btn") ||
       event.target.id === "details-overlay"
@@ -372,18 +354,15 @@ function initWorkshopDetailsModal() {
 
 // ===== SUBMIT BOOKING =====
 /*
-  Sends the booking to the PHP API.
   On success:
-  1. Instantly swaps Book Workshop button to Already Booked — no page reload.
-  2. Instantly reduces the seats counter on the card by 1 — no page reload.
-  3. Updates the global bookedWorkshopIds array for search results.
+  1. Instantly swaps Book button to Already Booked
+  2. Instantly reduces the seats counter by 1
+  3. Updates global bookedWorkshopIds array
 */
 async function submitWorkshopBooking() {
   var confirmButton = document.getElementById("booking-confirm-btn");
   var errorMessage = document.getElementById("booking-error-message");
-
   if (!currentWorkshop.id) return;
-
   setBookingState("loading");
   if (confirmButton) confirmButton.disabled = true;
 
@@ -407,18 +386,15 @@ async function submitWorkshopBooking() {
     var result = await response.json();
 
     if (result.success) {
-      // Update success message text
       var successMessage = document.getElementById("booking-success-message");
       if (successMessage) {
         successMessage.textContent = result.email_sent
           ? "Your seat has been reserved successfully. A confirmation email was sent with your booking details."
-          : "Your seat has been reserved successfully, but the confirmation email could not be sent. You can still view the booking from your profile.";
+          : "Your seat has been reserved successfully, but the confirmation email could not be sent.";
       }
-
       var bookedId = currentWorkshop.id;
       if (bookedId) {
-        // ── FIX 1: Instantly swap Book button to Already Booked ──
-        // Targets the specific workshop's book button by data-workshop-id
+        // Swap button instantly
         var bookBtn = document.querySelector(
           '.workshop-book-btn[data-workshop-id="' + bookedId + '"]',
         );
@@ -431,38 +407,26 @@ async function submitWorkshopBooking() {
             '<i class="fa-solid fa-circle-check"></i> Already Booked';
           bookBtn.replaceWith(alreadyBtn);
         }
-
-        // ── FIX 2: Instantly reduce seats counter on the card ──
-        // Finds the seats tag by its id (seats-tag-{workshop_id}) and decrements by 1
+        // Reduce seats counter instantly
         var seatsTag = document.getElementById("seats-tag-" + bookedId);
         if (seatsTag) {
           var currentSeats = parseInt(seatsTag.textContent) || 0;
-          var newSeats = Math.max(0, currentSeats - 1);
-          seatsTag.textContent = newSeats + " Seats";
+          seatsTag.textContent = Math.max(0, currentSeats - 1) + " Seats";
         }
-
-        // ── FIX 3: Keep global booked IDs in sync for search results ──
-        if (window.bookedWorkshopIds) {
+        if (window.bookedWorkshopIds)
           window.bookedWorkshopIds.push(parseInt(bookedId));
-        }
       }
-
       setBookingState("success");
       return;
     }
-
-    // Already booked — show success state with friendly message (no error popup)
     if (result.already_booked) {
       var successMessage = document.getElementById("booking-success-message");
-      if (successMessage) {
+      if (successMessage)
         successMessage.textContent =
           "You have already booked this workshop. Visit your profile to view your bookings.";
-      }
       setBookingState("success");
       return;
     }
-
-    // Other error
     if (errorMessage)
       errorMessage.textContent =
         result.message || "Booking failed. Please try again.";
@@ -477,20 +441,14 @@ async function submitWorkshopBooking() {
   }
 }
 
-// ===== BOOKING CONFIRMATION WIRING =====
-/*
-  Wires all booking modal buttons without inline JavaScript.
-*/
 function initBookingConfirmation() {
   var overlay = document.getElementById("booking-overlay");
+  if (!overlay) return;
   var closeButton = document.getElementById("modal-close");
   var cancelButton = document.getElementById("booking-cancel-btn");
   var confirmButton = document.getElementById("booking-confirm-btn");
   var backButton = document.getElementById("booking-back-btn");
   var errorBackButton = document.getElementById("booking-error-back-btn");
-
-  if (!overlay) return;
-
   if (closeButton) closeButton.addEventListener("click", closeBookingModal);
   if (cancelButton) cancelButton.addEventListener("click", closeBookingModal);
   if (backButton) backButton.addEventListener("click", closeBookingModal);
@@ -498,40 +456,32 @@ function initBookingConfirmation() {
     errorBackButton.addEventListener("click", closeBookingModal);
   if (confirmButton)
     confirmButton.addEventListener("click", submitWorkshopBooking);
-
   overlay.addEventListener("click", function (e) {
     if (e.target === overlay) closeBookingModal();
   });
-
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !overlay.hidden) closeBookingModal();
   });
 }
 
 // ===== LIVE WORKSHOP SEARCH =====
-/*
-  Fetches workshops from the API on every keystroke and category change.
-  Renders cards with correct button state (Full/Already Booked/Book Workshop).
-  Passes all instructor fields + learning_points to View Details buttons.
-*/
-function formatTimeStr(t) {
-  if (!t) return "";
-  const [h, m] = t.split(":").map(Number);
-  const ampm = h >= 12 ? "PM" : "AM";
-  const hour = h % 12 || 12;
-  return hour + ":" + String(m).padStart(2, "0") + " " + ampm;
-}
 async function initWorkshopSearch() {
   const searchInput = document.getElementById("searchInput");
   const categoryFilter = document.getElementById("categoryFilter");
   const grid = document.querySelector(".grid-2");
-
   if (!searchInput || !categoryFilter || !grid) return;
+
+  function formatTimeStr(t) {
+    if (!t) return "";
+    const [h, m] = t.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    return hour + ":" + String(m).padStart(2, "0") + " " + ampm;
+  }
 
   async function loadWorkshops() {
     const searchValue = searchInput.value;
     const categoryValue = categoryFilter.value;
-
     const response = await fetch(
       "../api/search_workshops.php?search=" +
         encodeURIComponent(searchValue) +
@@ -540,61 +490,48 @@ async function initWorkshopSearch() {
     );
     const workshops = await response.json();
     grid.innerHTML = "";
-
     const bookedIds = window.bookedWorkshopIds || [];
     const isAdmin = document.body.dataset.isAdmin === "1";
 
     workshops.forEach(function (workshop) {
       const seats = parseInt(workshop.available_seats);
       const isFull = seats <= 0;
-
-      // Image or placeholder
       const hasImg = workshop.image_path && workshop.image_path.trim() !== "";
       const imgHtml = hasImg
-        ? `<img src="${workshop.image_path}" alt="${workshop.title}" class="card-img"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />`
+        ? `<img src="${workshop.image_path}" alt="${workshop.title}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />`
         : "";
       const placeholderStyle = hasImg ? 'style="display:none"' : "";
-      const placeholderHtml = `<div class="card-img-placeholder" ${placeholderStyle}>
-        <i class="fa-solid fa-book-open"></i>
-        <span>${workshop.category_name}</span>
-      </div>`;
+      const placeholderHtml = `<div class="card-img-placeholder" ${placeholderStyle}><i class="fa-solid fa-book-open"></i><span>${workshop.category_name}</span></div>`;
 
-      // Instructor fields
       const instructorName = (workshop.instructor_name || "").trim() || "—";
       const instructorEmail = (workshop.instructor_email || "").trim();
       const instructorSpecialty = (workshop.instructor_specialty || "").trim();
       const instructorExp = (workshop.instructor_experience || "").trim();
       const learningPoints = (workshop.learning_points || "").trim();
+      const goodFitFor = (workshop.good_fit_for || "").trim();
+      const hookMessage = (workshop.hook_message || "").trim();
 
-      // Action button
       let btnHtml = "";
       if (!isAdmin) {
         if (isFull) {
-          btnHtml = `<button type="button" class="btn btn-secondary workshop-book-btn" disabled style="margin-top:8px;">
-            <i class="fa-solid fa-circle-xmark"></i> Full
-          </button>`;
+          btnHtml = `<button type="button" class="btn btn-secondary workshop-book-btn" disabled style="margin-top:8px;"><i class="fa-solid fa-circle-xmark"></i> Full</button>`;
         } else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
-          btnHtml = `<button type="button" class="btn btn-booked-already" disabled>
-            <i class="fa-solid fa-circle-check"></i> Already Booked
-          </button>`;
+          btnHtml = `<button type="button" class="btn btn-booked-already" disabled><i class="fa-solid fa-circle-check"></i> Already Booked</button>`;
         } else {
-          btnHtml = `<button type="button"
-            class="btn btn-primary book-btn workshop-book-btn"
+          btnHtml = `<button type="button" class="btn btn-primary book-btn workshop-book-btn"
             data-workshop-id="${workshop.workshop_id}"
             data-workshop-title="${workshop.title}"
             data-workshop-date="${workshop.workshop_date}"
             data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
-            data-workshop-link="#">
-            <i class="fa-solid fa-calendar-days"></i> Book Workshop
-          </button>`;
+            data-workshop-link="#"><i class="fa-solid fa-calendar-days"></i> Book Workshop</button>`;
         }
       }
 
-      // View Details button — passes all fields including instructor popup data
-      const viewDetailsBtn = `<button
-        type="button"
-        class="btn view-details-btn"
+      const hookHtml = hookMessage
+        ? `<p class="card-hook-message"><i class="fa-solid fa-bolt"></i> ${hookMessage}</p>`
+        : "";
+
+      const viewDetailsBtn = `<button type="button" class="btn view-details-btn"
         data-title="${workshop.title}"
         data-description="${workshop.description}"
         data-category="${workshop.category_name}"
@@ -603,6 +540,7 @@ async function initWorkshopSearch() {
         data-instructor-specialty="${instructorSpecialty}"
         data-instructor-experience="${instructorExp}"
         data-learning-points="${learningPoints}"
+        data-good-fit-for="${goodFitFor}"
         data-date="${workshop.workshop_date}"
         data-time="${formatTimeStr(workshop.start_time)} – ${formatTimeStr(workshop.end_time)}"
         data-seats="${workshop.available_seats}"
@@ -612,14 +550,12 @@ async function initWorkshopSearch() {
 
       grid.innerHTML += `
         <div class="card">
-          ${imgHtml}
-          ${placeholderHtml}
+          ${imgHtml}${placeholderHtml}
           <div class="card-body">
-            <div class="card-icon card-icon-web">
-              <i class="fa-solid fa-laptop-code"></i>
-            </div>
+            <div class="card-icon card-icon-web"><i class="fa-solid fa-laptop-code"></i></div>
             <h3>${workshop.title}</h3>
             <p>${workshop.description}</p>
+            ${hookHtml}
             <div class="card-tags" style="margin-top:16px">
               <span class="tag tag-primary">${workshop.category_name}</span>
               <span class="tag tag-secondary seats-tag" id="seats-tag-${workshop.workshop_id}">${workshop.available_seats} Seats</span>
@@ -627,8 +563,7 @@ async function initWorkshopSearch() {
             ${viewDetailsBtn}
             ${btnHtml}
           </div>
-        </div>
-      `;
+        </div>`;
     });
   }
 
@@ -636,15 +571,8 @@ async function initWorkshopSearch() {
   categoryFilter.addEventListener("change", loadWorkshops);
 }
 
-// ===== BOOKING BUTTONS =====
-/*
-  Handles clicks on Book Workshop buttons through event delegation.
-  Works for both PHP-rendered cards and AJAX search result cards.
-  Admins cannot book workshops.
-*/
 function initBookingButtons() {
   var isAdmin = document.body.dataset.isAdmin === "1";
-
   if (isAdmin) {
     document
       .querySelectorAll(".book-btn, .workshop-book-btn")
@@ -652,18 +580,15 @@ function initBookingButtons() {
         btn.style.display = "none";
       });
   }
-
   document.addEventListener("click", function (e) {
     var button = e.target.closest(".book-btn");
     if (!button) return;
     if (isAdmin) return;
-
     var isLoggedIn = document.body.dataset.loggedIn === "1";
     if (!isLoggedIn) {
       window.location.href = "login.php?reason=booking";
       return;
     }
-
     openBookingModal(
       button.dataset.workshopId,
       button.dataset.workshopTitle,
@@ -674,7 +599,6 @@ function initBookingButtons() {
   });
 }
 
-// ===== PROFILE PICTURE UPLOAD MODAL =====
 function initProfilePictureUpload() {
   var openButton = document.getElementById("profile-avatar-open");
   var overlay = document.getElementById("profile-upload-overlay");
@@ -684,9 +608,7 @@ function initProfilePictureUpload() {
   var uploadLabel = document.getElementById("profile-upload-label");
   var selectedName = document.getElementById("profile-upload-selected-name");
   var submitButton = document.getElementById("profile-upload-submit");
-
   if (!openButton || !overlay) return;
-
   function openProfileUploadModal() {
     overlay.hidden = false;
     document.body.style.overflow = "hidden";
@@ -695,19 +617,15 @@ function initProfilePictureUpload() {
     overlay.hidden = true;
     document.body.style.overflow = "";
   }
-
   openButton.addEventListener("click", openProfileUploadModal);
   if (closeButton)
     closeButton.addEventListener("click", closeProfileUploadModal);
-
   overlay.addEventListener("click", function (e) {
     if (e.target === overlay) closeProfileUploadModal();
   });
-
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !overlay.hidden) closeProfileUploadModal();
   });
-
   if (fileInput && uploadBox && uploadLabel && selectedName && submitButton) {
     fileInput.addEventListener("change", function () {
       var hasFile = fileInput.files.length > 0;
@@ -726,14 +644,11 @@ function initProfilePictureUpload() {
   }
 }
 
-// ===== PROFILE PASSWORD MODAL =====
 function initProfilePasswordModal() {
   var openButton = document.getElementById("profile-password-open");
   var overlay = document.getElementById("profile-password-overlay");
   var closeButton = document.getElementById("profile-password-close");
-
   if (!openButton || !overlay) return;
-
   function openPasswordModal() {
     overlay.hidden = false;
     document.body.style.overflow = "hidden";
@@ -742,30 +657,23 @@ function initProfilePasswordModal() {
     overlay.hidden = true;
     document.body.style.overflow = "";
   }
-
   openButton.addEventListener("click", openPasswordModal);
   if (closeButton) closeButton.addEventListener("click", closePasswordModal);
-
   overlay.addEventListener("click", function (e) {
     if (e.target === overlay) closePasswordModal();
   });
-
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !overlay.hidden) closePasswordModal();
   });
 }
 
-// ===== PROFILE NAME EDIT MODE =====
 function initProfileNameEdit() {
   var form = document.getElementById("profile-name-form");
   var input = document.getElementById("full_name");
   var button = document.getElementById("profile-name-edit");
-
   if (!form || !input || !button) return;
-
   var originalValue = input.value.trim();
   var isEditing = false;
-
   function setEditMode() {
     isEditing = true;
     input.removeAttribute("readonly");
@@ -775,7 +683,6 @@ function initProfileNameEdit() {
     button.setAttribute("aria-label", button.dataset.saveLabel || "Save name");
     button.innerHTML = '<i class="fa-solid fa-check"></i>';
   }
-
   function setViewMode() {
     isEditing = false;
     input.setAttribute("readonly", "readonly");
@@ -784,7 +691,6 @@ function initProfileNameEdit() {
     button.setAttribute("aria-label", button.dataset.editLabel || "Edit name");
     button.innerHTML = '<i class="fa-solid fa-pen"></i>';
   }
-
   button.addEventListener("click", function (e) {
     if (!isEditing) {
       e.preventDefault();
@@ -793,7 +699,6 @@ function initProfileNameEdit() {
     }
     form.requestSubmit();
   });
-
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && isEditing) {
       e.preventDefault();
@@ -804,7 +709,6 @@ function initProfileNameEdit() {
       setViewMode();
     }
   });
-
   form.addEventListener("submit", function (e) {
     var currentValue = input.value.trim();
     if (!isEditing) {
@@ -823,14 +727,9 @@ function initProfileNameEdit() {
   });
 }
 
-// ===== LOCAL TIME DISPLAY =====
-/*
-  Converts UTC timestamps printed by PHP into the user's browser timezone.
-*/
 function initLocalTimeDisplay() {
   var timeElements = document.querySelectorAll(".js-local-time");
   if (!timeElements.length) return;
-
   timeElements.forEach(function (element) {
     var utcTime = element.dataset.utcTime;
     if (!utcTime) return;
@@ -847,23 +746,18 @@ function initLocalTimeDisplay() {
   });
 }
 
-// ===== INITIALIZE =====
-/*
-  Runs after the HTML document finishes loading.
-  Starts all main website features.
-*/
 document.addEventListener("DOMContentLoaded", function () {
-  initWorkshopDetailsModal(); // details modal with instructor popup + learning points
-  initMobileNav(); // mobile nav toggle
-  setActiveNavLink(); // highlight current page in nav
-  initScrollAnimations(); // fade-in on scroll
-  initFormValidation(); // feedback form validation
-  initRippleEffect(); // button ripple clicks
-  initProfilePictureUpload(); // profile picture upload modal
-  initProfilePasswordModal(); // profile password change modal
-  initProfileNameEdit(); // profile name inline edit
-  initWorkshopSearch(); // live search + category filter
-  initBookingButtons(); // book buttons with guest redirect
-  initBookingConfirmation(); // booking modal wiring
-  initLocalTimeDisplay(); // UTC → browser timezone
+  initWorkshopDetailsModal();
+  initMobileNav();
+  setActiveNavLink();
+  initScrollAnimations();
+  initFormValidation();
+  initRippleEffect();
+  initProfilePictureUpload();
+  initProfilePasswordModal();
+  initProfileNameEdit();
+  initWorkshopSearch();
+  initBookingButtons();
+  initBookingConfirmation();
+  initLocalTimeDisplay();
 });

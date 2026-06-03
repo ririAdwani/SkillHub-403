@@ -3,7 +3,8 @@
   =====================================
   Handles all AJAX interactions: Add, Edit, Delete workshops
   without reloading the page (Fetch API / AJAX as required by assignment).
-  Now includes learning_points field for "What you'll learn" bullets.
+  Includes: learning_points, hook_message, good_fit_for fields.
+  Duration picker: hours + minutes spinners → auto-calculates end time.
 */
 
 const $ = (id) => document.getElementById(id);
@@ -13,8 +14,7 @@ function formatDate(dateStr) {
   if (!dateStr) return "";
   try {
     const [y, m, d] = dateStr.split("-").map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString("en-US", {
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -39,6 +39,63 @@ function formatTime(timeStr) {
   } catch (e) {
     return timeStr;
   }
+}
+
+// ── HELPER: Parse HH:MM:SS → total minutes ─────────────────────────────────
+function timeToMinutes(timeStr) {
+  if (!timeStr) return 0;
+  const parts = timeStr.split(":").map(Number);
+  return parts[0] * 60 + (parts[1] || 0);
+}
+
+// ── HELPER: Total minutes → HH:MM ──────────────────────────────────────────
+function minutesToTime(totalMins) {
+  if (totalMins < 0) totalMins = 0;
+  const h = Math.floor(totalMins / 60) % 24;
+  const m = totalMins % 60;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+}
+
+// ── DURATION AUTO-CALCULATE ─────────────────────────────────────────────────
+/*
+  Called whenever start time, duration hours, or duration minutes changes.
+  Calculates end time = start time + duration and updates the hidden end_time
+  input and the preview label. If the user overrides end time manually, the
+  duration spinners update to reflect the new duration.
+  prefix = 'add' or 'edit'
+*/
+function recalcEndTime(prefix) {
+  const startInput = $(prefix + "-start");
+  const hoursInput = $(prefix + "-dur-hours");
+  const minsInput = $(prefix + "-dur-mins");
+  const endInput = $(prefix + "-end");
+  const preview = $(prefix + "-end-preview");
+
+  if (!startInput || !hoursInput || !minsInput || !endInput) return;
+
+  const startMins = timeToMinutes(startInput.value);
+  const durHours = parseInt(hoursInput.value) || 0;
+  const durMins = parseInt(minsInput.value) || 0;
+  const totalDur = durHours * 60 + durMins;
+
+  if (!startInput.value || totalDur <= 0) {
+    endInput.value = "";
+    if (preview) preview.textContent = "";
+    return;
+  }
+
+  const endMins = startMins + totalDur;
+  const endTimeStr = minutesToTime(endMins);
+  endInput.value = endTimeStr;
+
+  if (preview) {
+    preview.textContent = "End time: " + formatTime(endTimeStr);
+  }
+}
+
+// Called when start time changes — keeps duration the same, recalculates end
+function onStartTimeChange(prefix) {
+  recalcEndTime(prefix);
 }
 
 // ── TOAST NOTIFICATION ──────────────────────────────────────────────────────
@@ -68,7 +125,6 @@ function closeModal(name) {
   if (overlay) overlay.hidden = true;
 }
 
-// Close when clicking dark background
 document.querySelectorAll(".admin-overlay").forEach((overlay) => {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) overlay.hidden = true;
@@ -79,6 +135,9 @@ document.querySelectorAll(".admin-overlay").forEach((overlay) => {
 $("open-add-modal").addEventListener("click", () => {
   $("add-workshop-form").reset();
   $("add-form-error").hidden = true;
+  // Clear duration and end preview
+  const ep = $("add-end-preview");
+  if (ep) ep.textContent = "";
   openModal("add");
 });
 $("close-add-modal").addEventListener("click", () => closeModal("add"));
@@ -87,6 +146,18 @@ $("close-edit-modal").addEventListener("click", () => closeModal("edit"));
 $("cancel-edit-modal").addEventListener("click", () => closeModal("edit"));
 $("close-delete-modal").addEventListener("click", () => closeModal("delete"));
 $("cancel-delete-modal").addEventListener("click", () => closeModal("delete"));
+
+// Wire up duration inputs for Add modal
+["add-start", "add-dur-hours", "add-dur-mins"].forEach((id) => {
+  const el = $(id);
+  if (el) el.addEventListener("input", () => recalcEndTime("add"));
+});
+
+// Wire up duration inputs for Edit modal
+["edit-start", "edit-dur-hours", "edit-dur-mins"].forEach((id) => {
+  const el = $(id);
+  if (el) el.addEventListener("input", () => recalcEndTime("edit"));
+});
 
 // ── SINGLE TABLE CLICK HANDLER (Edit + Delete) ──────────────────────────────
 let workshopIdToDelete = null;
@@ -107,7 +178,14 @@ $("workshops-tbody").addEventListener("click", (e) => {
     $("edit-start").value = d.start;
     $("edit-end").value = d.end;
 
-    // Set category dropdown
+    // Pre-fill hook message and good fit for
+    const hmInput = $("edit-hook-message");
+    if (hmInput) hmInput.value = d.hookMessage || "";
+
+    const gfInput = $("edit-good-fit-for");
+    if (gfInput) gfInput.value = d.goodFitFor || "";
+
+    // Category dropdown
     const catSelect = $("edit-category");
     catSelect.value = d.category;
     if (catSelect.value !== d.category) {
@@ -116,17 +194,34 @@ $("workshops-tbody").addEventListener("click", (e) => {
       }, 10);
     }
 
-    // Set instructor dropdown
+    // Instructor dropdown
     const instSelect = $("edit-instructor");
     if (instSelect) instSelect.value = d.instructor || "";
 
-    // Pre-fill image URL
+    // Image URL
     const imgInput = $("edit-image");
     if (imgInput) imgInput.value = d.image || "";
 
-    // Pre-fill learning points — each point on its own line
+    // Learning points
     const lpInput = $("edit-learning-points");
     if (lpInput) lpInput.value = d.learningPoints || "";
+
+    // Calculate duration from existing start/end and show it
+    if (d.start && d.end) {
+      const startMins = timeToMinutes(d.start);
+      const endMins = timeToMinutes(d.end);
+      const durTotal = endMins - startMins;
+      if (durTotal > 0) {
+        const durH = Math.floor(durTotal / 60);
+        const durM = durTotal % 60;
+        const durHInput = $("edit-dur-hours");
+        const durMInput = $("edit-dur-mins");
+        if (durHInput) durHInput.value = durH;
+        if (durMInput) durMInput.value = durM;
+        const preview = $("edit-end-preview");
+        if (preview) preview.textContent = "End time: " + formatTime(d.end);
+      }
+    }
 
     openModal("edit");
     return;
@@ -149,7 +244,7 @@ $("workshops-tbody").addEventListener("click", (e) => {
 
 // ── ADD WORKSHOP ─────────────────────────────────────────────────────────────
 $("add-workshop-form").addEventListener("submit", async (e) => {
-  e.preventDefault(); // AJAX — no page reload
+  e.preventDefault();
 
   const form = e.target;
   const errorBox = $("add-form-error");
@@ -177,12 +272,19 @@ $("add-workshop-form").addEventListener("submit", async (e) => {
     const result = await response.json();
 
     if (result.success) {
-      // Inject instructor name + learning_points into response before building row
       result.workshop.instructor_name = instrName;
       result.workshop.instructor_id = instrId;
       if (!result.workshop.learning_points) {
         const lpField = $("add-learning-points");
         result.workshop.learning_points = lpField ? lpField.value : "";
+      }
+      if (!result.workshop.hook_message) {
+        const hmField = $("add-hook-message");
+        result.workshop.hook_message = hmField ? hmField.value : "";
+      }
+      if (!result.workshop.good_fit_for) {
+        const gfField = $("add-good-fit-for");
+        result.workshop.good_fit_for = gfField ? gfField.value : "";
       }
 
       appendWorkshopRow(result.workshop);
@@ -190,6 +292,8 @@ $("add-workshop-form").addEventListener("submit", async (e) => {
       showToast("Workshop added successfully!", "success");
       closeModal("add");
       form.reset();
+      const ep = $("add-end-preview");
+      if (ep) ep.textContent = "";
     } else {
       errorBox.textContent = result.message || "Something went wrong.";
       errorBox.hidden = false;
@@ -218,7 +322,6 @@ $("edit-workshop-form").addEventListener("submit", async (e) => {
     const formData = new FormData(form);
     formData.append("action", "update");
 
-    // Read instructor name from dropdown before sending
     const instrSelect = $("edit-instructor");
     const instrId = instrSelect ? instrSelect.value : "";
     const instrName =
@@ -233,12 +336,19 @@ $("edit-workshop-form").addEventListener("submit", async (e) => {
     const result = await response.json();
 
     if (result.success) {
-      // Inject instructor name + learning_points into response
       result.workshop.instructor_name = instrName;
       result.workshop.instructor_id = instrId;
       if (!result.workshop.learning_points) {
         const lpField = $("edit-learning-points");
         result.workshop.learning_points = lpField ? lpField.value : "";
+      }
+      if (!result.workshop.hook_message) {
+        const hmField = $("edit-hook-message");
+        result.workshop.hook_message = hmField ? hmField.value : "";
+      }
+      if (!result.workshop.good_fit_for) {
+        const gfField = $("edit-good-fit-for");
+        result.workshop.good_fit_for = gfField ? gfField.value : "";
       }
 
       updateWorkshopRow(result.workshop);
@@ -299,15 +409,12 @@ $("confirm-delete-btn").addEventListener("click", async () => {
 });
 
 // ── TABLE ROW HELPERS ────────────────────────────────────────────────────────
-
-// Appends a new row in correct date order (not just at the bottom)
 function appendWorkshopRow(w) {
   const tbody = $("workshops-tbody");
   const tr = document.createElement("tr");
   tr.dataset.id = w.workshop_id;
   tr.innerHTML = buildRowHTML(w);
 
-  // Insert in date order by comparing data-date on existing edit buttons
   const rows = tbody.querySelectorAll("tr");
   let inserted = false;
   for (const existingRow of rows) {
@@ -321,7 +428,6 @@ function appendWorkshopRow(w) {
   if (!inserted) tbody.appendChild(tr);
 }
 
-// Replaces inner HTML of an existing row with updated data
 function updateWorkshopRow(w) {
   const row = $("workshops-tbody").querySelector(
     `tr[data-id="${w.workshop_id}"]`,
@@ -329,14 +435,12 @@ function updateWorkshopRow(w) {
   if (row) row.innerHTML = buildRowHTML(w);
 }
 
-// Removes a row from the table
 function removeWorkshopRow(id) {
   const row = $("workshops-tbody").querySelector(`tr[data-id="${id}"]`);
   if (row) row.remove();
 }
 
 // ── BUILD ROW HTML ───────────────────────────────────────────────────────────
-// Stores learning_points in data-learning-points so the Edit modal can prefill it.
 function buildRowHTML(w) {
   const safe = (str) =>
     String(str ?? "")
@@ -344,10 +448,6 @@ function buildRowHTML(w) {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-
-  const formattedDate = formatDate(w.workshop_date);
-  const formattedStart = formatTime(w.start_time);
-  const formattedEnd = formatTime(w.end_time);
 
   const instrCell =
     w.instructor_name && w.instructor_name.trim()
@@ -358,8 +458,8 @@ function buildRowHTML(w) {
     <td class="admin-id-cell">${safe(w.workshop_id)}</td>
     <td class="admin-title-cell">${safe(w.title)}</td>
     <td><span class="admin-category-tag">${safe(w.category_name)}</span></td>
-    <td>${formattedDate}</td>
-    <td class="admin-time-cell">${formattedStart} – ${formattedEnd}</td>
+    <td>${formatDate(w.workshop_date)}</td>
+    <td class="admin-time-cell">${formatTime(w.start_time)} – ${formatTime(w.end_time)}</td>
     <td><span class="admin-seats-badge">${safe(w.available_seats)}</span></td>
     <td class="admin-instructor-cell">${instrCell}</td>
     <td class="admin-action-btns">
@@ -367,6 +467,8 @@ function buildRowHTML(w) {
         data-id="${safe(w.workshop_id)}"
         data-title="${safe(w.title)}"
         data-description="${safe(w.description)}"
+        data-hook-message="${safe(w.hook_message ?? "")}"
+        data-good-fit-for="${safe(w.good_fit_for ?? "")}"
         data-category="${safe(w.category_id)}"
         data-date="${safe(w.workshop_date)}"
         data-start="${safe(w.start_time)}"
@@ -449,7 +551,6 @@ async function submitReply(feedbackId) {
         card.querySelector(".feedback-reply-actions").before(historyContainer);
       }
 
-      // Remove old single-reply display if it exists
       const oldSingle = card.querySelector(
         ".feedback-reply-display:not(.feedback-message-history .feedback-reply-display)",
       );
@@ -462,16 +563,14 @@ async function submitReply(feedbackId) {
         hour: "numeric",
         minute: "2-digit",
       });
-
       const safeText = replyText
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
-      // Create new message bubble — no message_id yet (assigned after page reload)
       const msgDiv = document.createElement("div");
       msgDiv.className = "feedback-reply-display admin-msg-bubble";
-      msgDiv.dataset.messageId = ""; // no real ID until page reloads
+      msgDiv.dataset.messageId = "";
       msgDiv.style.marginBottom = "8px";
       msgDiv.title = "Double-click to edit";
       msgDiv.innerHTML =
@@ -533,11 +632,6 @@ async function submitReply(feedbackId) {
 }
 
 // ── INLINE MESSAGE EDIT ──────────────────────────────────────────────────────
-/*
-  For PHP-rendered bubbles (with real message_id): saves to DB via edit_message API.
-  For dynamically created bubbles (no message_id yet): updates text visually only.
-  The message is already saved in DB from when it was sent — no duplicate insert.
-*/
 function saveInlineEdit(btn, feedbackId) {
   var editForm = btn.closest(".msg-edit-form");
   var bubble = btn.closest(".admin-msg-bubble");
@@ -553,7 +647,6 @@ function saveInlineEdit(btn, feedbackId) {
   var messageId = bubble.dataset.messageId;
 
   if (messageId) {
-    // PHP-rendered bubble — has a real DB message_id — save to DB
     var formData = new FormData();
     formData.append("action", "edit_message");
     formData.append("message_id", messageId);
@@ -561,10 +654,8 @@ function saveInlineEdit(btn, feedbackId) {
     formData.append("feedback_id", feedbackId);
 
     fetch("admin.php", { method: "POST", body: formData })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (res) {
+      .then((r) => r.json())
+      .then((res) => {
         if (res.success) {
           var mt = bubble.querySelector(".msg-text");
           if (mt) {
@@ -578,8 +669,6 @@ function saveInlineEdit(btn, feedbackId) {
         }
       });
   } else {
-    // Dynamically created bubble — no message_id yet — update visually only
-    // Message already saved in DB when it was sent; no new insert needed
     var mt = bubble.querySelector(".msg-text");
     if (mt) {
       mt.textContent = newText;

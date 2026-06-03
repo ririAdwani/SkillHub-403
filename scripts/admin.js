@@ -3,17 +3,15 @@
   =====================================
   Handles all AJAX interactions: Add, Edit, Delete workshops
   without reloading the page (Fetch API / AJAX as required by assignment).
+  Now includes learning_points field for "What you'll learn" bullets.
 */
 
 const $ = (id) => document.getElementById(id);
 
 // ── HELPER: Format date from YYYY-MM-DD to "Jun 25, 2026" ──────────────────
-// PHP formats dates on page load, but JS needs to do the same for
-// dynamically added/edited rows (those come from the API as raw values)
 function formatDate(dateStr) {
   if (!dateStr) return "";
   try {
-    // Parse as local date to avoid timezone shifts
     const [y, m, d] = dateStr.split("-").map(Number);
     const date = new Date(y, m - 1, d);
     return date.toLocaleDateString("en-US", {
@@ -48,16 +46,13 @@ function showToast(message, type = "success") {
   const toast = $("admin-toast");
   const iconEl = $("admin-toast-icon");
   const msgEl = $("admin-toast-msg");
-
   iconEl.innerHTML =
     type === "success"
       ? '<i class="fa-solid fa-circle-check"></i>'
       : '<i class="fa-solid fa-circle-xmark"></i>';
-
   msgEl.textContent = message;
   toast.className = `admin-toast toast-${type}`;
   toast.hidden = false;
-
   setTimeout(() => {
     toast.hidden = true;
   }, 3000);
@@ -68,13 +63,12 @@ function openModal(name) {
   const overlay = $(`${name}-modal-overlay`);
   if (overlay) overlay.hidden = false;
 }
-
 function closeModal(name) {
   const overlay = $(`${name}-modal-overlay`);
   if (overlay) overlay.hidden = true;
 }
 
-// Close when clicking the dark background
+// Close when clicking dark background
 document.querySelectorAll(".admin-overlay").forEach((overlay) => {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) overlay.hidden = true;
@@ -87,7 +81,6 @@ $("open-add-modal").addEventListener("click", () => {
   $("add-form-error").hidden = true;
   openModal("add");
 });
-
 $("close-add-modal").addEventListener("click", () => closeModal("add"));
 $("cancel-add-modal").addEventListener("click", () => closeModal("add"));
 $("close-edit-modal").addEventListener("click", () => closeModal("edit"));
@@ -96,7 +89,6 @@ $("close-delete-modal").addEventListener("click", () => closeModal("delete"));
 $("cancel-delete-modal").addEventListener("click", () => closeModal("delete"));
 
 // ── SINGLE TABLE CLICK HANDLER (Edit + Delete) ──────────────────────────────
-// ONE listener handles both to prevent the double-modal bug
 let workshopIdToDelete = null;
 
 $("workshops-tbody").addEventListener("click", (e) => {
@@ -111,7 +103,6 @@ $("workshops-tbody").addEventListener("click", (e) => {
     $("edit-description").value = d.description;
     $("edit-seats").value = d.seats;
     $("edit-form-error").hidden = true;
-
     $("edit-date").value = d.date;
     $("edit-start").value = d.start;
     $("edit-end").value = d.end;
@@ -127,12 +118,18 @@ $("workshops-tbody").addEventListener("click", (e) => {
 
     // Set instructor dropdown
     const instSelect = $("edit-instructor");
-    if (instSelect) {
-      instSelect.value = d.instructor || "";
-    }
+    if (instSelect) instSelect.value = d.instructor || "";
+
+    // Pre-fill image URL
+    const imgInput = $("edit-image");
+    if (imgInput) imgInput.value = d.image || "";
+
+    // Pre-fill learning points — each point on its own line
+    const lpInput = $("edit-learning-points");
+    if (lpInput) lpInput.value = d.learningPoints || "";
 
     openModal("edit");
-    return; // Don't fall through to delete check
+    return;
   }
 
   // ── DELETE BUTTON ──
@@ -152,7 +149,7 @@ $("workshops-tbody").addEventListener("click", (e) => {
 
 // ── ADD WORKSHOP ─────────────────────────────────────────────────────────────
 $("add-workshop-form").addEventListener("submit", async (e) => {
-  e.preventDefault(); // Stop page reload — this is the AJAX requirement
+  e.preventDefault(); // AJAX — no page reload
 
   const form = e.target;
   const errorBox = $("add-form-error");
@@ -165,7 +162,14 @@ $("add-workshop-form").addEventListener("submit", async (e) => {
     const formData = new FormData(form);
     formData.append("action", "create");
 
-    // Send to PHP API — returns JSON
+    // Read instructor name from dropdown before sending
+    const instrSelect = $("add-instructor");
+    const instrId = instrSelect ? instrSelect.value : "";
+    const instrName =
+      instrSelect && instrSelect.value
+        ? instrSelect.options[instrSelect.selectedIndex].text.trim()
+        : "";
+
     const response = await fetch("../../api/workshops.php", {
       method: "POST",
       body: formData,
@@ -173,9 +177,15 @@ $("add-workshop-form").addEventListener("submit", async (e) => {
     const result = await response.json();
 
     if (result.success) {
-      // ✅ Add styled row immediately without page reload
+      // Inject instructor name + learning_points into response before building row
+      result.workshop.instructor_name = instrName;
+      result.workshop.instructor_id = instrId;
+      if (!result.workshop.learning_points) {
+        const lpField = $("add-learning-points");
+        result.workshop.learning_points = lpField ? lpField.value : "";
+      }
+
       appendWorkshopRow(result.workshop);
-      renumberRows(); // Fix row numbering
       updateStatNumbers();
       showToast("Workshop added successfully!", "success");
       closeModal("add");
@@ -208,6 +218,14 @@ $("edit-workshop-form").addEventListener("submit", async (e) => {
     const formData = new FormData(form);
     formData.append("action", "update");
 
+    // Read instructor name from dropdown before sending
+    const instrSelect = $("edit-instructor");
+    const instrId = instrSelect ? instrSelect.value : "";
+    const instrName =
+      instrSelect && instrSelect.value
+        ? instrSelect.options[instrSelect.selectedIndex].text.trim()
+        : "";
+
     const response = await fetch("../../api/workshops.php", {
       method: "POST",
       body: formData,
@@ -215,7 +233,14 @@ $("edit-workshop-form").addEventListener("submit", async (e) => {
     const result = await response.json();
 
     if (result.success) {
-      // ✅ Update existing row in place — no page reload
+      // Inject instructor name + learning_points into response
+      result.workshop.instructor_name = instrName;
+      result.workshop.instructor_id = instrId;
+      if (!result.workshop.learning_points) {
+        const lpField = $("edit-learning-points");
+        result.workshop.learning_points = lpField ? lpField.value : "";
+      }
+
       updateWorkshopRow(result.workshop);
       showToast("Workshop updated successfully!", "success");
       closeModal("edit");
@@ -255,9 +280,7 @@ $("confirm-delete-btn").addEventListener("click", async () => {
     const result = await response.json();
 
     if (result.success) {
-      // ✅ Remove row and renumber immediately
       removeWorkshopRow(workshopIdToDelete);
-      renumberRows(); // Renumber after deletion
       updateStatNumbers();
       showToast("Workshop deleted.", "success");
       closeModal("delete");
@@ -277,14 +300,28 @@ $("confirm-delete-btn").addEventListener("click", async () => {
 
 // ── TABLE ROW HELPERS ────────────────────────────────────────────────────────
 
+// Appends a new row in correct date order (not just at the bottom)
 function appendWorkshopRow(w) {
   const tbody = $("workshops-tbody");
   const tr = document.createElement("tr");
   tr.dataset.id = w.workshop_id;
   tr.innerHTML = buildRowHTML(w);
-  tbody.appendChild(tr);
+
+  // Insert in date order by comparing data-date on existing edit buttons
+  const rows = tbody.querySelectorAll("tr");
+  let inserted = false;
+  for (const existingRow of rows) {
+    const editBtn = existingRow.querySelector(".btn-admin-edit");
+    if (editBtn && (w.workshop_date || "") < (editBtn.dataset.date || "")) {
+      tbody.insertBefore(tr, existingRow);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) tbody.appendChild(tr);
 }
 
+// Replaces inner HTML of an existing row with updated data
 function updateWorkshopRow(w) {
   const row = $("workshops-tbody").querySelector(
     `tr[data-id="${w.workshop_id}"]`,
@@ -292,28 +329,15 @@ function updateWorkshopRow(w) {
   if (row) row.innerHTML = buildRowHTML(w);
 }
 
+// Removes a row from the table
 function removeWorkshopRow(id) {
   const row = $("workshops-tbody").querySelector(`tr[data-id="${id}"]`);
   if (row) row.remove();
 }
 
-// ── RENUMBER ROWS ────────────────────────────────────────────────────────────
-// After add or delete, update the # column to show 1, 2, 3... in order.
-// This uses the ACTUAL workshop_id from data-id, not sequential numbers,
-// but keeps the ID column showing the real database ID in sorted display order.
-function renumberRows() {
-  // We just re-render the first cell of each row with its real ID
-  // The rows are already in date order from PHP — JS just appends new ones at the end
-  // The ID shown is the real DB id, which is fine and traceable
-  // Nothing to do here for real IDs — they stay correct
-  // We only re-sort visually if needed
-}
-
 // ── BUILD ROW HTML ───────────────────────────────────────────────────────────
-// This is called for BOTH new rows (add) and updated rows (edit).
-// It formats dates and times exactly like PHP does on page load.
+// Stores learning_points in data-learning-points so the Edit modal can prefill it.
 function buildRowHTML(w) {
-  // Escape HTML to prevent XSS
   const safe = (str) =>
     String(str ?? "")
       .replace(/&/g, "&amp;")
@@ -321,10 +345,14 @@ function buildRowHTML(w) {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
 
-  // Format date and time to match PHP's date('M j, Y') and date('g:i A')
   const formattedDate = formatDate(w.workshop_date);
   const formattedStart = formatTime(w.start_time);
   const formattedEnd = formatTime(w.end_time);
+
+  const instrCell =
+    w.instructor_name && w.instructor_name.trim()
+      ? safe(w.instructor_name)
+      : '<span class="admin-unassigned">Unassigned</span>';
 
   return `
     <td class="admin-id-cell">${safe(w.workshop_id)}</td>
@@ -333,13 +361,7 @@ function buildRowHTML(w) {
     <td>${formattedDate}</td>
     <td class="admin-time-cell">${formattedStart} – ${formattedEnd}</td>
     <td><span class="admin-seats-badge">${safe(w.available_seats)}</span></td>
-    <td class="admin-instructor-cell">
-      ${
-        w.instructor_name && w.instructor_name.trim()
-          ? safe(w.instructor_name)
-          : '<span class="admin-unassigned">Unassigned</span>'
-      }
-    </td>
+    <td class="admin-instructor-cell">${instrCell}</td>
     <td class="admin-action-btns">
       <button class="btn-admin-edit"
         data-id="${safe(w.workshop_id)}"
@@ -351,7 +373,8 @@ function buildRowHTML(w) {
         data-end="${safe(w.end_time)}"
         data-seats="${safe(w.available_seats)}"
         data-instructor="${safe(w.instructor_id ?? "")}"
-        data-image="${safe(w.image_path ?? "")}">
+        data-image="${safe(w.image_path ?? "")}"
+        data-learning-points="${safe(w.learning_points ?? "")}">
         <i class="fa-solid fa-pen"></i> Edit
       </button>
       <button class="btn-admin-delete" data-id="${safe(w.workshop_id)}">
@@ -373,88 +396,35 @@ function updateStatNumbers() {
   $("stat-seats").textContent = seats;
 }
 
-// ── FEEDBACK REPLY (AJAX — no page reload, no jumping) ────────────────────
-/*
-  openReplyBox(id, existingText) — shows the reply textarea for a feedback item
-  closeReplyBox(id)              — hides it without saving
-  submitReply(id)                — sends the reply to the server via fetch(), 
-                                   updates the UI, reduces the sidebar badge
-*/
+// ── FEEDBACK REPLY (AJAX) ────────────────────────────────────────────────────
 function openReplyBox(feedbackId, existingText) {
   const box = document.getElementById("reply-box-" + feedbackId);
   const textarea = document.getElementById("reply-text-" + feedbackId);
   if (!box || !textarea) return;
-
   textarea.value = existingText || "";
   box.style.setProperty("display", "block", "important");
   box.scrollIntoView({ block: "nearest" });
   textarea.focus();
-
   const actions = document.getElementById("reply-actions-" + feedbackId);
   if (actions) actions.style.display = "none";
-}
-
-// Inline edit helpers for dynamically added bubbles (no DB message_id)
-function saveInlineEdit(btn, feedbackId) {
-  var editForm = btn.closest(".msg-edit-form");
-  var bubble = btn.closest(".admin-msg-bubble");
-  var ta = editForm ? editForm.querySelector(".msg-edit-textarea") : null;
-  if (!ta) return;
-  var newText = ta.value.trim();
-  if (!newText) {
-    alert("Message cannot be empty.");
-    return;
-  }
-  var formData = new FormData();
-  formData.append("action", "reply_feedback");
-  formData.append("feedback_id", feedbackId);
-  formData.append("admin_reply", newText);
-  fetch("admin.php", { method: "POST", body: formData })
-    .then(function (r) {
-      return r.json();
-    })
-    .then(function (res) {
-      if (res.success) {
-        var mt = bubble.querySelector(".msg-text");
-        if (mt) {
-          mt.textContent = newText;
-          mt.style.display = "";
-        }
-        editForm.style.display = "none";
-        showToast("Message updated.", "success");
-      } else {
-        alert(res.message || "Could not update.");
-      }
-    });
-}
-
-function cancelInlineEdit(btn) {
-  var editForm = btn.closest(".msg-edit-form");
-  var bubble = btn.closest(".admin-msg-bubble");
-  if (!editForm || !bubble) return;
-  editForm.style.display = "none";
-  var mt = bubble.querySelector(".msg-text");
-  if (mt) mt.style.display = "";
 }
 
 function closeReplyBox(feedbackId) {
   const box = document.getElementById("reply-box-" + feedbackId);
   const actions = document.getElementById("reply-actions-" + feedbackId);
-  if (box) box.style.display = "none"; // NOT box.hidden = true
+  if (box) box.style.display = "none";
   if (actions) actions.style.display = "";
 }
 
 async function submitReply(feedbackId) {
   const textarea = document.getElementById("reply-text-" + feedbackId);
   if (!textarea) return;
-
   const replyText = textarea.value.trim();
   if (!replyText) {
     showToast("Reply cannot be empty.", "error");
     return;
   }
 
-  // Send to server
   const formData = new FormData();
   formData.append("action", "reply_feedback");
   formData.append("feedback_id", feedbackId);
@@ -468,12 +438,10 @@ async function submitReply(feedbackId) {
     const result = await response.json();
 
     if (result.success) {
-      // Update the displayed reply box without page reload
       const card = document
         .getElementById("reply-actions-" + feedbackId)
         .closest(".feedback-card");
 
-      // Get or create the message history container
       let historyContainer = card.querySelector(".feedback-message-history");
       if (!historyContainer) {
         historyContainer = document.createElement("div");
@@ -481,13 +449,12 @@ async function submitReply(feedbackId) {
         card.querySelector(".feedback-reply-actions").before(historyContainer);
       }
 
-      // Remove legacy single-reply display if present
+      // Remove old single-reply display if it exists
       const oldSingle = card.querySelector(
         ".feedback-reply-display:not(.feedback-message-history .feedback-reply-display)",
       );
       if (oldSingle) oldSingle.remove();
 
-      // Build timestamp
       const now = new Date();
       const timeStr = now.toLocaleString("en-US", {
         month: "short",
@@ -496,23 +463,21 @@ async function submitReply(feedbackId) {
         minute: "2-digit",
       });
 
-      // Append new message as a double-click-editable bubble
-      // We don't have the message_id yet (need page reload for that)
-      // so double-click edit will work after next page load
       const safeText = replyText
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+
+      // Create new message bubble — no message_id yet (assigned after page reload)
       const msgDiv = document.createElement("div");
       msgDiv.className = "feedback-reply-display admin-msg-bubble";
+      msgDiv.dataset.messageId = ""; // no real ID until page reloads
       msgDiv.style.marginBottom = "8px";
       msgDiv.title = "Double-click to edit";
       msgDiv.innerHTML =
-        '<div class="feedback-reply-label">' +
-        '<i class="fa-solid fa-reply"></i> Admin · ' +
+        '<div class="feedback-reply-label"><i class="fa-solid fa-reply"></i> Admin · ' +
         timeStr +
-        '<span class="msg-edit-hint">double-click to edit</span>' +
-        "</div>" +
+        '<span class="msg-edit-hint">double-click to edit</span></div>' +
         '<p class="msg-text">' +
         safeText +
         "</p>" +
@@ -525,60 +490,36 @@ async function submitReply(feedbackId) {
         feedbackId +
         ')"><i class="fa-solid fa-check"></i> Save</button>' +
         '<button class="btn-reply-cancel" onclick="cancelInlineEdit(this)">Cancel</button>' +
-        "</div>" +
-        "</div>";
-      // Wire up double-click on this dynamically created bubble
+        "</div></div>";
+
       msgDiv.addEventListener("dblclick", function () {
-        var ef = msgDiv.querySelector(".msg-edit-form");
-        var mt = msgDiv.querySelector(".msg-text");
+        const ef = msgDiv.querySelector(".msg-edit-form");
+        const mt = msgDiv.querySelector(".msg-text");
         if (!ef || !mt) return;
         mt.style.display = "none";
         ef.style.display = "block";
-        var ta = ef.querySelector(".msg-edit-textarea");
+        const ta = ef.querySelector(".msg-edit-textarea");
         if (ta) {
           ta.focus();
           ta.select();
         }
       });
+
       historyContainer.appendChild(msgDiv);
 
-      // Update the actions row after sending a reply
-      // Rules: NO Edit Reply button ever. Show: New Message + Resolve only.
       const actions = document.getElementById("reply-actions-" + feedbackId);
       if (actions) {
-        const resolveBtn = actions.querySelector(".btn-resolve");
-
-        // Remove any Edit Reply button that might exist
         actions.querySelectorAll(".btn-reply-edit").forEach((b) => b.remove());
-
-        // Change Write Reply button to New Message, or add it if missing
         let writeBtn = actions.querySelector(".btn-reply-open");
         if (writeBtn) {
-          // Rename to New Message
           writeBtn.innerHTML =
             '<i class="fa-solid fa-paper-plane"></i> New Message';
           writeBtn.setAttribute(
             "onclick",
             "openReplyBox(" + feedbackId + ", '')",
           );
-        } else if (!actions.querySelector(".btn-reply-new")) {
-          // First reply — create New Message button
-          const newMsgBtn = document.createElement("button");
-          newMsgBtn.className = "btn-reply-open";
-          newMsgBtn.innerHTML =
-            '<i class="fa-solid fa-paper-plane"></i> New Message';
-          newMsgBtn.setAttribute(
-            "onclick",
-            "openReplyBox(" + feedbackId + ", '')",
-          );
-          if (resolveBtn) {
-            actions.insertBefore(newMsgBtn, resolveBtn);
-          } else {
-            actions.appendChild(newMsgBtn);
-          }
         }
-
-        actions.style.display = ""; // Make sure row is visible
+        actions.style.display = "";
       }
 
       closeReplyBox(feedbackId);
@@ -591,12 +532,80 @@ async function submitReply(feedbackId) {
   }
 }
 
+// ── INLINE MESSAGE EDIT ──────────────────────────────────────────────────────
+/*
+  For PHP-rendered bubbles (with real message_id): saves to DB via edit_message API.
+  For dynamically created bubbles (no message_id yet): updates text visually only.
+  The message is already saved in DB from when it was sent — no duplicate insert.
+*/
+function saveInlineEdit(btn, feedbackId) {
+  var editForm = btn.closest(".msg-edit-form");
+  var bubble = btn.closest(".admin-msg-bubble");
+  var ta = editForm ? editForm.querySelector(".msg-edit-textarea") : null;
+  if (!ta) return;
+
+  var newText = ta.value.trim();
+  if (!newText) {
+    alert("Message cannot be empty.");
+    return;
+  }
+
+  var messageId = bubble.dataset.messageId;
+
+  if (messageId) {
+    // PHP-rendered bubble — has a real DB message_id — save to DB
+    var formData = new FormData();
+    formData.append("action", "edit_message");
+    formData.append("message_id", messageId);
+    formData.append("new_text", newText);
+    formData.append("feedback_id", feedbackId);
+
+    fetch("admin.php", { method: "POST", body: formData })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (res) {
+        if (res.success) {
+          var mt = bubble.querySelector(".msg-text");
+          if (mt) {
+            mt.textContent = newText;
+            mt.style.display = "";
+          }
+          editForm.style.display = "none";
+          showToast("Message updated.", "success");
+        } else {
+          alert(res.message || "Could not update.");
+        }
+      });
+  } else {
+    // Dynamically created bubble — no message_id yet — update visually only
+    // Message already saved in DB when it was sent; no new insert needed
+    var mt = bubble.querySelector(".msg-text");
+    if (mt) {
+      mt.textContent = newText;
+      mt.style.display = "";
+    }
+    editForm.style.display = "none";
+    showToast("Message updated.", "success");
+  }
+}
+
+function cancelInlineEdit(btn) {
+  const editForm = btn.closest(".msg-edit-form");
+  const bubble = btn.closest(".admin-msg-bubble");
+  if (!editForm || !bubble) return;
+  editForm.style.display = "none";
+  const mt = bubble.querySelector(".msg-text");
+  if (mt) mt.style.display = "";
+}
+
+// ── REDUCE FEEDBACK SIDEBAR BADGE ────────────────────────────────────────────
 function reduceFeedbackBadge() {
   const badge = document.querySelector(".admin-sidebar-badge");
   if (!badge) return;
   const current = parseInt(badge.textContent) || 0;
   if (current <= 1) {
-    badge.remove(); // Remove badge entirely when count reaches 0
+    badge.remove();
   } else {
     badge.textContent = current - 1;
   }

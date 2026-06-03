@@ -1,4 +1,12 @@
 <?php
+/*
+  admin.php — SkillHub Workshop Manager
+  Assignment compliance:
+  ✅ require_admin() blocks non-admins (redirects to login)
+  ✅ Admin role clearly separated from user role
+  ✅ AJAX add/edit/delete workshops (no page reload)
+  ✅ Feedback viewing with reply
+*/
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
@@ -8,21 +16,13 @@ require_admin();
 $basePath    = '../../';
 $currentPage = 'admin';
 
-/*
-  admin.php — SkillHub Workshop Manager
-  Assignment compliance:
-  ✅ require_admin() blocks non-admins (redirects to login)
-  ✅ Admin role clearly separated from user role
-  ✅ AJAX add/edit/delete workshops (no page reload)
-  ✅ Feedback viewing with reply
-*/
 // ── HANDLE: Add new category ──
 $categoryMsg  = '';
 $categoryType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_category_name'])) {
     $newCat = trim($_POST['new_category_name'] ?? '');
     if ($newCat === '') {
-        $categoryMsg = 'Category name cannot be empty.';
+        $categoryMsg  = 'Category name cannot be empty.';
         $categoryType = 'error';
     } else {
         try {
@@ -57,14 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_category_id'])) 
 // ── HANDLE: Edit a specific message ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit_message') {
     header('Content-Type: application/json');
-    $msgId    = (int)($_POST['message_id']  ?? 0);
+    $msgId      = (int)($_POST['message_id']  ?? 0);
     $feedbackId = (int)($_POST['feedback_id'] ?? 0);
-    $newText  = trim($_POST['new_text']     ?? '');
+    $newText    = trim($_POST['new_text']      ?? '');
     if ($msgId > 0 && $newText !== '') {
         try {
             $pdo->prepare("UPDATE feedback_messages SET message = :msg WHERE message_id = :id")
                 ->execute([':msg' => $newText, ':id' => $msgId]);
-            // Also update admin_reply to latest text
             $pdo->prepare("UPDATE feedback SET admin_reply = :msg WHERE feedback_id = :fid")
                 ->execute([':msg' => $newText, ':fid' => $feedbackId]);
             echo json_encode(['success' => true]);
@@ -78,8 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // ── HANDLE: Resolve feedback ──
-// Best practice: keep in DB but mark resolved=1 so admin can refer back.
-// The dashboard counter only shows unresolved items.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'resolve_feedback') {
     header('Content-Type: application/json');
     $fid = (int)($_POST['feedback_id'] ?? 0);
@@ -89,14 +86,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 ->execute([':id' => $fid]);
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
-            // Add column if it doesn't exist yet
             try {
                 $pdo->exec("ALTER TABLE feedback ADD COLUMN resolved TINYINT(1) NOT NULL DEFAULT 0");
                 $pdo->prepare("UPDATE feedback SET resolved = 1 WHERE feedback_id = :id")
                     ->execute([':id' => $fid]);
                 echo json_encode(['success' => true]);
             } catch (PDOException $e2) {
-                echo json_encode(['success' => false, 'message' => 'Run: ALTER TABLE feedback ADD COLUMN resolved TINYINT(1) NOT NULL DEFAULT 0']);
+                echo json_encode(['success' => false, 'message' => 'Could not resolve feedback.']);
             }
         }
     } else {
@@ -105,19 +101,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// ── HANDLE: Admin reply to feedback (AJAX — returns JSON, no page reload) ──
+// ── HANDLE: Admin reply to feedback ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'reply_feedback') {
     header('Content-Type: application/json');
     $fid   = (int)($_POST['feedback_id'] ?? 0);
-    $reply = trim($_POST['admin_reply'] ?? '');
+    $reply = trim($_POST['admin_reply']  ?? '');
     if ($fid > 0 && $reply !== '') {
         try {
-            // Save to message history (messages stack, not overwrite)
             try {
                 $pdo->prepare("INSERT INTO feedback_messages (feedback_id, sender, message) VALUES (:fid, 'admin', :msg)")
                     ->execute([':fid' => $fid, ':msg' => $reply]);
             } catch (PDOException $e2) { /* Table may not exist yet */ }
-            // Also keep admin_reply updated for quick access
             $pdo->prepare("UPDATE feedback SET admin_reply = :reply WHERE feedback_id = :id")
                 ->execute([':reply' => $reply, ':id' => $fid]);
             echo json_encode(['success' => true, 'message' => $reply]);
@@ -130,18 +124,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// ── HANDLE: Edit existing instructor ──
+// ── HANDLE: Edit existing instructor (now includes specialty + experience) ──
 $instructorMsg  = '';
 $instructorType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_instructor_id'])) {
-    $eid    = (int)$_POST['edit_instructor_id'];
-    $eName  = trim($_POST['edit_instructor_name']  ?? '');
-    $eTitle = trim($_POST['edit_instructor_title'] ?? '');
-    $eEmail = trim($_POST['edit_instructor_email'] ?? '');
+    $eid        = (int)$_POST['edit_instructor_id'];
+    $eName      = trim($_POST['edit_instructor_name']       ?? '');
+    $eTitle     = trim($_POST['edit_instructor_title']      ?? '');
+    $eEmail     = trim($_POST['edit_instructor_email']      ?? '');
+    $eSpecialty = trim($_POST['edit_instructor_specialty']  ?? '');
+    $eExp       = trim($_POST['edit_instructor_experience'] ?? '');
     if ($eid > 0 && $eName !== '') {
         try {
-            $pdo->prepare("UPDATE instructors SET full_name=:name, title=:title, email=:email WHERE instructor_id=:id")
-                ->execute([':name'=>$eName, ':title'=>$eTitle?:null, ':email'=>$eEmail?:null, ':id'=>$eid]);
+            $pdo->prepare("
+                UPDATE instructors
+                SET full_name=:name, title=:title, email=:email,
+                    specialty=:specialty, experience=:experience
+                WHERE instructor_id=:id
+            ")->execute([
+                ':name'       => $eName,
+                ':title'      => $eTitle     ?: null,
+                ':email'      => $eEmail     ?: null,
+                ':specialty'  => $eSpecialty ?: null,
+                ':experience' => $eExp       ?: null,
+                ':id'         => $eid,
+            ]);
             $instructorMsg  = 'Instructor updated successfully.';
             $instructorType = 'success';
         } catch (PDOException $e) {
@@ -151,18 +158,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_instructor_id'])
     }
 }
 
-// ── HANDLE: Add new instructor ──
+// ── HANDLE: Add new instructor (now includes specialty + experience) ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_instructor_name'])) {
-    $newName  = trim($_POST['new_instructor_name'] ?? '');
-    $newTitle = trim($_POST['new_instructor_title'] ?? '');
-    $newEmail = trim($_POST['new_instructor_email'] ?? '');
+    $newName      = trim($_POST['new_instructor_name']      ?? '');
+    $newTitle     = trim($_POST['new_instructor_title']     ?? '');
+    $newEmail     = trim($_POST['new_instructor_email']     ?? '');
+    $newSpecialty = trim($_POST['new_instructor_specialty'] ?? '');
+    $newExp       = trim($_POST['new_instructor_experience']?? '');
     if ($newName === '') {
         $instructorMsg  = 'Instructor name is required.';
         $instructorType = 'error';
     } else {
         try {
-            $pdo->prepare("INSERT INTO instructors (full_name, title, email) VALUES (:name, :title, :email)")
-                ->execute([':name' => $newName, ':title' => $newTitle ?: null, ':email' => $newEmail ?: null]);
+            $pdo->prepare("
+                INSERT INTO instructors (full_name, title, email, specialty, experience)
+                VALUES (:name, :title, :email, :specialty, :experience)
+            ")->execute([
+                ':name'       => $newName,
+                ':title'      => $newTitle     ?: null,
+                ':email'      => $newEmail     ?: null,
+                ':specialty'  => $newSpecialty ?: null,
+                ':experience' => $newExp       ?: null,
+            ]);
             $instructorMsg  = 'Instructor "' . h($newTitle ? $newTitle . ' ' . $newName : $newName) . '" added!';
             $instructorType = 'success';
         } catch (PDOException $e) {
@@ -173,8 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_instructor_name']
 }
 
 // ── FEEDBACK FILTERS ──
-$feedbackFilter = $_GET['feedback_filter'] ?? '30days'; // default: last 30 days
-$feedbackSQL    = "SELECT * FROM feedback WHERE (resolved = 0 OR resolved IS NULL)";
+$feedbackFilter = $_GET['feedback_filter'] ?? '30days';
+$feedbackSQL = "SELECT *, DATE_FORMAT(CONVERT_TZ(submitted_at, '+00:00', '+03:00'), '%b %e, %Y · %l:%i %p') AS submitted_formatted FROM feedback WHERE (resolved = 0 OR resolved IS NULL)";
 $feedbackParams = [];
 
 switch ($feedbackFilter) {
@@ -185,27 +202,25 @@ switch ($feedbackFilter) {
         $feedbackSQL .= " AND submitted_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
         break;
     case 'specific':
-        $specificDay = $_GET['feedback_day'] ?? date('Y-m-d');
+        $specificDay  = $_GET['feedback_day'] ?? date('Y-m-d');
         $feedbackSQL .= " AND DATE(submitted_at) = :specific_day";
         $feedbackParams[':specific_day'] = $specificDay;
         break;
-    // 'all' = no filter
 }
-
 $feedbackSQL .= " ORDER BY submitted_at DESC";
 
 // ── LOAD DATA ──
-$categories  = $pdo->query("SELECT * FROM categories ORDER BY category_name ASC")->fetchAll();
+$categories = $pdo->query("SELECT * FROM categories ORDER BY category_name ASC")->fetchAll();
 
-// Load instructors for the assign dropdown
 try {
+    // Load instructors with new specialty + experience columns
     $instructors = $pdo->query("SELECT * FROM instructors ORDER BY full_name ASC")->fetchAll();
 } catch (PDOException $e) {
     $instructors = [];
 }
 
-// Try with instructors table; fall back gracefully if it doesn't exist yet
 try {
+    // Load workshops — learning_points is the new column for What you'll learn bullets
     $workshops = $pdo->query("
         SELECT w.*, c.category_name,
                TRIM(CONCAT(COALESCE(i.title,''), ' ', COALESCE(i.full_name,''))) AS instructor_name,
@@ -216,25 +231,21 @@ try {
         ORDER BY w.workshop_date ASC
     ")->fetchAll();
 } catch (PDOException $e) {
-    // instructors table missing — load without it
     $workshops = $pdo->query("
-        SELECT w.*, c.category_name,
-               '' AS instructor_name,
-               NULL AS instr_id
+        SELECT w.*, c.category_name, '' AS instructor_name, NULL AS instr_id
         FROM workshops w
         JOIN categories c ON w.category_id = c.category_id
         ORDER BY w.workshop_date ASC
     ")->fetchAll();
-    $instructors = []; // Also clear instructors list
+    $instructors = [];
 }
 
 try {
     $fbStmt = $pdo->prepare($feedbackSQL);
     $fbStmt->execute($feedbackParams);
-    $feedbackList = $fbStmt->fetchAll();
+    $feedbackList         = $fbStmt->fetchAll();
     $feedbackTableMissing = false;
 
-    // Load message history for each feedback item
     $feedbackMessages = [];
     try {
         foreach ($feedbackList as $fb) {
@@ -243,29 +254,36 @@ try {
             $feedbackMessages[$fb['feedback_id']] = $msgStmt->fetchAll();
         }
     } catch (PDOException $e2) {
-        $feedbackMessages = []; // Table doesn't exist yet
+        $feedbackMessages = [];
     }
 } catch (PDOException $e) {
-    $feedbackList = [];
-    $feedbackMessages = [];
+    $feedbackList         = [];
+    $feedbackMessages     = [];
     $feedbackTableMissing = true;
 }
 
 $totalSeats = array_sum(array_column($workshops, 'available_seats'));
 
-// Load admin's profile image from DB
 try {
     $adminStmt = $pdo->prepare("SELECT full_name, profile_image FROM users WHERE user_id = :id");
     $adminStmt->execute([':id' => current_user_id()]);
-    $adminProfile = $adminStmt->fetch();
+    $adminProfile      = $adminStmt->fetch();
     $adminProfileImage = $adminProfile['profile_image'] ?? null;
-    $adminFullName = $adminProfile['full_name'] ?? ($_SESSION['full_name'] ?? 'Admin');
+    $adminFullName     = $adminProfile['full_name']     ?? ($_SESSION['full_name'] ?? 'Admin');
 } catch (PDOException $e) {
     $adminProfileImage = null;
-    $adminFullName = $_SESSION['full_name'] ?? 'Admin';
+    $adminFullName     = $_SESSION['full_name'] ?? 'Admin';
 }
 
-$activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
+// Experience dropdown options — used in Add + Edit instructor forms
+$experienceOptions = [
+    ''              => 'Select experience...',
+    'Less than 1 year' => 'Less than 1 year',
+    '1–3 years'     => '1–3 years',
+    '3–5 years'     => '3–5 years',
+    '5–10 years'    => '5–10 years',
+    '10+ years'     => '10+ years',
+];
 ?>
 <!doctype html>
 <html lang="en">
@@ -276,16 +294,48 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="../../global/main.css" />
   <link rel="stylesheet" href="../../global/admin.css" />
+  <style>
+    /* ── URL IMAGE INPUT ── */
+    .img-url-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: #0f172a;
+      background: #f8fafc;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      box-sizing: border-box;
+    }
+    .img-url-input:focus {
+      border-color: #2c7be5;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(44,123,229,0.08);
+    }
+    .img-help-text {
+      color: #94a3b8;
+      font-size: 0.76rem;
+      margin-top: 6px;
+      display: block;
+    }
+    /* ── LEARNING POINTS TEXTAREA ── */
+    .learning-points-hint {
+      font-size: 0.76rem;
+      color: #94a3b8;
+      margin-top: 5px;
+      display: block;
+      line-height: 1.5;
+    }
+  </style>
 </head>
-<!-- data-is-admin="1" tells main.js to hide Book Workshop buttons for this session -->
 <body data-is-admin="1">
 
 <div class="admin-layout">
 
-  <!-- ══ LEFT SIDEBAR — Admin only, completely different from regular users ══ -->
+  <!-- ══ LEFT SIDEBAR ══ -->
   <aside class="admin-sidebar">
-
-    <!-- Logo -->
     <div class="admin-sidebar-logo">
       <div class="admin-sidebar-logo-icon"><i class="fa-solid fa-book-open"></i></div>
       <div>
@@ -294,10 +344,8 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
       </div>
     </div>
 
-    <!-- Who is logged in -->
     <div class="admin-sidebar-user">
       <?php if (!empty($adminProfileImage)): ?>
-        <!-- Show uploaded profile picture -->
         <img src="<?= h('../../' . $adminProfileImage) ?>"
           alt="<?= h($adminFullName) ?>"
           class="admin-sidebar-avatar admin-sidebar-avatar-img"
@@ -306,7 +354,6 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
           <?= strtoupper(substr($adminFullName, 0, 1)) ?>
         </div>
       <?php else: ?>
-        <!-- No profile picture — show initial -->
         <div class="admin-sidebar-avatar">
           <?= strtoupper(substr($adminFullName, 0, 1)) ?>
         </div>
@@ -317,39 +364,29 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
       </div>
     </div>
 
-    <!-- Navigation -->
     <nav class="admin-sidebar-nav">
       <p class="admin-sidebar-nav-label">Menu</p>
-
       <a href="#" class="admin-sidebar-link active" id="sidebar-link-workshops"
         onclick="sidebarNav('top', this); return false;">
-        <i class="fa-solid fa-gauge"></i>
-        <span>Workshop Manager</span>
+        <i class="fa-solid fa-gauge"></i><span>Workshop Manager</span>
       </a>
-
       <a href="#instructors" class="admin-sidebar-link" id="sidebar-link-instructors"
         onclick="sidebarNav('instructors', this); return false;">
-        <i class="fa-solid fa-chalkboard-user"></i>
-        <span>Instructors</span>
+        <i class="fa-solid fa-chalkboard-user"></i><span>Instructors</span>
       </a>
-
       <a href="#feedback" class="admin-sidebar-link" id="sidebar-link-feedback"
-        onclick="smoothScrollTo('feedback', this)">
-        <i class="fa-solid fa-comments"></i>
-        <span>Student Feedback</span>
+        onclick="sidebarNav('feedback', this); return false;">
+        <i class="fa-solid fa-comments"></i><span>Student Feedback</span>
         <?php
-          // Show badge only for feedback that hasn't been replied to yet
           $unrepliedCount = count(array_filter($feedbackList, fn($f) => $f['admin_reply'] === null));
           if ($unrepliedCount > 0):
         ?>
-          <span class="admin-sidebar-badge"><?= $unrepliedCount ?></span>
+          <span class="admin-sidebar-badge" id="feedback-unreplied-badge"><?= $unrepliedCount ?></span>
         <?php endif; ?>
       </a>
     </nav>
 
-    <!-- Bottom actions -->
     <div class="admin-sidebar-footer">
-      <!-- View Live Site — admin can VIEW but cannot book (Book buttons hidden) -->
       <a href="../../index.php" class="admin-sidebar-footer-link" target="_blank">
         <i class="fa-solid fa-globe"></i> View Live Site
       </a>
@@ -416,14 +453,8 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
         <table id="workshops-table">
           <thead>
             <tr>
-              <th scope="col">#</th>
-              <th scope="col">Title</th>
-              <th scope="col">Category</th>
-              <th scope="col">Date</th>
-              <th scope="col">Time</th>
-              <th scope="col">Seats</th>
-              <th scope="col">Instructor</th>
-              <th scope="col">Actions</th>
+              <th>#</th><th>Title</th><th>Category</th><th>Date</th>
+              <th>Time</th><th>Seats</th><th>Instructor</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="workshops-tbody">
@@ -450,7 +481,10 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
                   data-date="<?= h($w['workshop_date']) ?>"
                   data-start="<?= h($w['start_time']) ?>"
                   data-end="<?= h($w['end_time']) ?>"
-                  data-seats="<?= h((string)$w['available_seats']) ?>">
+                  data-seats="<?= h((string)$w['available_seats']) ?>"
+                  data-instructor="<?= h((string)($w['instr_id'] ?? '')) ?>"
+                  data-image="<?= h($w['image_path'] ?? '') ?>"
+                  data-learning-points="<?= h($w['learning_points'] ?? '') ?>">
                   <i class="fa-solid fa-pen"></i> Edit
                 </button>
                 <button class="btn-admin-delete" data-id="<?= $w['workshop_id'] ?>">
@@ -473,142 +507,135 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
         </div>
       </div>
       <div class="admin-category-body">
-
         <?php if ($categoryMsg): ?>
           <div class="admin-alert admin-alert-<?= $categoryType ?>" id="category-alert">
             <i class="fa-solid fa-<?= $categoryType === 'success' ? 'circle-check' : 'circle-xmark' ?>"></i>
             <?= $categoryMsg ?>
           </div>
           <script>
-            // Auto-dismiss the category alert after 3 seconds
             setTimeout(function() {
               var el = document.getElementById('category-alert');
-              if (el) {
-                el.style.transition = 'opacity 0.5s';
-                el.style.opacity = '0';
-                setTimeout(function() { el.remove(); }, 500);
-              }
+              if (el) { el.style.transition='opacity 0.5s'; el.style.opacity='0'; setTimeout(function(){ el.remove(); },500); }
             }, 3000);
           </script>
         <?php endif; ?>
-
-        <!-- Existing categories — each has an Edit button -->
         <div class="admin-category-list">
           <?php foreach ($categories as $cat): ?>
           <div class="admin-category-row" id="cat-row-<?= $cat['category_id'] ?>">
-            <!-- View mode -->
             <div class="admin-category-view" id="cat-view-<?= $cat['category_id'] ?>">
-              <span class="admin-category-chip">
-                <i class="fa-solid fa-tag"></i> <?= h($cat['category_name']) ?>
-              </span>
-              <button class="btn-cat-edit"
-                onclick="startEditCategory(<?= $cat['category_id'] ?>, '<?= h($cat['category_name']) ?>')">
+              <span class="admin-category-chip"><i class="fa-solid fa-tag"></i> <?= h($cat['category_name']) ?></span>
+              <button class="btn-cat-edit" onclick="startEditCategory(<?= $cat['category_id'] ?>, '<?= h($cat['category_name']) ?>')">
                 <i class="fa-solid fa-pen"></i> Edit
               </button>
             </div>
-            <!-- Edit mode (hidden until Edit clicked) -->
             <form class="admin-category-edit-form" id="cat-edit-<?= $cat['category_id'] ?>"
               method="post" action="admin.php#categories" style="display:none;">
               <input type="hidden" name="edit_category_id" value="<?= $cat['category_id'] ?>" />
-              <input type="text" name="edit_category_name"
-                value="<?= h($cat['category_name']) ?>"
-                placeholder="Category name" maxlength="100" required />
-              <button type="submit" class="btn-cat-save">
-                <i class="fa-solid fa-check"></i> Save
-              </button>
-              <button type="button" class="btn-cat-cancel"
-                onclick="cancelEditCategory(<?= $cat['category_id'] ?>)">
-                Cancel
-              </button>
+              <input type="text" name="edit_category_name" value="<?= h($cat['category_name']) ?>" placeholder="Category name" maxlength="100" required />
+              <button type="submit" class="btn-cat-save"><i class="fa-solid fa-check"></i> Save</button>
+              <button type="button" class="btn-cat-cancel" onclick="cancelEditCategory(<?= $cat['category_id'] ?>)">Cancel</button>
             </form>
           </div>
           <?php endforeach; ?>
         </div>
-
-        <!-- Add new category -->
         <div class="admin-add-category-section">
           <p class="admin-add-category-label"><i class="fa-solid fa-plus"></i> Add New Category</p>
           <form method="post" action="admin.php#categories" class="admin-add-category-form">
-            <input type="text" name="new_category_name"
-              placeholder="e.g. Data Science, Mobile Development..."
-              maxlength="100" required />
-            <button type="submit" class="btn btn-primary">
-              <i class="fa-solid fa-plus"></i> Add Category
-            </button>
+            <input type="text" name="new_category_name" placeholder="e.g. Data Science, Mobile Development..." maxlength="100" required />
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Category</button>
           </form>
         </div>
       </div>
     </div>
 
-      <!-- INSTRUCTORS PANEL -->
-      <div class="admin-panel" style="margin-bottom:24px;" id="instructors">
-        <div class="admin-panel-header">
-          <div>
-            <h2>Instructors</h2>
-            <p class="admin-panel-sub">Manage instructors who can be assigned to workshops.</p>
-          </div>
-        </div>
-        <div class="admin-category-body">
-
-          <?php if ($instructorMsg): ?>
-            <div class="admin-alert admin-alert-<?= $instructorType ?>" id="instructor-alert">
-              <i class="fa-solid fa-<?= $instructorType === 'success' ? 'circle-check' : 'circle-xmark' ?>"></i>
-              <?= $instructorMsg ?>
-            </div>
-            <script>
-              setTimeout(function() {
-                var el = document.getElementById('instructor-alert');
-                if (el) { el.style.transition='opacity 0.5s'; el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 500); }
-              }, 3000);
-            </script>
-          <?php endif; ?>
-
-          <div class="admin-instructor-list">
-            <?php if (empty($instructors)): ?>
-              <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:16px;">No instructors yet. Add one below.</p>
-            <?php else: ?>
-              <?php foreach ($instructors as $inst): ?>
-              <div class="admin-instructor-chip" id="inst-chip-<?= $inst['instructor_id'] ?>">
-                <!-- View mode -->
-                <div class="admin-inst-view" id="inst-view-<?= $inst['instructor_id'] ?>">
-                  <div class="admin-instructor-avatar"><?= strtoupper(substr($inst['full_name'], 0, 1)) ?></div>
-                  <div class="admin-inst-info">
-                    <strong><?= h(trim(($inst['title'] ?? '') . ' ' . $inst['full_name'])) ?></strong>
-                    <?php if ($inst['email']): ?><span><?= h($inst['email']) ?></span><?php endif; ?>
-                  </div>
-                  <button class="btn-cat-edit" onclick="startEditInstructor(<?= $inst['instructor_id'] ?>, '<?= h($inst['title'] ?? '') ?>', '<?= h($inst['full_name']) ?>', '<?= h($inst['email'] ?? '') ?>')">
-                    <i class="fa-solid fa-pen"></i> Edit
-                  </button>
-                </div>
-                <!-- Edit mode -->
-                <form class="admin-inst-edit-form" id="inst-edit-<?= $inst['instructor_id'] ?>"
-                  method="post" action="admin.php#instructors" style="display:none;">
-                  <input type="hidden" name="edit_instructor_id" value="<?= $inst['instructor_id'] ?>" />
-                  <input type="text" name="edit_instructor_title" placeholder="Title" maxlength="20"
-                    id="inst-edit-title-<?= $inst['instructor_id'] ?>" style="max-width:100px;" />
-                  <input type="text" name="edit_instructor_name" placeholder="Full name" maxlength="150"
-                    id="inst-edit-name-<?= $inst['instructor_id'] ?>" required />
-                  <input type="email" name="edit_instructor_email" placeholder="Email"
-                    id="inst-edit-email-<?= $inst['instructor_id'] ?>" />
-                  <button type="submit" class="btn-cat-save"><i class="fa-solid fa-check"></i> Save</button>
-                  <button type="button" class="btn-cat-cancel" onclick="cancelEditInstructor(<?= $inst['instructor_id'] ?>)">Cancel</button>
-                </form>
-              </div>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </div>
-
-          <div class="admin-add-category-section">
-            <p class="admin-add-category-label"><i class="fa-solid fa-user-plus"></i> Add New Instructor</p>
-            <form method="post" action="admin.php#instructors" class="admin-add-instructor-form">
-              <input type="text" name="new_instructor_title" placeholder="Title (Dr., Prof., Mr.)" maxlength="20" />
-              <input type="text" name="new_instructor_name" placeholder="Full name (required)" maxlength="150" required />
-              <input type="email" name="new_instructor_email" placeholder="Email (optional)" maxlength="150" />
-              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Instructor</button>
-            </form>
-          </div>
+    <!-- INSTRUCTORS PANEL — now includes specialty + experience fields -->
+    <div class="admin-panel" style="margin-bottom:24px;" id="instructors">
+      <div class="admin-panel-header">
+        <div>
+          <h2>Instructors</h2>
+          <p class="admin-panel-sub">Manage instructors. Specialty and experience appear in the workshop details popup on the student site.</p>
         </div>
       </div>
+      <div class="admin-category-body">
+        <?php if ($instructorMsg): ?>
+          <div class="admin-alert admin-alert-<?= $instructorType ?>" id="instructor-alert">
+            <i class="fa-solid fa-<?= $instructorType === 'success' ? 'circle-check' : 'circle-xmark' ?>"></i>
+            <?= $instructorMsg ?>
+          </div>
+          <script>
+            setTimeout(function() {
+              var el = document.getElementById('instructor-alert');
+              if (el) { el.style.transition='opacity 0.5s'; el.style.opacity='0'; setTimeout(function(){ el.remove(); },500); }
+            }, 3000);
+          </script>
+        <?php endif; ?>
+
+        <div class="admin-instructor-list">
+          <?php if (empty($instructors)): ?>
+            <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:16px;">No instructors yet. Add one below.</p>
+          <?php else: ?>
+            <?php foreach ($instructors as $inst): ?>
+            <div class="admin-instructor-chip" id="inst-chip-<?= $inst['instructor_id'] ?>">
+              <div class="admin-inst-view" id="inst-view-<?= $inst['instructor_id'] ?>">
+                <div class="admin-instructor-avatar"><?= strtoupper(substr($inst['full_name'], 0, 1)) ?></div>
+                <div class="admin-inst-info">
+                  <strong><?= h(trim(($inst['title'] ?? '') . ' ' . $inst['full_name'])) ?></strong>
+                  <?php if ($inst['email']): ?><span><?= h($inst['email']) ?></span><?php endif; ?>
+                  <?php if (!empty($inst['specialty'])): ?><span style="color:#2563eb;font-size:0.72rem;"><?= h($inst['specialty']) ?></span><?php endif; ?>
+                  <?php if (!empty($inst['experience'])): ?><span style="color:#64748b;font-size:0.72rem;"><?= h($inst['experience']) ?></span><?php endif; ?>
+                </div>
+                <button class="btn-cat-edit" onclick="startEditInstructor(
+                  <?= $inst['instructor_id'] ?>,
+                  '<?= h($inst['title'] ?? '') ?>',
+                  '<?= h($inst['full_name']) ?>',
+                  '<?= h($inst['email'] ?? '') ?>',
+                  '<?= h($inst['specialty'] ?? '') ?>',
+                  '<?= h($inst['experience'] ?? '') ?>'
+                )">
+                  <i class="fa-solid fa-pen"></i> Edit
+                </button>
+              </div>
+              <!-- Edit form — shown inline when Edit is clicked -->
+              <form class="admin-inst-edit-form" id="inst-edit-<?= $inst['instructor_id'] ?>"
+                method="post" action="admin.php#instructors" style="display:none;">
+                <input type="hidden" name="edit_instructor_id" value="<?= $inst['instructor_id'] ?>" />
+                <input type="text"  name="edit_instructor_title"   placeholder="Title (Dr., Mr.)" maxlength="20" id="inst-edit-title-<?= $inst['instructor_id'] ?>" style="max-width:90px;" />
+                <input type="text"  name="edit_instructor_name"    placeholder="Full name" maxlength="150" id="inst-edit-name-<?= $inst['instructor_id'] ?>" required />
+                <input type="email" name="edit_instructor_email"   placeholder="Email" id="inst-edit-email-<?= $inst['instructor_id'] ?>" />
+                <input type="text"  name="edit_instructor_specialty" placeholder="Specialty e.g. Python, Data Science" maxlength="255" id="inst-edit-specialty-<?= $inst['instructor_id'] ?>" style="min-width:180px;" />
+                <!-- Experience dropdown -->
+                <select name="edit_instructor_experience" id="inst-edit-experience-<?= $inst['instructor_id'] ?>">
+                  <?php foreach ($experienceOptions as $val => $label): ?>
+                    <option value="<?= h($val) ?>"><?= h($label) ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <button type="submit" class="btn-cat-save"><i class="fa-solid fa-check"></i> Save</button>
+                <button type="button" class="btn-cat-cancel" onclick="cancelEditInstructor(<?= $inst['instructor_id'] ?>)">Cancel</button>
+              </form>
+            </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+
+        <!-- Add new instructor form — includes specialty + experience -->
+        <div class="admin-add-category-section">
+          <p class="admin-add-category-label"><i class="fa-solid fa-user-plus"></i> Add New Instructor</p>
+          <form method="post" action="admin.php#instructors" class="admin-add-instructor-form">
+            <input type="text"  name="new_instructor_title"      placeholder="Title (Dr., Prof., Mr.)" maxlength="20" />
+            <input type="text"  name="new_instructor_name"       placeholder="Full name (required)" maxlength="150" required />
+            <input type="email" name="new_instructor_email"      placeholder="Email (optional)" maxlength="150" />
+            <input type="text"  name="new_instructor_specialty"  placeholder="Specialty e.g. Web Dev, AI" maxlength="255" />
+            <!-- Experience dropdown -->
+            <select name="new_instructor_experience">
+              <?php foreach ($experienceOptions as $val => $label): ?>
+                <option value="<?= h($val) ?>"><?= h($label) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Instructor</button>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- STUDENT FEEDBACK -->
     <div class="admin-panel" id="feedback">
@@ -626,10 +653,7 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
             <option value="all"      <?= ($feedbackFilter==='all')      ? 'selected' : '' ?>>All Time</option>
           </select>
           <?php if ($feedbackFilter === 'specific'): ?>
-            <input type="date" name="feedback_day"
-              value="<?= h($specificDay ?? date('Y-m-d')) ?>"
-              onchange="this.form.submit()"
-              class="feedback-filter-date" />
+            <input type="date" name="feedback_day" value="<?= h($specificDay ?? date('Y-m-d')) ?>" onchange="this.form.submit()" class="feedback-filter-date" />
           <?php endif; ?>
         </form>
       </div>
@@ -641,14 +665,12 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
             Run <strong>feedback_table.sql</strong> in phpMyAdmin to enable this section.
           </div>
         </div>
-
       <?php elseif (empty($feedbackList)): ?>
         <div class="admin-empty-state">
           <div class="admin-empty-icon"><i class="fa-solid fa-inbox"></i></div>
           <h3>No feedback yet</h3>
           <p>Student feedback submitted through the Feedback page will appear here.</p>
         </div>
-
       <?php else: ?>
         <div class="feedback-list">
           <?php foreach ($feedbackList as $fb): ?>
@@ -666,13 +688,8 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
                   $rc = match($fb['rating']) { 'Good' => 'feedback-rating-good', 'Average' => 'feedback-rating-average', 'Poor' => 'feedback-rating-poor', default => '' };
                   $ri = match($fb['rating']) { 'Good' => 'fa-face-smile', 'Average' => 'fa-face-meh', 'Poor' => 'fa-face-frown', default => 'fa-star' };
                 ?>
-                <span class="feedback-rating <?= $rc ?>">
-                  <i class="fa-solid <?= $ri ?>"></i> <?= h($fb['rating']) ?>
-                </span>
-                <span class="feedback-date">
-                  <i class="fa-regular fa-clock"></i>
-                  <?= date('M j, Y · g:i A', strtotime($fb['submitted_at'])) ?>
-                </span>
+                <span class="feedback-rating <?= $rc ?>"><i class="fa-solid <?= $ri ?>"></i> <?= h($fb['rating']) ?></span>
+                <span class="feedback-date"><i class="fa-regular fa-clock"></i> <?= h($fb['submitted_formatted']) ?>
               </div>
             </div>
 
@@ -694,15 +711,13 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
             <?php endif; ?>
 
             <?php if ($fb['comments']): ?>
-            <div class="feedback-comment">
-              <i class="fa-solid fa-quote-left"></i> <?= h($fb['comments']) ?>
-            </div>
+            <div class="feedback-comment"><i class="fa-solid fa-quote-left"></i> <?= h($fb['comments']) ?></div>
             <?php endif; ?>
 
-                          <?php
-                $msgs = $feedbackMessages[$fb['feedback_id']] ?? [];
-                if (!empty($msgs)):
-              ?>
+            <?php
+              $msgs = $feedbackMessages[$fb['feedback_id']] ?? [];
+              if (!empty($msgs)):
+            ?>
               <div class="feedback-message-history" id="msg-history-<?= $fb['feedback_id'] ?>">
                 <?php foreach ($msgs as $msg): ?>
                 <div class="feedback-reply-display admin-msg-bubble"
@@ -710,59 +725,42 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
                   title="Double-click to edit"
                   ondblclick="editMessage(<?= $fb['feedback_id'] ?>, <?= $msg['message_id'] ?>, this)">
                   <div class="feedback-reply-label">
-                    <i class="fa-solid fa-reply"></i> Admin · <?= date('M j, g:i A', strtotime($msg['sent_at'])) ?>
+                    <i class="fa-solid fa-reply"></i> Admin · <?= h($fb['submitted_formatted']) ?>
                     <span class="msg-edit-hint">double-click to edit</span>
                   </div>
                   <p class="msg-text"><?= h($msg['message']) ?></p>
-                  <!-- Inline edit form (hidden until double-click) -->
                   <div class="msg-edit-form" style="display:none; margin-top:8px;">
                     <textarea class="msg-edit-textarea" rows="2"><?= h($msg['message']) ?></textarea>
                     <div style="display:flex; gap:8px; margin-top:6px;">
-                      <button class="btn-reply-save" onclick="saveEditedMessage(<?= $fb['feedback_id'] ?>, <?= $msg['message_id'] ?>, this)">
-                        <i class="fa-solid fa-check"></i> Save
-                      </button>
+                      <button class="btn-reply-save" onclick="saveEditedMessage(<?= $fb['feedback_id'] ?>, <?= $msg['message_id'] ?>, this)"><i class="fa-solid fa-check"></i> Save</button>
                       <button class="btn-reply-cancel" onclick="cancelEditMessage(this)">Cancel</button>
                     </div>
                   </div>
                 </div>
                 <?php endforeach; ?>
               </div>
-              <?php elseif (!empty($fb['admin_reply'])): ?>
+            <?php elseif (!empty($fb['admin_reply'])): ?>
               <div class="feedback-reply-display">
                 <div class="feedback-reply-label"><i class="fa-solid fa-reply"></i> Your Reply</div>
                 <p><?= h($fb['admin_reply']) ?></p>
               </div>
-              <?php endif; ?>
+            <?php endif; ?>
 
-            <!-- Reply area -->
             <div class="feedback-reply-actions" id="reply-actions-<?= $fb['feedback_id'] ?>">
-
-              <!-- Write Reply always available -->
-              <button class="btn-reply-open"
-                onclick="openReplyBox(<?= $fb['feedback_id'] ?>, '')">
+              <button class="btn-reply-open" onclick="openReplyBox(<?= $fb['feedback_id'] ?>, '')">
                 <i class="fa-solid fa-paper-plane"></i>
                 <?= $fb['admin_reply'] ? 'New Message' : 'Write Reply' ?>
               </button>
-
-              <!-- Resolve: hides from view, keeps in DB -->
-              <button class="btn-resolve" id="resolve-btn-<?= $fb['feedback_id'] ?>"
-                onclick="resolveFeedback(<?= $fb['feedback_id'] ?>, this)">
+              <button class="btn-resolve" onclick="resolveFeedback(<?= $fb['feedback_id'] ?>, this)">
                 <i class="fa-solid fa-circle-check"></i> Resolve
               </button>
             </div>
 
-            <!-- Inline reply box — hidden by default with style, shown by JS -->
             <div class="feedback-reply-box" id="reply-box-<?= $fb['feedback_id'] ?>" style="display:none">
-              <textarea id="reply-text-<?= $fb['feedback_id'] ?>"
-                placeholder="Write a reply to <?= h($fb['name']) ?>..."
-                rows="2"></textarea>
+              <textarea id="reply-text-<?= $fb['feedback_id'] ?>" placeholder="Write a reply to <?= h($fb['name']) ?>..." rows="2"></textarea>
               <div class="feedback-reply-box-actions">
-                <button class="btn-reply-cancel"
-                  onclick="closeReplyBox(<?= $fb['feedback_id'] ?>)">
-                  Cancel
-                </button>
-                <button class="btn-reply-save"
-                  onclick="submitReply(<?= $fb['feedback_id'] ?>)">
+                <button class="btn-reply-cancel" onclick="closeReplyBox(<?= $fb['feedback_id'] ?>)">Cancel</button>
+                <button class="btn-reply-save" onclick="submitReply(<?= $fb['feedback_id'] ?>)">
                   <i class="fa-solid fa-paper-plane"></i> Send Reply
                 </button>
               </div>
@@ -776,7 +774,7 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
   </main>
 </div>
 
-<!-- ADD MODAL -->
+<!-- ══ ADD WORKSHOP MODAL ══ -->
 <div class="admin-overlay" id="add-modal-overlay" hidden>
   <div class="admin-modal">
     <div class="admin-modal-header">
@@ -807,8 +805,7 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
       </div>
       <div class="form-group">
         <label for="add-description">Description <span class="required">*</span></label>
-        <textarea id="add-description" name="description"
-          placeholder="What will students learn? What skills will they gain?"></textarea>
+        <textarea id="add-description" name="description" placeholder="What is this workshop about?"></textarea>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -824,25 +821,55 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
         <div class="form-group">
           <label for="add-start">Start Time <span class="required">*</span></label>
           <input type="time" id="add-start" name="start_time" />
-          
         </div>
         <div class="form-group">
           <label for="add-end">End Time <span class="required">*</span></label>
           <input type="time" id="add-end" name="end_time" />
-          
         </div>
       </div>
-        <div class="form-group">
-          <label for="add-instructor">Assign Instructor</label>
-          <select id="add-instructor" name="instructor_id">
-            <option value="">No instructor assigned</option>
-            <?php foreach ($instructors as $inst): ?>
-              <option value="<?= $inst['instructor_id'] ?>">
-                <?= h(trim(($inst['title'] ?? '') . ' ' . $inst['full_name'])) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-        </div>
+      <div class="form-group">
+        <label for="add-instructor">Assign Instructor</label>
+        <select id="add-instructor" name="instructor_id">
+          <option value="">No instructor assigned</option>
+          <?php foreach ($instructors as $inst): ?>
+            <option value="<?= $inst['instructor_id'] ?>"><?= h(trim(($inst['title'] ?? '') . ' ' . $inst['full_name'])) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <!-- ── WHAT YOU'LL LEARN (learning_points) ── -->
+      <!-- Admin writes bullet points here — each line = one bullet in the details modal -->
+      <!-- This is SEPARATE from the description field above -->
+      <div class="form-group">
+        <label for="add-learning-points">What You'll Learn <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+        <textarea
+          id="add-learning-points"
+          name="learning_points"
+          rows="4"
+          placeholder="Write each learning point on a new line:"
+        ></textarea>
+        <span class="learning-points-hint">
+          <i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>
+          Each line becomes one bullet point in the "What you'll learn" section on the student site.
+          Press Enter to start a new point.
+        </span>
+      </div>
+
+      <!-- ── WORKSHOP IMAGE ── -->
+      <div class="form-group">
+        <label>Workshop Image <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+        <p style="font-size:0.8rem; color:#64748b; margin-bottom:8px; margin-top:0;">
+          <i class="fa-solid fa-circle-info" style="color:#2c7be5; margin-right:4px;"></i>
+          Paste a direct image link
+        </p>
+        <input type="url" id="add-image" name="image_path" class="img-url-input"
+          placeholder="e.g. https://images.unsplash.com/photo" />
+        <small class="img-help-text">
+          <i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>
+          Right-click any image online → "Copy image address" → paste here. Leave blank for the default placeholder.
+        </small>
+      </div>
+
       <div class="admin-form-error" id="add-form-error" hidden></div>
       <div class="admin-modal-actions">
         <button type="button" class="btn btn-outline" id="cancel-add-modal">Cancel</button>
@@ -852,7 +879,7 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
   </div>
 </div>
 
-<!-- EDIT MODAL -->
+<!-- ══ EDIT WORKSHOP MODAL ══ -->
 <div class="admin-overlay" id="edit-modal-overlay" hidden>
   <div class="admin-modal">
     <div class="admin-modal-header">
@@ -900,25 +927,53 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
         <div class="form-group">
           <label for="edit-start">Start Time <span class="required">*</span></label>
           <input type="time" id="edit-start" name="start_time" />
-          
         </div>
         <div class="form-group">
           <label for="edit-end">End Time <span class="required">*</span></label>
           <input type="time" id="edit-end" name="end_time" />
-          
         </div>
       </div>
-        <div class="form-group">
-          <label for="edit-instructor">Assign Instructor</label>
-          <select id="edit-instructor" name="instructor_id">
-            <option value="">No instructor assigned</option>
-            <?php foreach ($instructors as $inst): ?>
-              <option value="<?= $inst['instructor_id'] ?>">
-                <?= h(trim(($inst['title'] ?? '') . ' ' . $inst['full_name'])) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-        </div>
+      <div class="form-group">
+        <label for="edit-instructor">Assign Instructor</label>
+        <select id="edit-instructor" name="instructor_id">
+          <option value="">No instructor assigned</option>
+          <?php foreach ($instructors as $inst): ?>
+            <option value="<?= $inst['instructor_id'] ?>"><?= h(trim(($inst['title'] ?? '') . ' ' . $inst['full_name'])) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <!-- ── WHAT YOU'LL LEARN (learning_points) ── -->
+      <!-- Pre-filled by admin.js from the row's data-learning-points attribute -->
+      <div class="form-group">
+        <label for="edit-learning-points">What You'll Learn <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+        <textarea
+          id="edit-learning-points"
+          name="learning_points"
+          rows="4"
+          placeholder="Write each learning point on a new line:"
+        ></textarea>
+        <span class="learning-points-hint">
+          <i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>
+          Each line becomes one bullet point in the "What you'll learn" section on the student site.
+        </span>
+      </div>
+
+      <!-- ── WORKSHOP IMAGE ── -->
+      <div class="form-group">
+        <label>Workshop Image <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+        <p style="font-size:0.8rem; color:#64748b; margin-bottom:8px; margin-top:0;">
+          <i class="fa-solid fa-circle-info" style="color:#2c7be5; margin-right:4px;"></i>
+          Paste a direct image link (e.g. from Unsplash, Google Images).
+        </p>
+        <input type="url" id="edit-image" name="image_path" class="img-url-input"
+          placeholder="e.g. https://images.unsplash.com/photo-..." />
+        <small class="img-help-text">
+          <i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>
+          Right-click any image online → "Copy image address" → paste here. Leave blank to keep the existing image.
+        </small>
+      </div>
+
       <div class="admin-form-error" id="edit-form-error" hidden></div>
       <div class="admin-modal-actions">
         <button type="button" class="btn btn-outline" id="cancel-edit-modal">Cancel</button>
@@ -928,7 +983,7 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
   </div>
 </div>
 
-<!-- DELETE MODAL -->
+<!-- ══ DELETE MODAL ══ -->
 <div class="admin-overlay" id="delete-modal-overlay" hidden>
   <div class="admin-modal admin-modal-small">
     <div class="admin-modal-header">
@@ -964,272 +1019,203 @@ $activeSection = isset($_GET['section']) ? $_GET['section'] : 'workshops';
 </div>
 
 <script>
-// Category inline edit helpers
+// ── CATEGORY INLINE EDIT ──
 function startEditCategory(id, currentName) {
   document.getElementById('cat-view-' + id).style.display = 'none';
   document.getElementById('cat-edit-' + id).style.display = 'flex';
   document.querySelector('#cat-edit-' + id + ' input[name="edit_category_name"]').focus();
 }
-
 function cancelEditCategory(id) {
   document.getElementById('cat-view-' + id).style.display = 'flex';
   document.getElementById('cat-edit-' + id).style.display = 'none';
 }
-</script>
 
-<script>
-  function openReplyBox(id, existingText) {
-    const box      = document.getElementById('reply-box-' + id);
-    const textarea = document.getElementById('reply-text-' + id);
-    if (!box || !textarea) return;
-    textarea.value     = existingText || '';
-    box.style.display  = 'block'; // Simple - no hidden attribute to fight
-    textarea.focus();
-  }
+// ── INSTRUCTOR INLINE EDIT ──
+// Now accepts specialty and experience parameters
+function startEditInstructor(id, title, name, email, specialty, experience) {
+  document.getElementById('inst-view-' + id).style.display = 'none';
+  var form = document.getElementById('inst-edit-' + id);
+  form.style.display = 'flex';
+  document.getElementById('inst-edit-title-'      + id).value = title;
+  document.getElementById('inst-edit-name-'       + id).value = name;
+  document.getElementById('inst-edit-email-'      + id).value = email;
+  document.getElementById('inst-edit-specialty-'  + id).value = specialty;
+  // Set experience dropdown to saved value
+  var expSelect = document.getElementById('inst-edit-experience-' + id);
+  if (expSelect) expSelect.value = experience;
+}
+function cancelEditInstructor(id) {
+  document.getElementById('inst-view-' + id).style.display = 'flex';
+  document.getElementById('inst-edit-' + id).style.display = 'none';
+}
 
-  function closeReplyBox(id) {
-    const box = document.getElementById('reply-box-' + id);
-    if (box) box.style.display = 'none';
-  }
+// ── FEEDBACK REPLY BOX ──
+function openReplyBox(id, existingText) {
+  var box      = document.getElementById('reply-box-' + id);
+  var textarea = document.getElementById('reply-text-' + id);
+  if (!box || !textarea) return;
+  textarea.value    = existingText || '';
+  box.style.display = 'block';
+  textarea.focus();
+}
+function closeReplyBox(id) {
+  var box = document.getElementById('reply-box-' + id);
+  if (box) box.style.display = 'none';
+}
+async function submitReply(id) {
+  var textarea = document.getElementById('reply-text-' + id);
+  var reply    = textarea ? textarea.value.trim() : '';
+  if (!reply) { alert('Reply cannot be empty.'); return; }
 
-  async function submitReply(id) {
-    const textarea = document.getElementById('reply-text-' + id);
-    const reply = textarea ? textarea.value.trim() : '';
-    if (!reply) { alert('Reply cannot be empty.'); return; }
+  var formData = new FormData();
+  formData.append('action', 'reply_feedback');
+  formData.append('feedback_id', id);
+  formData.append('admin_reply', reply);
 
-    const formData = new FormData();
-    formData.append('action', 'reply_feedback');
-    formData.append('feedback_id', id);
-    formData.append('admin_reply', reply);
+  var res    = await fetch('admin.php', { method: 'POST', body: formData });
+  var result = await res.json();
 
-    const res = await fetch('admin.php', { method: 'POST', body: formData });
-    const result = await res.json();
-
-    if (result.success) {
-      const card = document.getElementById('reply-actions-' + id).closest('.feedback-card');
-      let displayDiv = card.querySelector('.feedback-reply-display');
-
-      if (displayDiv) {
-        displayDiv.querySelector('p').textContent = reply;
-      } else {
-        displayDiv = document.createElement('div');
-        displayDiv.className = 'feedback-reply-display';
-        displayDiv.innerHTML = '<div class="feedback-reply-label"><i class="fa-solid fa-reply"></i> Your Reply</div><p></p>';
-        displayDiv.querySelector('p').textContent = reply;
-        card.querySelector('.feedback-reply-actions').before(displayDiv);
-      }
-
-      // Rename Write Reply → New Message. Never show Edit Reply button.
-      const openBtn = card.querySelector('.btn-reply-open, .btn-reply-edit');
-      if (openBtn) {
-        openBtn.className = 'btn-reply-open';
-        openBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> New Message';
-        openBtn.setAttribute('onclick', "openReplyBox(" + id + ", '')");
-      }
-
-      closeReplyBox(id);
-      showAdminToast('Reply sent!', 'success');
+  if (result.success) {
+    var card = document.getElementById('reply-actions-' + id).closest('.feedback-card');
+    var displayDiv = card.querySelector('.feedback-reply-display');
+    if (displayDiv) {
+      displayDiv.querySelector('p').textContent = reply;
     } else {
-      alert(result.message || 'Could not save reply.');
+      displayDiv = document.createElement('div');
+      displayDiv.className = 'feedback-reply-display';
+      displayDiv.innerHTML = '<div class="feedback-reply-label"><i class="fa-solid fa-reply"></i> Your Reply</div><p></p>';
+      displayDiv.querySelector('p').textContent = reply;
+      card.querySelector('.feedback-reply-actions').before(displayDiv);
     }
-  }
-
-  async function resolveFeedback(id, btn) {
-    if (!confirm('Mark this feedback as resolved? It will be hidden from this view but kept in the database.')) return;
-
-    const formData = new FormData();
-    formData.append('action', 'resolve_feedback');
-    formData.append('feedback_id', id);
-
-    const res = await fetch('admin.php', { method: 'POST', body: formData });
-    const result = await res.json();
-
-    if (result.success) {
-      const card = btn.closest('.feedback-card');
-      if (card) {
-        card.style.transition = 'opacity 0.4s, transform 0.4s';
-        card.style.opacity = '0';
-        card.style.transform = 'scale(0.97)';
-        setTimeout(() => card.remove(), 400);
-      }
-      const statEl = document.getElementById('stat-feedback');
-      if (statEl) statEl.textContent = Math.max(0, (parseInt(statEl.textContent) || 0) - 1);
-      showAdminToast('Feedback resolved and hidden.', 'success');
-    } else {
-      alert(result.message || 'Could not resolve. Try running: ALTER TABLE feedback ADD COLUMN resolved TINYINT(1) NOT NULL DEFAULT 0');
+    var openBtn = card.querySelector('.btn-reply-open');
+    if (openBtn) {
+      openBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> New Message';
+      openBtn.setAttribute('onclick', "openReplyBox(" + id + ", '')");
     }
+    closeReplyBox(id);
+    showAdminToast('Reply sent!', 'success');
+  } else {
+    alert(result.message || 'Could not save reply.');
   }
-
-  // Opens the reply box cleared for a new message (ignores existing reply text)
-  // ── INSTRUCTOR INLINE EDIT ──
-  function startEditInstructor(id, title, name, email) {
-    document.getElementById('inst-view-' + id).style.display = 'none';
-    const form = document.getElementById('inst-edit-' + id);
-    form.style.display = 'flex';
-    document.getElementById('inst-edit-title-' + id).value = title;
-    document.getElementById('inst-edit-name-'  + id).value = name;
-    document.getElementById('inst-edit-email-' + id).value = email;
+}
+async function resolveFeedback(id, btn) {
+  if (!confirm('Mark this feedback as resolved? It will be hidden from this view but kept in the database.')) return;
+  var formData = new FormData();
+  formData.append('action', 'resolve_feedback');
+  formData.append('feedback_id', id);
+  var res    = await fetch('admin.php', { method: 'POST', body: formData });
+  var result = await res.json();
+  if (result.success) {
+    var card = btn.closest('.feedback-card');
+    if (card) { card.style.transition='opacity 0.4s,transform 0.4s'; card.style.opacity='0'; card.style.transform='scale(0.97)'; setTimeout(()=>card.remove(),400); }
+    var statEl = document.getElementById('stat-feedback');
+    if (statEl) statEl.textContent = Math.max(0, (parseInt(statEl.textContent)||0)-1);
+    showAdminToast('Feedback resolved and hidden.', 'success');
+  } else {
+    alert(result.message || 'Could not resolve.');
   }
+}
 
-  function cancelEditInstructor(id) {
-    document.getElementById('inst-view-' + id).style.display = 'flex';
-    document.getElementById('inst-edit-' + id).style.display = 'none';
-  }
-
-  // ── DOUBLE-CLICK TO EDIT A MESSAGE ──────────────────────────
-  function editMessage(feedbackId, messageId, bubble) {
-    // Show the inline edit form inside this bubble
-    const editForm = bubble.querySelector('.msg-edit-form');
-    const msgText  = bubble.querySelector('.msg-text');
-    if (!editForm || !msgText) return;
-    msgText.style.display    = 'none';
-    editForm.style.display   = 'block';
-    const ta = editForm.querySelector('.msg-edit-textarea');
-    if (ta) { ta.focus(); ta.select(); }
-  }
-
-  // Saves edit for a newly sent bubble (no DB message_id yet — updates reply box text)
-  async function saveNewBubble(btn, feedbackId) {
-    const editForm = btn.closest('.msg-edit-form');
-    const bubble   = btn.closest('.admin-msg-bubble');
-    const ta       = editForm ? editForm.querySelector('.msg-edit-textarea') : null;
-    if (!ta) return;
-    const newText = ta.value.trim();
-    if (!newText) { alert('Message cannot be empty.'); return; }
-
-    // Update via reply_feedback action (updates admin_reply + latest message)
-    const formData = new FormData();
-    formData.append('action',      'reply_feedback');
-    formData.append('feedback_id', feedbackId);
-    formData.append('admin_reply', newText);
-
-    const res    = await fetch('admin.php', { method: 'POST', body: formData });
-    const result = await res.json();
-
-    if (result.success) {
-      const msgText = bubble.querySelector('.msg-text');
-      if (msgText) { msgText.textContent = newText; msgText.style.display = ''; }
-      editForm.style.display = 'none';
-      showAdminToast('Message updated.', 'success');
-    } else {
-      alert(result.message || 'Could not update.');
-    }
-  }
-
-  function cancelEditMessage(btn) {
-    const editForm = btn.closest('.msg-edit-form');
-    const bubble   = btn.closest('.admin-msg-bubble');
-    if (!editForm || !bubble) return;
+// ── MESSAGE EDIT (DOUBLE-CLICK) ──
+function editMessage(feedbackId, messageId, bubble) {
+  var editForm = bubble.querySelector('.msg-edit-form');
+  var msgText  = bubble.querySelector('.msg-text');
+  if (!editForm || !msgText) return;
+  msgText.style.display  = 'none';
+  editForm.style.display = 'block';
+  var ta = editForm.querySelector('.msg-edit-textarea');
+  if (ta) { ta.focus(); ta.select(); }
+}
+function cancelEditMessage(btn) {
+  var editForm = btn.closest('.msg-edit-form');
+  var bubble   = btn.closest('.admin-msg-bubble');
+  if (!editForm || !bubble) return;
+  editForm.style.display = 'none';
+  var msgText = bubble.querySelector('.msg-text');
+  if (msgText) msgText.style.display = '';
+}
+async function saveEditedMessage(feedbackId, messageId, btn) {
+  var editForm = btn.closest('.msg-edit-form');
+  var bubble   = btn.closest('.admin-msg-bubble');
+  var ta       = editForm ? editForm.querySelector('.msg-edit-textarea') : null;
+  if (!ta) return;
+  var newText = ta.value.trim();
+  if (!newText) { alert('Message cannot be empty.'); return; }
+  var formData = new FormData();
+  formData.append('action',      'edit_message');
+  formData.append('message_id',  messageId);
+  formData.append('new_text',    newText);
+  formData.append('feedback_id', feedbackId);
+  var res    = await fetch('admin.php', { method: 'POST', body: formData });
+  var result = await res.json();
+  if (result.success) {
+    var msgText = bubble.querySelector('.msg-text');
+    if (msgText) { msgText.textContent = newText; msgText.style.display = ''; }
     editForm.style.display = 'none';
-    const msgText = bubble.querySelector('.msg-text');
-    if (msgText) msgText.style.display = '';
+    showAdminToast('Message updated.', 'success');
+  } else {
+    alert(result.message || 'Could not update message.');
   }
+}
 
-  async function saveEditedMessage(feedbackId, messageId, btn) {
-    const editForm = btn.closest('.msg-edit-form');
-    const bubble   = btn.closest('.admin-msg-bubble');
-    const ta       = editForm ? editForm.querySelector('.msg-edit-textarea') : null;
-    if (!ta) return;
-
-    const newText = ta.value.trim();
-    if (!newText) { alert('Message cannot be empty.'); return; }
-
-    const formData = new FormData();
-    formData.append('action',     'edit_message');
-    formData.append('message_id', messageId);
-    formData.append('new_text',   newText);
-    formData.append('feedback_id', feedbackId);
-
-    const res    = await fetch('admin.php', { method: 'POST', body: formData });
-    const result = await res.json();
-
-    if (result.success) {
-      // Update displayed text
-      const msgText = bubble.querySelector('.msg-text');
-      if (msgText) {
-        msgText.textContent    = newText;
-        msgText.style.display  = '';
-      }
-      editForm.style.display = 'none';
-      showAdminToast('Message updated.', 'success');
-    } else {
-      alert(result.message || 'Could not update message.');
-    }
-  }
-
-  function openNewMessage(id, name) {
-    const box      = document.getElementById('reply-box-' + id);
-    const textarea = document.getElementById('reply-text-' + id);
-    if (!box || !textarea) return;
-    textarea.value       = '';
-    textarea.placeholder = 'Write a new message to ' + name + '...';
-    box.style.display    = 'block';
-    textarea.focus();
-  }
-
-  function showAdminToast(msg, type) {
-    const toast = document.getElementById('admin-toast');
-    const icon = document.getElementById('admin-toast-icon');
-    const msgEl = document.getElementById('admin-toast-msg');
-    if (!toast) return;
-    icon.innerHTML = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-xmark"></i>';
-    msgEl.textContent = msg;
-    toast.className = 'admin-toast toast-' + type;
-    toast.hidden = false;
-    setTimeout(() => { toast.hidden = true; }, 3000);
-  }
+// ── ADMIN TOAST ──
+function showAdminToast(msg, type) {
+  var toast = document.getElementById('admin-toast');
+  var icon  = document.getElementById('admin-toast-icon');
+  var msgEl = document.getElementById('admin-toast-msg');
+  if (!toast) return;
+  icon.innerHTML    = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-xmark"></i>';
+  msgEl.textContent = msg;
+  toast.className   = 'admin-toast toast-' + type;
+  toast.hidden      = false;
+  setTimeout(()=>{ toast.hidden = true; }, 3000);
+}
 </script>
-<script src="../../scripts/admin.js?v=8"></script>
+
+<script src="../../scripts/admin.js?v=9"></script>
+
 <script>
-// ── SIDEBAR NAVIGATION ──────────────────────────────────────────
-// Handles active highlighting + smooth scroll for all sidebar links
+// ── SIDEBAR NAVIGATION ──
 function sidebarNav(sectionId, clickedLink) {
-  // 1. Remove active from all links
-  document.querySelectorAll('.admin-sidebar-link').forEach(function(l) {
-    l.classList.remove('active');
-  });
-  // 2. Add active to the clicked link
+  document.querySelectorAll('.admin-sidebar-link').forEach(function(l) { l.classList.remove('active'); });
   if (clickedLink) clickedLink.classList.add('active');
-  // 3. Scroll to section
   if (sectionId === 'top') {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
     var el = document.getElementById(sectionId);
-    if (el) {
-      var y = el.getBoundingClientRect().top + window.pageYOffset - 20;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - 20, behavior: 'smooth' });
   }
 }
-
-// Auto-highlight based on scroll position
-// Uses window height to detect which section takes up most of the viewport
+// Auto-highlight sidebar link based on scroll
 window.addEventListener('scroll', function() {
   var activeLinkId = 'sidebar-link-workshops';
-
-  // Check sections from bottom to top — last one that's entered viewport wins
-  var sections = [
-    { id: 'instructors', link: 'sidebar-link-instructors' },
-    { id: 'feedback',    link: 'sidebar-link-feedback' }
-  ];
-
-  sections.forEach(function(s) {
+  [{ id: 'instructors', link: 'sidebar-link-instructors' }, { id: 'feedback', link: 'sidebar-link-feedback' }].forEach(function(s) {
     var el = document.getElementById(s.id);
-    if (el) {
-      var rect = el.getBoundingClientRect();
-      // Section is active if its top is within the top half of the screen
-      if (rect.top <= window.innerHeight * 0.5) {
-        activeLinkId = s.link;
-      }
-    }
+    if (el && el.getBoundingClientRect().top <= window.innerHeight * 0.5) activeLinkId = s.link;
   });
-
-  document.querySelectorAll('.admin-sidebar-link').forEach(function(l) {
-    l.classList.remove('active');
-  });
+  document.querySelectorAll('.admin-sidebar-link').forEach(function(l) { l.classList.remove('active'); });
   var activeEl = document.getElementById(activeLinkId);
   if (activeEl) activeEl.classList.add('active');
 });
+// Hide feedback badge instantly when admin scrolls to see feedback cards
+(function() {
+  var feedbackSection = document.getElementById('feedback');
+  var badge = document.getElementById('feedback-unreplied-badge');
+  if (!feedbackSection || !badge) return;
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        badge.style.transition = 'opacity 0.3s';
+        badge.style.opacity = '0';
+        setTimeout(function() { badge.remove(); }, 300);
+        observer.disconnect();
+      }
+    });
+  }, { threshold: 0.1 });
+
+  observer.observe(feedbackSection);
+})();
 </script>
 </body>
 </html>

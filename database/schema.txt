@@ -284,3 +284,7 @@ ALTER TABLE instructors ADD COLUMN experience VARCHAR(50) DEFAULT NULL;
 -- Stored as plain text, each point separated by newline
 -- e.g. "Understand Python syntax\nBuild a web scraper\nWork with APIs"
 ALTER TABLE workshops ADD COLUMN learning_points TEXT DEFAULT NULL;
+
+-- make it acceptable to have null workshop image:
+ALTER TABLE workshops
+MODIFY image_path VARCHAR(255) DEFAULT NULL;

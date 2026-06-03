@@ -40,6 +40,7 @@ function createWorkshop(PDO $pdo): void
     $endTime      = trim($_POST['end_time']          ?? '');
     $seats        = (int)($_POST['available_seats']  ?? 0);
     $imagePath    = trim($_POST['image_path']        ?? '');
+    $learningPoints = trim($_POST['learning_points'] ?? '');
 
     $errors = [];
     if ($title === '')       $errors[] = 'Title is required.';
@@ -57,11 +58,11 @@ function createWorkshop(PDO $pdo): void
     }
 
     try {
-        $stmt = $pdo->prepare("
+     $stmt = $pdo->prepare("
             INSERT INTO workshops
-                (title, description, category_id, instructor_id, workshop_date, start_time, end_time, available_seats, image_path)
+                (title, description, category_id, instructor_id, workshop_date, start_time, end_time, available_seats, image_path, learning_points)
             VALUES
-                (:title, :description, :category_id, :instructor_id, :workshop_date, :start_time, :end_time, :available_seats, :image_path)
+                (:title, :description, :category_id, :instructor_id, :workshop_date, :start_time, :end_time, :available_seats, :image_path, :learning_points)
         ");
 
         $stmt->execute([
@@ -74,6 +75,7 @@ function createWorkshop(PDO $pdo): void
             ':end_time'        => $endTime,
             ':available_seats' => $seats,
             ':image_path'      => $imagePath ?: null,
+            ':learning_points' => $learningPoints ?: null,
         ]);
 
         $newId = (int) $pdo->lastInsertId();
@@ -95,6 +97,7 @@ function createWorkshop(PDO $pdo): void
                 'end_time'        => $endTime,
                 'available_seats' => $seats,
                 'image_path'      => $imagePath,
+                'learning_points' => $learningPoints,
             ]
         ]);
 
@@ -116,6 +119,7 @@ function updateWorkshop(PDO $pdo): void
     $endTime      = trim($_POST['end_time']          ?? '');
     $seats        = (int)($_POST['available_seats']  ?? 0);
     $imagePath    = trim($_POST['image_path']        ?? '');
+    $learningPoints = trim($_POST['learning_points'] ?? '');
 
     $errors = [];
     if ($workshopId <= 0)    $errors[] = 'Invalid workshop ID.';
@@ -144,22 +148,24 @@ function updateWorkshop(PDO $pdo): void
                 start_time      = :start_time,
                 end_time        = :end_time,
                 available_seats = :available_seats,
-                image_path      = :image_path
+                image_path      = :image_path,
+                learning_points = :learning_points
             WHERE workshop_id = :workshop_id
         ");
 
-        $stmt->execute([
-            ':title'           => $title,
-            ':description'     => $description,
-            ':category_id'     => $categoryId,
-            ':instructor_id'   => $instructorId,
-            ':workshop_date'   => $date,
-            ':start_time'      => $startTime,
-            ':end_time'        => $endTime,
-            ':available_seats' => $seats,
-            ':image_path'      => $imagePath ?: null,
-            ':workshop_id'     => $workshopId,
-        ]);
+            $stmt->execute([
+                ':title'           => $title,
+                ':description'     => $description,
+                ':category_id'     => $categoryId,
+                ':instructor_id'   => $instructorId,
+                ':workshop_date'   => $date,
+                ':start_time'      => $startTime,
+                ':end_time'        => $endTime,
+                ':available_seats' => $seats,
+                ':image_path'      => $imagePath ?: null,
+                ':learning_points' => $learningPoints ?: null,
+                ':workshop_id'     => $workshopId,
+            ]);
 
         $catStmt = $pdo->prepare("SELECT category_name FROM categories WHERE category_id = :id");
         $catStmt->execute([':id' => $categoryId]);
@@ -188,6 +194,7 @@ function updateWorkshop(PDO $pdo): void
                 'end_time'        => $endTime,
                 'available_seats' => $seats,
                 'image_path'      => $imagePath,
+                'learning_points' => $learningPoints,
             ]
         ]);
 

@@ -2005,12 +2005,11 @@ nav#main-nav.open ul li a {
   color: #dc2626;
 }
 
-/* Workshop info summary box inside modal */
 #modal-workshop-info {
-  background: var(--primary-light);
+  background: #f8fbff;
   border: 1px solid rgba(44,123,229,0.2);
   border-radius: var(--radius);
-  padding: 16px 20px;
+  padding: 18px 20px;
   margin-bottom: 24px;
 }
 
@@ -2029,7 +2028,7 @@ nav#main-nav.open ul li a {
 
 .booking-feedback-card {
   text-align: center;
-  padding: 22px 10px 8px;
+  padding: 18px 10px 0;
 }
 
 .booking-feedback-card h3 {
@@ -2083,7 +2082,7 @@ nav#main-nav.open ul li a {
   align-items: flex-start;
   gap: 10px;
   max-width: 440px;
-  margin: 18px auto 22px;
+  margin: 16px auto 18px;
   padding: 12px 14px;
   border-radius: 14px;
   background: var(--primary-light);
@@ -2108,8 +2107,39 @@ nav#main-nav.open ul li a {
   color: #DC2626;
 }
 
+/* Success modal actions stay aligned with compact workshop action buttons. */
 .booking-success-actions {
   justify-content: center;
+  gap: 14px;
+  margin-top: 26px;
+  margin-bottom: 0;
+}
+
+.booking-success-actions .btn {
+  width: 210px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Keeps the success primary button from looking larger than the outline button. */
+.booking-success-actions .btn-primary {
+  box-shadow: 0 6px 18px rgba(44, 123, 229, 0.24);
+}
+
+.booking-success-actions .btn-primary:hover {
+  transform: none;
+}
+
+.booking-success-actions .btn i {
+  font-size: 0.92rem;
 }
 
 #info-name {
@@ -2119,31 +2149,49 @@ nav#main-nav.open ul li a {
   margin-bottom: 8px;
 }
 
-#info-details {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-#info-details span {
-  font-size: 0.85rem;
-  color: var(--text-light);
-  background: white;
-  padding: 4px 12px;
-  border-radius: 99px;
+/* Booking modal session strip mirrors the View Details date/time/duration row. */
+.booking-session-strip {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 18px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 2px 0 12px;
+  padding: 9px 13px;
   border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--shadow-sm);
 }
 
+.booking-session-item {
+  color: #55657a;
+  font-size: 0.9rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
 
-/* "Details will be sent to your email" notice */
+.booking-session-item i {
+  color: #64748b;
+}
+
+/* Confirmation email note stays compact under the session box. */
 #info-email-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 0.82rem;
   color: var(--text-light);
   margin: 0;
   font-style: italic;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
+#info-email-note i {
+  flex-shrink: 0;
+}
 
 /* Scrollbar inside modal */
 #booking-modal::-webkit-scrollbar { width: 5px; }
@@ -2159,6 +2207,15 @@ nav#main-nav.open ul li a {
     border-radius: 16px;
   }
   .form-row { grid-template-columns: 1fr; }
+
+  .booking-session-strip {
+  flex-wrap: wrap;
+}
+
+#info-email-note {
+  align-items: flex-start;
+  white-space: normal;
+}
 }
 /* Generic badge style */
 .badge {

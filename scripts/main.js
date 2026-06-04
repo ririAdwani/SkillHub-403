@@ -169,16 +169,32 @@ function setBookingState(state) {
   if (active) active.hidden = false;
 }
 
-function openBookingModal(id, name, date, time, link) {
+function openBookingModal(id, name, date, time, link, duration) {
   if (document.body.dataset.loggedIn === "0") {
     window.location.href = "login.php?reason=booking";
     return;
   }
-  currentWorkshop = { id: id, name: name, date: date, time: time, link: link };
+
+  currentWorkshop = {
+    id: id,
+    name: name,
+    date: date,
+    time: time,
+    link: link,
+    duration: duration,
+  };
+
   document.getElementById("info-name").textContent = name;
-  document.getElementById("info-date").textContent = "Date: " + date;
-  document.getElementById("info-time").textContent = "Time: " + time;
+  document.getElementById("info-date").textContent = date || "TBA";
+  document.getElementById("info-time").textContent = time || "TBA";
+
+  var infoDuration = document.getElementById("info-duration");
+  if (infoDuration) {
+    infoDuration.textContent = duration || "TBA";
+  }
+
   setBookingState("confirm");
+
   var overlay = document.getElementById("booking-overlay");
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
@@ -264,6 +280,7 @@ function initWorkshopDetailsModal() {
           detailsBookBtn.dataset.workshopTitle = title;
           detailsBookBtn.dataset.workshopDate = date;
           detailsBookBtn.dataset.workshopTime = time;
+          detailsBookBtn.dataset.workshopDuration = duration;
           detailsBookBtn.dataset.workshopLink = "#";
 
           if (isFull) {
@@ -624,11 +641,12 @@ function formatDuration(startTime, endTime) {
           btnHtml = `<button type="button" class="btn btn-booked-already" disabled><i class="fa-solid fa-circle-check"></i> Already Booked</button>`;
         } else {
           btnHtml = `<button type="button" class="btn btn-primary book-btn workshop-book-btn"
-            data-workshop-id="${workshop.workshop_id}"
-            data-workshop-title="${workshop.title}"
-            data-workshop-date="${workshop.workshop_date}"
-            data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
-            data-workshop-link="#"><i class="fa-solid fa-calendar-days"></i> Book Workshop</button>`;
+  data-workshop-id="${escapeHTML(workshop.workshop_id)}"
+  data-workshop-title="${escapeHTML(workshop.title)}"
+  data-workshop-date="${escapeHTML(formatDateShort(workshop.workshop_date))}"
+  data-workshop-time="${escapeHTML(formatTimeStr(workshop.start_time) + " – " + formatTimeStr(workshop.end_time))}"
+  data-workshop-duration="${escapeHTML(durationText)}"
+  data-workshop-link="#"><i class="fa-solid fa-calendar-days"></i> Book Workshop</button>`;
         }
       }
 
@@ -723,13 +741,14 @@ function initBookingButtons() {
       document.body.style.overflow = "";
     }
 
-    openBookingModal(
-      button.dataset.workshopId,
-      button.dataset.workshopTitle,
-      button.dataset.workshopDate,
-      button.dataset.workshopTime,
-      button.dataset.workshopLink,
-    );
+openBookingModal(
+  button.dataset.workshopId,
+  button.dataset.workshopTitle,
+  button.dataset.workshopDate,
+  button.dataset.workshopTime,
+  button.dataset.workshopLink,
+  button.dataset.workshopDuration,
+);
   });
 }
 

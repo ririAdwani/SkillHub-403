@@ -195,8 +195,9 @@ if (is_logged_in() && !is_admin()) {
               <button type="button" class="btn btn-primary book-btn workshop-book-btn"
                 data-workshop-id="<?= h((string)$workshop['workshop_id']) ?>"
                 data-workshop-title="<?= h($workshop['title']) ?>"
-                data-workshop-date="<?= h($workshop['workshop_date']) ?>"
-                data-workshop-time="<?= h($workshop['start_time'] . ' - ' . $workshop['end_time']) ?>"
+                data-workshop-date="<?= h(date('M j', strtotime($workshop['workshop_date']))) ?>"
+                data-workshop-time="<?= h(date('g:i A', strtotime($workshop['start_time'])) . ' – ' . date('g:i A', strtotime($workshop['end_time']))) ?>"
+                data-workshop-duration="<?= h($durationText) ?>"
                 data-workshop-link="#">
                 <i class="fa-solid fa-calendar-days"></i> Book Workshop
               </button>
@@ -251,11 +252,32 @@ if (is_logged_in() && !is_admin()) {
         <button type="button" id="modal-close" aria-label="Close booking window">&times;</button>
       </div>
       <div id="booking-state-confirm" class="booking-state">
-        <div id="modal-workshop-info">
-          <p id="info-name"></p>
-          <div id="info-details"><span id="info-date"></span><span id="info-time"></span></div>
-          <p id="info-email-note"><i class="fa-solid fa-envelope"></i> A booking confirmation email will be sent with the workshop details.</p>
+      <div id="modal-workshop-info">
+        <p id="info-name"></p>
+
+        <!-- Booking session metadata mirrors the View Details session strip. -->
+        <div id="info-details" class="booking-session-strip">
+          <div class="details-session-item booking-session-item">
+            <i class="fa-regular fa-calendar"></i>
+            <span id="info-date"></span>
+          </div>
+
+          <div class="details-session-item booking-session-item">
+            <i class="fa-regular fa-clock"></i>
+            <span id="info-time"></span>
+          </div>
+
+          <div class="details-session-item booking-session-item">
+            <i class="fa-solid fa-stopwatch"></i>
+            <span id="info-duration"></span>
+          </div>
         </div>
+
+        <p id="info-email-note">
+          <i class="fa-solid fa-envelope"></i>
+          A booking confirmation email will be sent with the workshop details.
+        </p>
+      </div>
         <div class="booking-confirm-actions">
           <button type="button" class="btn btn-outline" id="booking-cancel-btn">Back</button>
           <button type="button" class="btn btn-primary" id="booking-confirm-btn"><i class="fa-solid fa-circle-check"></i> Confirm Booking</button>

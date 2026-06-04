@@ -191,6 +191,19 @@ function closeBookingModal() {
   document.body.style.overflow = "";
 }
 
+/*
+  Escapes dynamic text before inserting it into HTML strings.
+  This prevents broken markup and keeps admin-entered text safe.
+*/
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // ===== WORKSHOP DETAILS MODAL =====
 /*
   ASEEL ADDITION:
@@ -208,6 +221,7 @@ function initWorkshopDetailsModal() {
     if (btn) {
       var title = btn.dataset.title || "";
       var description = btn.dataset.description || "";
+      var hook = btn.dataset.hook || "";
       var instructor = btn.dataset.instructor || "Not assigned";
       var instructorEmail = btn.dataset.instructorEmail || "";
       var instructorSpecialty = btn.dataset.instructorSpecialty || "";
@@ -216,16 +230,60 @@ function initWorkshopDetailsModal() {
       var goodFitFor = btn.dataset.goodFitFor || "";
       var date = btn.dataset.date || "";
       var time = btn.dataset.time || "";
+      var duration = btn.dataset.duration || "";
+      var totalSeats = btn.dataset.totalSeats || "";
       var seats = btn.dataset.seats || "0";
       var category = btn.dataset.category || "Workshop";
+       var workshopId = btn.dataset.workshopId || "";
+      var isAdmin = document.body.dataset.isAdmin === "1";
+      var bookedIds = window.bookedWorkshopIds || [];
+      var isBooked = bookedIds.includes(parseInt(workshopId));
+      var isFull = parseInt(seats) <= 0;
 
       document.getElementById("details-title").textContent = title;
       document.getElementById("details-description").textContent = description;
+      document.getElementById("details-hook").textContent = hook;
       document.getElementById("details-category").textContent = category;
-      document.getElementById("details-seats-badge").textContent =
-        seats + " seats available";
+      document.getElementById("details-seats-badge").textContent = totalSeats
+        ? seats + "/" + totalSeats + " seats available"
+        : seats + " seats available";
       document.getElementById("details-date").textContent = date;
       document.getElementById("details-time").textContent = time;
+      document.getElementById("details-duration").textContent = duration;
+            // Configure sticky booking button inside the details modal.
+      var detailsBookFooter = document.getElementById("details-book-footer");
+      var detailsBookBtn = document.getElementById("details-book-btn");
+
+      if (detailsBookFooter && detailsBookBtn) {
+        if (isAdmin) {
+          detailsBookFooter.hidden = true;
+        } else {
+          detailsBookFooter.hidden = false;
+
+          detailsBookBtn.dataset.workshopId = workshopId;
+          detailsBookBtn.dataset.workshopTitle = title;
+          detailsBookBtn.dataset.workshopDate = date;
+          detailsBookBtn.dataset.workshopTime = time;
+          detailsBookBtn.dataset.workshopLink = "#";
+
+          if (isFull) {
+            detailsBookBtn.disabled = true;
+            detailsBookBtn.className = "btn btn-secondary details-book-btn";
+            detailsBookBtn.innerHTML =
+              '<i class="fa-solid fa-circle-xmark"></i> Full';
+          } else if (isBooked) {
+            detailsBookBtn.disabled = true;
+            detailsBookBtn.className = "btn btn-booked-already details-book-btn";
+            detailsBookBtn.innerHTML =
+              '<i class="fa-solid fa-circle-check"></i> Already Booked';
+          } else {
+            detailsBookBtn.disabled = false;
+            detailsBookBtn.className = "btn btn-primary book-btn details-book-btn";
+            detailsBookBtn.innerHTML =
+              '<i class="fa-solid fa-calendar-days"></i> Book This Workshop';
+          }
+        }
+      }
 
       // Instructor popup
       var nameEl = document.getElementById("details-instructor-name");
@@ -285,12 +343,12 @@ function initWorkshopDetailsModal() {
           if (points.length > 0) {
             learnEl.innerHTML = points
               .map(function (p) {
-                return (
-                  '<li style="display:flex;align-items:flex-start;gap:9px;font-size:0.9rem;color:#065f46;line-height:1.6;">' +
-                  '<i class="fa-solid fa-circle-check" style="color:#10b981;margin-top:3px;font-size:0.7rem;flex-shrink:0;"></i>' +
-                  p +
-                  "</li>"
-                );
+              return (
+                '<li class="details-info-point details-learn-point">' +
+                '<i class="fa-solid fa-circle-check"></i>' +
+                escapeHTML(p) +
+                "</li>"
+              );
               })
               .join("");
             learnSection.style.display = "";
@@ -320,12 +378,12 @@ function initWorkshopDetailsModal() {
           if (fitPoints.length > 0) {
             fitEl.innerHTML = fitPoints
               .map(function (p) {
-                return (
-                  '<li style="display:flex;align-items:flex-start;gap:9px;font-size:0.9rem;color:#5b21b6;line-height:1.6;">' +
-                  '<i class="fa-solid fa-user-check" style="color:#8b5cf6;margin-top:3px;font-size:0.7rem;flex-shrink:0;"></i>' +
-                  p +
-                  "</li>"
-                );
+              return (
+                '<li class="details-info-point details-fit-point">' +
+                '<i class="fa-solid fa-user-check"></i>' +
+                escapeHTML(p) +
+                "</li>"
+              );
               })
               .join("");
             fitSection.style.display = "";
@@ -484,6 +542,41 @@ async function initWorkshopSearch() {
     return hour + ":" + String(m).padStart(2, "0") + " " + ampm;
   }
 
+
+  function formatDateShort(dateText) {
+  if (!dateText) return "";
+
+  const date = new Date(dateText + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return dateText;
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+/*
+  Calculates compact workshop duration for the details modal.
+  Example output: 45m, 1h, 1h 30m.
+*/
+function formatDuration(startTime, endTime) {
+  if (!startTime || !endTime) return "";
+
+  const [startH, startM] = startTime.split(":").map(Number);
+  const [endH, endM] = endTime.split(":").map(Number);
+
+  const startTotal = startH * 60 + startM;
+  const endTotal = endH * 60 + endM;
+  const duration = Math.max(0, endTotal - startTotal);
+
+  if (duration >= 60) {
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    return hours + "h" + (minutes ? " " + minutes + "m" : "");
+  }
+
+  return duration + "m";
+}
+
   async function loadWorkshops() {
     const searchValue = searchInput.value;
     const categoryValue = categoryFilter.value;
@@ -512,6 +605,7 @@ async function initWorkshopSearch() {
       const instructorEmail = (workshop.instructor_email || "").trim();
       const instructorSpecialty = (workshop.instructor_specialty || "").trim();
       const instructorExp = (workshop.instructor_experience || "").trim();
+      const durationText = formatDuration(workshop.start_time, workshop.end_time);
       const learningPoints = (workshop.learning_points || "").trim();
       const goodFitFor = (workshop.good_fit_for || "").trim();
       const hookMessage = (workshop.hook_message || "").trim();
@@ -551,8 +645,10 @@ async function initWorkshopSearch() {
         data-instructor-experience="${escapeHTML(instructorExp)}"
         data-learning-points="${escapeHTML(learningPoints)}"
         data-good-fit-for="${escapeHTML(goodFitFor)}"
-        data-date="${escapeHTML(workshop.workshop_date)}"
+        data-date="${escapeHTML(formatDateShort(workshop.workshop_date))}"
         data-time="${escapeHTML(formatTimeStr(workshop.start_time) + " – " + formatTimeStr(workshop.end_time))}"
+        data-hook="${escapeHTML(cardHook)}"
+        data-duration="${escapeHTML(durationText)}"
         data-seats="${escapeHTML(workshop.available_seats)}"
         data-total-seats="${escapeHTML(totalSeats)}"
         data-workshop-id="${escapeHTML(workshop.workshop_id)}">
@@ -620,6 +716,13 @@ function initBookingButtons() {
       window.location.href = "login.php?reason=booking";
       return;
     }
+    // Close details modal first so the booking modal is not hidden behind it.
+    var detailsOverlay = document.getElementById("details-overlay");
+    if (detailsOverlay && !detailsOverlay.hidden) {
+      detailsOverlay.hidden = true;
+      document.body.style.overflow = "";
+    }
+
     openBookingModal(
       button.dataset.workshopId,
       button.dataset.workshopTitle,

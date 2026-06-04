@@ -98,6 +98,15 @@ if (is_logged_in() && !is_admin()) {
               : (int)$workshop['available_seats'];
 
           $seatText = (int)$workshop['available_seats'] . '/' . $totalSeats . ' seats available';
+          // Calculate compact duration for the details modal.
+          $durationMinutes = max(
+              0,
+              (int)((strtotime($workshop['end_time']) - strtotime($workshop['start_time'])) / 60)
+          );
+
+          $durationText = $durationMinutes >= 60
+              ? intdiv($durationMinutes, 60) . 'h' . (($durationMinutes % 60) ? ' ' . ($durationMinutes % 60) . 'm' : '')
+              : $durationMinutes . 'm';
         ?>
         <div class="card workshop-card">
           <?php if ($hasImg): ?>
@@ -147,17 +156,19 @@ if (is_logged_in() && !is_admin()) {
               data-title="<?= h($workshop['title']) ?>"
               data-description="<?= h($workshop['description']) ?>"
               data-category="<?= h($workshop['category_name']) ?>"
-              data-instructor="<?= h($instructorName ?: '—') ?>"
+              data-instructor="<?= h($instructorName ?: 'Instructor TBA') ?>"
               data-instructor-email="<?= h($instructorEmail) ?>"
               data-instructor-specialty="<?= h($instructorSpecialty) ?>"
               data-instructor-experience="<?= h($instructorExp) ?>"
               data-learning-points="<?= h($learningPoints) ?>"
               data-good-fit-for="<?= h($goodFitFor) ?>"
-              data-date="<?= h(date('M j, Y', strtotime($workshop['workshop_date']))) ?>"
+              data-date="<?= h(date('M j', strtotime($workshop['workshop_date']))) ?>"
               data-time="<?= h(date('g:i A', strtotime($workshop['start_time'])) . ' – ' . date('g:i A', strtotime($workshop['end_time']))) ?>"
               data-seats="<?= h((string)$workshop['available_seats']) ?>"
               data-total-seats="<?= h((string)$totalSeats) ?>"
               data-workshop-id="<?= h((string)$workshop['workshop_id']) ?>"
+              data-hook="<?= h($hookMessage ?: 'View details to learn more about this workshop.') ?>"
+              data-duration="<?= h($durationText) ?>"
             >
               <i class="fa-solid fa-eye"></i>
               View Details
@@ -272,75 +283,107 @@ if (is_logged_in() && !is_admin()) {
 
   <!-- ===== WORKSHOP DETAILS MODAL ===== -->
   <!-- ASEEL ADDITION: Full workshop details with instructor popup, What you'll learn, and Good Fit For -->
-  <div id="details-overlay" hidden>
-    <div id="details-modal">
-      <button type="button" class="details-close-btn" aria-label="Close details modal">&times;</button>
+  <!-- ===== WORKSHOP DETAILS MODAL ===== -->
+    <!-- Compact details modal: decision info first, full explanation second. -->
+   <!-- ===== WORKSHOP DETAILS MODAL ===== -->
+<!-- Compact details modal: decision info first, full explanation second. -->
+<div id="details-overlay" hidden>
+  <div id="details-modal">
+    <button type="button" class="details-close-btn" aria-label="Close details modal">&times;</button>
 
-      <div class="details-header">
-        <div class="details-badges">
+    <div class="details-header">
+      <h2 id="details-title"></h2>
+
+      <div class="details-meta-row">
+        <div class="details-main-badges">
           <span class="details-badge-category" id="details-category">Workshop</span>
           <span class="details-badge-seats" id="details-seats-badge">Seats Available</span>
         </div>
-        <h2 id="details-title"></h2>
-        <p id="details-description"></p>
-      </div>
 
-      <div class="details-grid">
-        <!-- Instructor with hover popup -->
-        <div class="details-item">
-          <span class="details-label">Instructor</span>
-          <p id="details-instructor" class="instructor-hover">
-            <span id="details-instructor-name"></span>
-            <i class="fa-solid fa-circle-info"></i>
-            <span class="instructor-popup">
-              <strong id="details-instructor-popup-name"></strong>
-              <small id="details-instructor-specialty" style="display:block;margin-top:4px;color:#374151;"></small>
-              <small id="details-instructor-experience" style="display:block;margin-top:2px;color:#6b7280;"></small>
-              <span id="details-instructor-email" style="font-size:0.82rem;color:#6b7280;margin-top:4px;display:block;"></span>
-            </span>
-          </p>
-        </div>
-        <div class="details-item">
-          <span class="details-label">Date</span>
-          <p id="details-date"></p>
-        </div>
-        <div class="details-item" style="grid-column:1/-1;">
-          <span class="details-label">Time</span>
-          <p id="details-time"></p>
-        </div>
-      </div>
+        <p id="details-instructor" class="instructor-hover details-instructor-badge">
+          <i class="fa-solid fa-chalkboard-user"></i>
+          <span id="details-instructor-name"></span>
+          <i class="fa-solid fa-circle-info"></i>
 
-      <!-- Two-column layout for What you'll learn + Good Fit For -->
-      <div class="details-bottom-grid">
-
-        <!-- What you'll learn — green (existing) -->
-        <div id="details-learn-section">
-          <div class="details-info-box details-info-box-green">
-            <p class="details-info-box-label">
-              <i class="fa-solid fa-graduation-cap"></i> What you'll learn
-            </p>
-            <ul id="details-learn"></ul>
-          </div>
-        </div>
-
-        <!-- Good Fit For — purple (new) -->
-        <div id="details-fit-section">
-          <div class="details-info-box details-info-box-purple">
-            <p class="details-info-box-label">
-              <i class="fa-solid fa-users"></i> Good fit for
-            </p>
-            <ul id="details-fit"></ul>
-          </div>
-        </div>
-
+          <span class="instructor-popup">
+            <strong id="details-instructor-popup-name"></strong>
+            <small id="details-instructor-specialty"></small>
+            <small id="details-instructor-experience"></small>
+            <span id="details-instructor-email"></span>
+          </span>
+        </p>
       </div>
     </div>
+
+    <div class="details-session-strip">
+      <div class="details-session-item">
+        <i class="fa-regular fa-calendar"></i>
+        <span id="details-date"></span>
+      </div>
+
+      <div class="details-session-item">
+        <i class="fa-regular fa-clock"></i>
+        <span id="details-time"></span>
+      </div>
+
+      <div class="details-session-item">
+        <i class="fa-solid fa-stopwatch"></i>
+        <span id="details-duration"></span>
+      </div>
+    </div>
+
+    <div class="details-copy">
+      <p id="details-hook"></p>
+      <p id="details-description"></p>
+    </div>
+
+    <div class="details-bottom-grid">
+      <div id="details-learn-section">
+        <div class="details-info-box details-info-box-green">
+          <p class="details-info-box-label">
+            <i class="fa-solid fa-graduation-cap"></i> What you'll learn
+          </p>
+          <ul id="details-learn"></ul>
+        </div>
+      </div>
+
+      <div id="details-fit-section">
+        <div class="details-info-box details-info-box-purple">
+          <p class="details-info-box-label">
+            <i class="fa-solid fa-users"></i> Good fit for
+          </p>
+          <ul id="details-fit"></ul>
+        </div>
+      </div>
+    </div>
+
+       <!-- Soft online-session note shown before the booking action. -->
+    <div class="details-online-note">
+      <i class="fa-solid fa-video"></i>
+      <span>This is an online session. The Zoom link will be emailed after booking.</span>
+    </div>
+
+       <!-- Sticky modal action: lets users book after reading workshop details. -->
+    <div id="details-book-footer" class="details-book-footer">
+      <button
+        type="button"
+        id="details-book-btn"
+        class="btn btn-primary details-book-btn"
+        data-workshop-link="#"
+      >
+        <i class="fa-solid fa-calendar-days"></i>
+        Book This Workshop
+      </button>
+    </div>
+
   </div>
+</div>
+    </div>
 
   <script>
     window.bookedWorkshopIds = <?= json_encode(array_map('intval', $bookedWorkshopIds)) ?>;
   </script>
-
+<!-- 
   <script>
   const searchInput    = document.getElementById('searchInput');
   const categoryFilter = document.getElementById('categoryFilter');
@@ -410,6 +453,8 @@ if (is_logged_in() && !is_admin()) {
         data-time="${formatTimeStr(workshop.start_time)} – ${formatTimeStr(workshop.end_time)}"
         data-seats="${workshop.available_seats}"
         data-workshop-id="${workshop.workshop_id}">
+        data-hook="<?= h($hookMessage ?: 'View details to learn more about this workshop.') ?>"
+        data-duration="<?= h($durationText) ?>"
         <i class="fa-solid fa-eye"></i> View Details
       </button>`;
 
@@ -434,7 +479,7 @@ if (is_logged_in() && !is_admin()) {
 
   searchInput.addEventListener('keyup',    loadWorkshops);
   categoryFilter.addEventListener('change', loadWorkshops);
-  </script>
+  </script> -->
 
   <script src="../scripts/main.js"></script>
 </body>

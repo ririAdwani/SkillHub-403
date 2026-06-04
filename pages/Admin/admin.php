@@ -310,10 +310,18 @@ $todayDate = date('Y-m-d');
         <div class="admin-sidebar-avatar"><?= strtoupper(substr($adminFullName, 0, 1)) ?></div>
       <?php endif; ?>
       <div class="admin-sidebar-user-info">
-        <!-- Admin name is clickable and links to their profile page -->
-        <a href="../../pages/profile.php" class="admin-name-link"><?= h($adminFullName) ?></a>
-        <span class="admin-role-badge"><i class="fa-solid fa-shield-halved"></i> Administrator</span>
+        <!-- Shows the currently logged-in admin account. -->
+        <strong><?= h($adminFullName) ?></strong>
+
+        <span class="admin-role-badge">
+          <i class="fa-solid fa-shield-halved"></i> Administrator
+        </span>
       </div>
+
+      <a href="../../pages/profile.php" class="admin-profile-link">
+        <i class="fa-solid fa-user"></i>
+        <span>View profile</span>
+      </a>
     </div>
 
     <nav class="admin-sidebar-nav">
@@ -360,7 +368,7 @@ $todayDate = date('Y-m-d');
         <div><div class="admin-stat-number" id="stat-seats"><?= $totalSeats ?></div><div class="admin-stat-label">Total Seats</div></div>
       </div>
       <div class="admin-stat-card">
-        <div class="admin-stat-icon stat-purple"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="admin-stat-icon stat-purple"><i class="fa-solid fa-tag"></i></div>
         <div><div class="admin-stat-number"><?= count($categories) ?></div><div class="admin-stat-label">Categories</div></div>
       </div>
       <div class="admin-stat-card">
@@ -623,13 +631,7 @@ $todayDate = date('Y-m-d');
         </div>
       </div>
 
-      <!-- Description -->
-      <div class="form-group">
-        <label for="add-description">Description <span class="required">*</span></label>
-        <textarea id="add-description" name="description" placeholder="What is this workshop about?"></textarea>
-      </div>
-
-      <!-- Hook Message — short punchy line shown on the card -->
+            <!-- Hook Message — short punchy line shown on the card -->
       <div class="form-group">
         <label for="add-hook-message">
           Hook Message <span style="color:#94a3b8;font-weight:400;">(optional — max 2 sentences)</span>
@@ -639,13 +641,43 @@ $todayDate = date('Y-m-d');
         <span class="learning-points-hint"><i class="fa-solid fa-bolt" style="margin-right:3px;color:#f59e0b;"></i> This short message appears on the workshop card to grab attention.</span>
       </div>
 
+      <!-- Description -->
+      <div class="form-group">
+        <label for="add-description">Description <span class="required">*</span></label>
+        <textarea id="add-description" name="description" placeholder="What is this workshop about?"></textarea>
+      </div>
+
       <!-- Good Fit For — shown in the details modal -->
       <div class="form-group">
         <label for="add-good-fit-for">
           Good Fit For <span style="color:#94a3b8;font-weight:400;">(optional)</span>
         </label>
         <textarea id="add-good-fit-for" name="good_fit_for" rows="3"
-          placeholder="e.g. Students interested in data careers. Beginners with no coding background."></textarea>
+         placeholder="Write each fit point on a new line:&#10;Beginners with no coding background&#10;Students preparing for web development projects&#10;Anyone who wants hands-on practice"></textarea>
+      </div>
+
+      <!-- What You'll Learn -->
+      <div class="form-group">
+        <label for="add-learning-points">What You'll Learn <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+        <textarea id="add-learning-points" name="learning_points" rows="4"
+          placeholder="Write each learning point on a new line:&#10;Understand Python syntax&#10;Build a real web project"></textarea>
+        <span class="learning-points-hint"><i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>Each line = one bullet point.</span>
+      </div>
+
+      <!-- Workshop Image -->
+      <div class="form-group">
+        <label>Workshop Image <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+        <p style="font-size:0.8rem;color:#64748b;margin-bottom:8px;margin-top:0;"><i class="fa-solid fa-circle-info" style="color:#2c7be5;margin-right:4px;"></i>Paste a direct image link.</p>
+        <input type="url" id="add-image" name="image_path" class="img-url-input" placeholder="e.g. https://images.unsplash.com/photo-..." />
+        <small class="img-help-text"><i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>Right-click any image → "Copy image address" → paste here.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="add-instructor">Assign Instructor</label>
+        <select id="add-instructor" name="instructor_id">
+          <option value="">No instructor assigned</option>
+          <?php foreach ($instructors as $inst): ?><option value="<?= $inst['instructor_id'] ?>"><?= h(trim(($inst['title']??'').' '.$inst['full_name'])) ?></option><?php endforeach; ?>
+        </select>
       </div>
 
       <div class="form-row">
@@ -682,30 +714,6 @@ $todayDate = date('Y-m-d');
         </div>
         <!-- Hidden end_time field sent to the API -->
         <input type="hidden" id="add-end" name="end_time" />
-      </div>
-
-      <div class="form-group">
-        <label for="add-instructor">Assign Instructor</label>
-        <select id="add-instructor" name="instructor_id">
-          <option value="">No instructor assigned</option>
-          <?php foreach ($instructors as $inst): ?><option value="<?= $inst['instructor_id'] ?>"><?= h(trim(($inst['title']??'').' '.$inst['full_name'])) ?></option><?php endforeach; ?>
-        </select>
-      </div>
-
-      <!-- What You'll Learn -->
-      <div class="form-group">
-        <label for="add-learning-points">What You'll Learn <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
-        <textarea id="add-learning-points" name="learning_points" rows="4"
-          placeholder="Write each learning point on a new line:&#10;Understand Python syntax&#10;Build a real web project"></textarea>
-        <span class="learning-points-hint"><i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>Each line = one bullet point.</span>
-      </div>
-
-      <!-- Workshop Image -->
-      <div class="form-group">
-        <label>Workshop Image <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
-        <p style="font-size:0.8rem;color:#64748b;margin-bottom:8px;margin-top:0;"><i class="fa-solid fa-circle-info" style="color:#2c7be5;margin-right:4px;"></i>Paste a direct image link.</p>
-        <input type="url" id="add-image" name="image_path" class="img-url-input" placeholder="e.g. https://images.unsplash.com/photo-..." />
-        <small class="img-help-text"><i class="fa-solid fa-lightbulb" style="margin-right:3px;"></i>Right-click any image → "Copy image address" → paste here.</small>
       </div>
 
       <div class="admin-form-error" id="add-form-error" hidden></div>

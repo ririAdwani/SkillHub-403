@@ -301,8 +301,12 @@ if (!is_admin()) {
              GROUP BY bookings.workshop_id, workshops.title,
                       workshops.workshop_date, workshops.start_time,
                       workshops.end_time, categories.category_name
-             ORDER BY workshops.workshop_date ASC, workshops.start_time ASC'
-        );
+        ORDER BY
+          (TIMESTAMP(workshops.workshop_date, workshops.start_time) < NOW()) ASC,
+          IF(TIMESTAMP(workshops.workshop_date, workshops.start_time) >= NOW(), workshops.workshop_date, NULL) ASC,
+          IF(TIMESTAMP(workshops.workshop_date, workshops.start_time) >= NOW(), workshops.start_time, NULL) ASC,
+          IF(TIMESTAMP(workshops.workshop_date, workshops.start_time) < NOW(), workshops.workshop_date, NULL) DESC,
+          IF(TIMESTAMP(workshops.workshop_date, workshops.start_time) < NOW(), workshops.start_time, NULL) DESC'        );
         $stmt->execute(['email' => $user['email']]);
         $bookings = $stmt->fetchAll();
     } catch (PDOException $e) {

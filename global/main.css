@@ -619,7 +619,167 @@ footer address {
 }
 
 /* ===== CARDS ===== */
+/* Workshop Cards */
+/* ===== SERVICES WORKSHOP CARDS ===== */
+/*
+  Compact workshop-card layout for Services.
+  The card shows only decision-making information: image, icon, title,
+  hook sentence, category, seats, instructor, and actions.
+*/
+.workshop-card {
+  overflow: hidden;
+  border-radius: 22px;
+}
+
+/* Reduces image/placeholder height so workshop cards feel lighter. */
+.workshop-card .card-img,
+.workshop-card .card-img-placeholder {
+  height: 150px;
+}
+
+/* Keeps placeholder content centered after reducing the image area. */
+.workshop-card .card-img-placeholder {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Utility class used instead of inline display styles. */
+.is-hidden {
+  display: none !important;
+}
+
+/* Tightens only workshop cards, not every generic card on the site. */
+.workshop-card .workshop-card-body {
+  padding: 10px 27px 26px;
+}
+
+/* Makes the card icon slightly smaller and closer to the title. */
+.workshop-card .card-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  font-size: 1.25rem;
+}
+
+.workshop-card .card-body h3 {
+  margin-bottom: 7px;
+  line-height: 1.25;
+}
+
+/* Hook sentence shown on the card instead of a long description. */
+/* Its limited to two lines for equal card height. */
+.workshop-card-hook {
+  min-height: 2.85em;
+  margin-bottom: 16px;
+  color: var(--text-light);
+  font-size: 0.92rem;
+  line-height: 1.55;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Aligns category/seats badges and instructor badge on the same row. */
+.workshop-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+/* Keeps category and seats together without touching global tag styling. */
+.workshop-card-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0;
+}
+
+/* Instructor badge only: less rounded than category/seats and soft blue. */
+.workshop-card-instructor {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 7px;
+  max-width: 230px;
+  padding: 6px 11px;
+  border-radius: 12px;
+  background: #f3f8ff;
+  border: 1px solid rgba(44, 123, 229, 0.14);
+  color: #2c7be5;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.view-details-btn {
+  background: white;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 700;
+  box-shadow: none;
+  width: 100%;
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.2s;
+}
+
+.view-details-btn:hover {
+  background: var(--background);
+  color: var(--text);
+  border-color: var(--text-light);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Keeps Book Workshop, Full, and Already Booked in the same footprint. */
+.workshop-card .workshop-book-btn,
+.workshop-card .btn-booked-already {
+  width: 100%;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* Responsive fallback: stack metadata when the card becomes narrow. */
+@media (max-width: 700px) {
+  .workshop-card .card-img,
+  .workshop-card .card-img-placeholder {
+    height: 135px;
+  }
+
+  .workshop-card .workshop-card-body {
+    padding: 22px 24px 24px;
+  }
+
+  .workshop-card-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .workshop-card-instructor {
+    max-width: 100%;
+  }
+}
+
+
 /* Reusable card component for workshops and features */
+
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -705,10 +865,6 @@ footer address {
 .card-body p  { font-size: 0.9rem; margin-bottom: 14px; }
 
 .card-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.workshop-card-tags {
-  margin-top: 16px;
-}
 
 .tag {
   font-size: 0.75rem;
@@ -2904,6 +3060,8 @@ input[type="password"]:focus {
   }
 }
 
+
+
 /* Keeps workshop booking buttons full width without inline styles. */
 .workshop-book-btn {
   width: 100%;
@@ -2914,6 +3072,8 @@ input[type="password"]:focus {
   .auth-header-link {
     padding: 8px 12px;
     font-size: 0.82rem;
+      gap: 8px;
+        padding: 0.75rem 1.5rem;
   }
 
   .auth-hero {
@@ -3330,21 +3490,13 @@ input[type="password"]:focus {
   padding: 0.75rem 1.5rem;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 13.3333px;
   border: 2px solid var(--border);
   background: var(--background);
   color: var(--text-light);
   cursor: not-allowed;
   opacity: 0.75;
 }
-/* ===== HOOK MESSAGE ON WORKSHOP CARD ===== */
-.card-hook-message {
-  font-size: 0.82rem; font-weight: 600; color: #b45309;
-  background: #fffbeb; border: 1px solid #fde68a;
-  border-radius: 8px; padding: 7px 12px; margin-top: 8px; margin-bottom: 0;
-  display: flex; align-items: flex-start; gap: 6px; line-height: 1.5;
-}
-.card-hook-message i { color: #f59e0b; margin-top: 1px; flex-shrink: 0; font-size: 0.72rem; }
 
 /* ===== DETAILS MODAL BOTTOM GRID ===== */
 .details-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }

@@ -296,3 +296,14 @@ ALTER TABLE workshops ADD COLUMN hook_message VARCHAR(500) DEFAULT NULL;
 -- Stored as newline-separated text, shown in the details modal
 -- alongside "What you'll learn" but in a purple box
 ALTER TABLE workshops ADD COLUMN good_fit_for TEXT DEFAULT NULL;
+
+-- Edits To include the total seats number. 
+ALTER TABLE workshops
+ADD COLUMN total_seats INT NULL AFTER available_seats;
+
+UPDATE workshops
+SET total_seats = available_seats
+WHERE total_seats IS NULL;
+
+ALTER TABLE workshops
+MODIFY total_seats INT NOT NULL;

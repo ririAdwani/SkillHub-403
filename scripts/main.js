@@ -411,8 +411,13 @@ async function submitWorkshopBooking() {
         var seatsTag = document.getElementById("seats-tag-" + bookedId);
         if (seatsTag) {
           var currentSeats = parseInt(seatsTag.textContent) || 0;
-          seatsTag.textContent = Math.max(0, currentSeats - 1) + " Seats";
-        }
+          var newSeats = Math.max(0, currentSeats - 1);
+          var totalSeats = seatsTag.dataset.totalSeats;
+
+          // Keep the card label consistent after a successful booking.
+          seatsTag.textContent = totalSeats
+            ? newSeats + "/" + totalSeats + " seats available"
+            : newSeats + " seats available";        }
         if (window.bookedWorkshopIds)
           window.bookedWorkshopIds.push(parseInt(bookedId));
       }
@@ -510,11 +515,17 @@ async function initWorkshopSearch() {
       const learningPoints = (workshop.learning_points || "").trim();
       const goodFitFor = (workshop.good_fit_for || "").trim();
       const hookMessage = (workshop.hook_message || "").trim();
+        // Build display text for compact card metadata.
+      const totalSeats = parseInt(workshop.total_seats || workshop.available_seats) || seats;
+      const seatText = seats + "/" + totalSeats + " seats available";
+      const cardHook = hookMessage || "View details to learn more about this workshop.";
+      const instructorLabel =
+        instructorName && instructorName !== "—" ? instructorName : "Instructor TBA";
 
       let btnHtml = "";
       if (!isAdmin) {
         if (isFull) {
-          btnHtml = `<button type="button" class="btn btn-secondary workshop-book-btn" disabled style="margin-top:8px;"><i class="fa-solid fa-circle-xmark"></i> Full</button>`;
+          btnHtml = `<button type="button" class="btn btn-secondary workshop-book-btn" disabled><i class="fa-solid fa-circle-xmark"></i> Full</button>`;
         } else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
           btnHtml = `<button type="button" class="btn btn-booked-already" disabled><i class="fa-solid fa-circle-check"></i> Already Booked</button>`;
         } else {
@@ -527,43 +538,63 @@ async function initWorkshopSearch() {
         }
       }
 
-      const hookHtml = hookMessage
-        ? `<p class="card-hook-message"><i class="fa-solid fa-bolt"></i> ${hookMessage}</p>`
-        : "";
-
-      const viewDetailsBtn = `<button type="button" class="btn view-details-btn"
-        data-title="${workshop.title}"
-        data-description="${workshop.description}"
-        data-category="${workshop.category_name}"
-        data-instructor="${instructorName}"
-        data-instructor-email="${instructorEmail}"
-        data-instructor-specialty="${instructorSpecialty}"
-        data-instructor-experience="${instructorExp}"
-        data-learning-points="${learningPoints}"
-        data-good-fit-for="${goodFitFor}"
-        data-date="${workshop.workshop_date}"
-        data-time="${formatTimeStr(workshop.start_time)} – ${formatTimeStr(workshop.end_time)}"
-        data-seats="${workshop.available_seats}"
-        data-workshop-id="${workshop.workshop_id}">
+      // Secondary details action; keeps all data needed by the details modal.
+      const viewDetailsBtn = `<button
+        type="button"
+        class="btn view-details-btn workshop-details-btn"
+        data-title="${escapeHTML(workshop.title)}"
+        data-description="${escapeHTML(workshop.description)}"
+        data-category="${escapeHTML(workshop.category_name)}"
+        data-instructor="${escapeHTML(instructorName)}"
+        data-instructor-email="${escapeHTML(instructorEmail)}"
+        data-instructor-specialty="${escapeHTML(instructorSpecialty)}"
+        data-instructor-experience="${escapeHTML(instructorExp)}"
+        data-learning-points="${escapeHTML(learningPoints)}"
+        data-good-fit-for="${escapeHTML(goodFitFor)}"
+        data-date="${escapeHTML(workshop.workshop_date)}"
+        data-time="${escapeHTML(formatTimeStr(workshop.start_time) + " – " + formatTimeStr(workshop.end_time))}"
+        data-seats="${escapeHTML(workshop.available_seats)}"
+        data-total-seats="${escapeHTML(totalSeats)}"
+        data-workshop-id="${escapeHTML(workshop.workshop_id)}">
         <i class="fa-solid fa-eye"></i> View Details
       </button>`;
 
       grid.innerHTML += `
-        <div class="card">
-          ${imgHtml}${placeholderHtml}
-          <div class="card-body">
-            <div class="card-icon card-icon-web"><i class="fa-solid fa-laptop-code"></i></div>
-            <h3>${workshop.title}</h3>
-            <p>${workshop.description}</p>
-            ${hookHtml}
-            <div class="card-tags" style="margin-top:16px">
-              <span class="tag tag-primary">${workshop.category_name}</span>
-              <span class="tag tag-secondary seats-tag" id="seats-tag-${workshop.workshop_id}">${workshop.available_seats} Seats</span>
+        <div class="card workshop-card">
+          ${imgHtml}
+          ${placeholderHtml}
+
+          <div class="card-body workshop-card-body">
+            <div class="card-icon card-icon-web">
+              <i class="fa-solid fa-laptop-code"></i>
             </div>
+
+            <h3>${escapeHTML(workshop.title)}</h3>
+            <p class="workshop-card-hook">${escapeHTML(cardHook)}</p>
+
+            <div class="workshop-card-meta">
+              <div class="workshop-card-tags">
+                <span class="tag tag-primary">${escapeHTML(workshop.category_name)}</span>
+                <span
+                  class="tag tag-secondary seats-tag"
+                  id="seats-tag-${escapeHTML(workshop.workshop_id)}"
+                  data-total-seats="${escapeHTML(totalSeats)}"
+                >
+                  ${escapeHTML(seatText)}
+                </span>
+              </div>
+
+              <span class="workshop-card-instructor">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                ${escapeHTML(instructorLabel)}
+              </span>
+            </div>
+
             ${viewDetailsBtn}
             ${btnHtml}
           </div>
-        </div>`;
+        </div>
+      `;
     });
   }
 

@@ -90,40 +90,60 @@ if (is_logged_in() && !is_admin()) {
           // New fields
           $hookMessage         = trim($workshop['hook_message']          ?? '');
           $goodFitFor          = trim($workshop['good_fit_for']          ?? '');
+          // Build the card hook and seat label shown on the outside workshop card.
+          $cardHook = $hookMessage !== '' ? $hookMessage : $workshop['description'];
+
+          $totalSeats = isset($workshop['total_seats'])
+              ? (int)$workshop['total_seats']
+              : (int)$workshop['available_seats'];
+
+          $seatText = (int)$workshop['available_seats'] . '/' . $totalSeats . ' seats available';
         ?>
-        <div class="card">
+        <div class="card workshop-card">
           <?php if ($hasImg): ?>
           <img src="<?= h($imgPath) ?>" alt="<?= h($workshop['title']) ?>" class="card-img"
             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
           <?php endif; ?>
-          <div class="card-img-placeholder" <?= $hasImg ? 'style="display:none"' : '' ?>>
-            <i class="fa-solid fa-book-open"></i>
+          <div class="card-img-placeholder <?= $hasImg ? 'is-hidden' : '' ?>">
+              <i class="fa-solid fa-book-open"></i>
             <span><?= h($workshop['category_name']) ?></span>
           </div>
 
-          <div class="card-body">
-            <div class="card-icon card-icon-web"><i class="fa-solid fa-laptop-code"></i></div>
+            <div class="card-body workshop-card-body">
+            <div class="card-icon card-icon-web"><i class="fa-solid fa-laptop-code"></i></div>           
+
+           <!-- Workshop card summary: short decision-making content for browsing. -->
             <h3><?= h($workshop['title']) ?></h3>
-            <p><?= h($workshop['description']) ?></p>
-
-            <!-- ASEEL ADDITION: Hook message — short punchy line shown on card only -->
-            <?php if ($hookMessage): ?>
-            <p class="card-hook-message">
-              <i class="fa-solid fa-bolt"></i> <?= h($hookMessage) ?>
+            <p class="workshop-card-hook"> 
+              <?= h($hookMessage ?: 'View details to learn more about this workshop.') ?>
             </p>
-            <?php endif; ?>
 
-            <div class="card-tags" style="margin-top:16px">
-              <span class="tag tag-primary"><?= h($workshop['category_name']) ?></span>
-              <span class="tag tag-secondary seats-tag" id="seats-tag-<?= $workshop['workshop_id'] ?>">
-                <?= h((string)$workshop['available_seats']) ?> Seats
+            <!-- Workshop metadata row: status badges on the left, instructor on the right. -->
+            <div class="workshop-card-meta">
+              <div class="workshop-card-tags">
+                <span class="tag tag-primary"><?= h($workshop['category_name']) ?></span>
+
+                <!-- Seats use available/total so users understand real capacity. -->
+                <span
+                  class="tag tag-secondary seats-tag"
+                  id="seats-tag-<?= h((string)$workshop['workshop_id']) ?>"
+                  data-total-seats="<?= h((string)$totalSeats) ?>"
+                >
+                  <?= h($seatText) ?>
+                </span>
+              </div>
+
+              <span class="workshop-card-instructor">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                <?= h($instructorName ?: 'Instructor TBA') ?>
               </span>
             </div>
 
+            <!-- Secondary action; full-width but visually quieter than booking. -->
             <!-- ASEEL ADDITION: View Details button — passes all fields including new ones -->
             <button
               type="button"
-              class="btn view-details-btn"
+              class="btn view-details-btn workshop-details-btn"
               data-title="<?= h($workshop['title']) ?>"
               data-description="<?= h($workshop['description']) ?>"
               data-category="<?= h($workshop['category_name']) ?>"
@@ -136,13 +156,14 @@ if (is_logged_in() && !is_admin()) {
               data-date="<?= h(date('M j, Y', strtotime($workshop['workshop_date']))) ?>"
               data-time="<?= h(date('g:i A', strtotime($workshop['start_time'])) . ' – ' . date('g:i A', strtotime($workshop['end_time']))) ?>"
               data-seats="<?= h((string)$workshop['available_seats']) ?>"
+              data-total-seats="<?= h((string)$totalSeats) ?>"
               data-workshop-id="<?= h((string)$workshop['workshop_id']) ?>"
             >
-              <i class="fa-solid fa-eye"></i> View Details
+              <i class="fa-solid fa-eye"></i>
+              View Details
             </button>
-
-            <?php if ($isFull): ?>
-              <button type="button" class="btn btn-secondary workshop-book-btn" disabled style="margin-top:8px;">
+                        <?php if ($isFull): ?>
+              <button type="button" class="btn btn-secondary workshop-book-btn" disabled>
                 <i class="fa-solid fa-circle-xmark"></i> Full
               </button>
             <?php elseif ($isBooked): ?>
@@ -374,10 +395,6 @@ if (is_logged_in() && !is_admin()) {
           </button>`;
         }
       }
-
-      const hookHtml = hookMessage
-        ? `<p class="card-hook-message"><i class="fa-solid fa-bolt"></i> ${hookMessage}</p>`
-        : '';
 
       const viewDetailsBtn = `<button type="button" class="btn view-details-btn"
         data-title="${workshop.title}"

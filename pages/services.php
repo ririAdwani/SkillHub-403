@@ -9,8 +9,11 @@ $basePath    = '../';
 $currentPage = 'services';
 require_once __DIR__ . '/../includes/db.php';
 
-// Load all workshops with instructor fields + new hook_message + good_fit_for
-$stmt = $pdo->query("
+// Use Saudi time so expired workshops are filtered based on the user-facing region.
+$now = (new DateTime('now', new DateTimeZone('Asia/Riyadh')))->format('Y-m-d H:i:s');
+
+// Load only workshops that have not ended yet.
+$stmt = $pdo->prepare("
     SELECT workshops.*,
            categories.category_name,
            TRIM(CONCAT(COALESCE(i.title,''), ' ', COALESCE(i.full_name,''))) AS instructor_name,
@@ -20,7 +23,14 @@ $stmt = $pdo->query("
     FROM workshops
     JOIN categories ON workshops.category_id = categories.category_id
     LEFT JOIN instructors i ON workshops.instructor_id = i.instructor_id
+    WHERE TIMESTAMP(workshops.workshop_date, workshops.end_time) >= :now
+    ORDER BY workshops.workshop_date ASC, workshops.start_time ASC
 ");
+
+$stmt->execute([
+    ':now' => $now
+]);
+
 $workshops = $stmt->fetchAll();
 
 $bookedWorkshopIds = [];

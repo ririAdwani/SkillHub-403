@@ -107,6 +107,22 @@ try {
         ]);
         exit;
     }
+    // Blocks booking if the workshop already ended.
+        $now = new DateTime('now', new DateTimeZone('Asia/Riyadh'));
+        $workshopEnd = new DateTime(
+            $workshop['workshop_date'] . ' ' . $workshop['end_time'],
+            new DateTimeZone('Asia/Riyadh')
+        );
+
+        if ($workshopEnd <= $now) {
+            $pdo->rollBack();
+
+            echo json_encode([
+                'success' => false,
+                'message' => 'This workshop has already ended and can no longer be booked.'
+            ]);
+            exit;
+        }
 
     if ((int) $workshop['available_seats'] <= 0) {
         $pdo->rollBack();

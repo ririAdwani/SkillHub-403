@@ -77,27 +77,96 @@
 
 /* Logged-in user info */
 .admin-sidebar-user {
-  display: flex;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  margin: 12px;
+  column-gap: 10px;
+  row-gap: 9px;
+  padding: 14px 16px;
+  margin: 12px 10px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  border-radius: 16px;
+}
+
+
+.admin-sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-sidebar-user-info strong {
+  display: block;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.admin-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-role-badge i {
+  color: #64748b;
+}
+
+.admin-profile-link {
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.admin-profile-link i {
+  width: 14px;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+
+.admin-profile-link:hover,
+.admin-profile-link:hover i {
+  color: #38bdf8;
+}
+
+.admin-sidebar-avatar,
+.admin-sidebar-avatar-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  flex-shrink: 0;
 }
 
 .admin-sidebar-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
   background: linear-gradient(135deg, #7c3aed, #2563eb);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 1rem;
-  flex-shrink: 0;
+}
+.admin-sidebar-avatar-img {
+  object-fit: cover;
 }
 
 .admin-sidebar-user-info strong {
@@ -354,6 +423,7 @@
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 #workshops-table tbody tr:last-child td {
@@ -422,13 +492,16 @@
 }
 
 .btn-admin-edit {
-  background: #2563eb;
-  color: #fff;
+  background: #ebf4ff;
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.18);
 }
+
 .btn-admin-edit:hover {
-  background: #1d4ed8;
+  background: #dbeafe;
+  color: #1d4ed8;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.12);
 }
 
 .btn-admin-delete {
@@ -1166,6 +1239,19 @@
   letter-spacing: 0.06em;
 }
 
+/* Small profile shortcut shown under the admin role. */
+.admin-profile-link {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+
 /* ── ADMIN FEEDBACK REPLY BUTTONS ── */
 .btn-reply-open,
 .btn-reply-edit {
@@ -1562,15 +1648,6 @@
   color: #cbd5e1;
   font-size: 0.78rem;
   font-style: italic;
-}
-
-/* Admin sidebar profile picture */
-.admin-sidebar-avatar-img {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
 }
 
 /* ── DOUBLE-CLICK TO EDIT MESSAGE ── */

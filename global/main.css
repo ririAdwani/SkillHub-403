@@ -488,10 +488,6 @@ footer address {
   line-height: 1.7;
 }
 
-.services-section {
-  padding-top: 24px;
-}
-
 .services-search-panel {
   display: grid;
   grid-template-columns: minmax(230px, 0.8fr) minmax(420px, 1.4fr);
@@ -619,7 +615,143 @@ footer address {
 }
 
 /* ===== CARDS ===== */
+/* Workshop Cards */
+/* ===== SERVICES WORKSHOP CARDS ===== */
+/*
+  Compact workshop-card layout for Services.
+  The card shows only decision-making information: image, icon, title,
+  hook sentence, category, seats, instructor, and actions.
+*/
+.workshop-card {
+  overflow: hidden;
+  border-radius: 22px;
+}
+
+/* Reduces image/placeholder height so workshop cards feel lighter. */
+.workshop-card .card-img,
+.workshop-card .card-img-placeholder {
+  height: 150px;
+}
+
+/* Keeps placeholder content centered after reducing the image area. */
+.workshop-card .card-img-placeholder {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Utility class used instead of inline display styles. */
+.is-hidden {
+  display: none !important;
+}
+
+/* Tightens only workshop cards, not every generic card on the site. */
+.workshop-card .workshop-card-body {
+  padding: 10px 27px 26px;
+}
+
+/* Makes the card icon slightly smaller and closer to the title. */
+.workshop-card .card-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  font-size: 1.25rem;
+}
+
+.workshop-card .card-body h3 {
+  margin-bottom: 7px;
+  line-height: 1.25;
+}
+
+/* Hook sentence shown on the card instead of a long description. */
+/* Its limited to two lines for equal card height. */
+.workshop-card-hook {
+  min-height: 2.85em;
+  margin-bottom: 16px;
+  color: var(--text-light);
+  font-size: 0.92rem;
+  line-height: 1.55;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Aligns category/seats badges and instructor badge on the same row. */
+.workshop-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+/* Keeps category and seats together without touching global tag styling. */
+.workshop-card-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0;
+}
+
+
+/* Instructor badge only: less rounded than category/seats and soft blue. */
+.workshop-card-instructor {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 7px;
+  max-width: 230px;
+  padding: 6px 11px;
+  border-radius: 12px;
+ background: #f3f8ff;
+  border: 1px solid rgba(44, 123, 229, 0.14);
+   color: #0F766E;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Keeps Book Workshop, Full, and Already Booked in the same footprint. */
+.workshop-card .workshop-book-btn,
+.workshop-card .btn-booked-already {
+  width: 100%;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* Responsive fallback: stack metadata when the card becomes narrow. */
+@media (max-width: 700px) {
+  .workshop-card .card-img,
+  .workshop-card .card-img-placeholder {
+    height: 135px;
+  }
+
+  .workshop-card .workshop-card-body {
+    padding: 22px 24px 24px;
+  }
+
+  .workshop-card-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .workshop-card-instructor {
+    max-width: 100%;
+  }
+}
+
+
 /* Reusable card component for workshops and features */
+
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -706,10 +838,6 @@ footer address {
 
 .card-tags { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.workshop-card-tags {
-  margin-top: 16px;
-}
-
 .tag {
   font-size: 0.75rem;
   font-weight: 600;
@@ -723,6 +851,9 @@ footer address {
 /* ===== SECTION STYLES ===== */
 .section { padding: 80px 0; }
 .section-alt { padding: 80px 0; background: var(--card-bg); }
+.section.services-section {
+  padding-top: 18px;
+}
 
 .section-header { text-align: center; margin-bottom: 56px; }
 .section-header h2 { color: var(--text); margin-bottom: 12px; }
@@ -771,13 +902,10 @@ blockquote cite {
   position: fixed;
   inset: 0;
   z-index: 9999;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  padding: 24px;
-
+  padding: 22px;
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(6px);
 }
@@ -786,22 +914,32 @@ blockquote cite {
   display: none;
 }
 
+/* Modal is capped in height so long content scrolls inside the card. */
 #details-modal {
-  width: min(680px, 100%);
-  background: #ffffff;
-
-  border-radius: 28px;
-
-  padding: 32px;
-
   position: relative;
-
+  width: min(760px, 100%);
+  max-height: min(86vh, 760px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 30px 30px;
+  border-radius: 22px;
+  background: #ffffff;
   box-shadow:
     0 24px 80px rgba(15, 23, 42, 0.18),
     0 8px 24px rgba(15, 23, 42, 0.08);
-
   animation: detailsModalFade 0.25s ease;
 }
+
+/* Softer scrollbar inside the details modal. */
+#details-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+#details-modal::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
 
 @keyframes detailsModalFade {
   from {
@@ -819,24 +957,16 @@ blockquote cite {
 
 .details-close-btn {
   position: absolute;
-
   top: 18px;
   right: 18px;
-
-  width: 42px;
-  height: 42px;
-
+  width: 38px;
+  height: 38px;
   border: 0;
   border-radius: 50%;
-
   background: #f1f5f9;
-
   color: #0f172a;
-
-  font-size: 24px;
-
+  font-size: 22px;
   cursor: pointer;
-
   transition: 0.2s ease;
 }
 
@@ -847,121 +977,326 @@ blockquote cite {
 
 /* ===== HEADER ===== */
 
+/* Header spacing keeps the close button clear without shifting the title. */
 .details-header {
-  margin-bottom: 28px;
-}
-
-.details-badges {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  margin-bottom: 18px;
-}
-
-.details-badge-category,
-.details-badge-seats {
-  padding: 8px 14px;
-
-  border-radius: 999px;
-
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.details-badge-category {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.details-badge-seats {
-  background: #dcfce7;
-  color: #15803d;
+  margin-bottom: 14px;
 }
 
 #details-title {
-  font-size: 30px;
+  margin-bottom: 14px;
+  color: #0f172a;
+  font-size: 2rem;
   line-height: 1.2;
   font-weight: 800;
+}
 
-  color: #0f172a;
+.details-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
 
+.details-main-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+
+
+
+/* Compact modal badges. */
+.details-badge-category,
+.details-badge-seats {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.details-badge-category {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.details-badge-seats {
+  background: var(--secondary-light);
+  color: var(--secondary);
+}
+
+/* Instructor badge mirrors the outside workshop-card instructor badge. */
+.details-instructor-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 260px;
+  margin: 0;
+  padding: 6px 11px;
+  border-radius: 12px;
+  background: #f3f8ff;
+  border: 1px solid rgba(44, 123, 229, 0.14);
+  color: #2c7be5;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.details-instructor-badge .fa-circle-info {
+  color: #0f766e;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.details-instructor-badge .instructor-popup {
+  bottom: auto;
+  top: calc(100% + 10px);
+  left: auto;
+  right: 0;
+}
+
+/* Compact metadata row under the badges. */
+.details-session-strip {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 21px;
+  width: fit-content;
+  margin-top: 0px;
   margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+
+/* Date, time, and duration are supporting metadata, so they stay softer. */
+.details-session-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #55657a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.details-session-item i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  color: #475569;
+  font-size: 0.86rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.details-session-item .fa-stopwatch{
+  color:  #64748b;
+}
+
+.details-copy {
+  margin-bottom: 18px;
+}
+
+#details-hook {
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 #details-description {
+  margin-bottom: 0;
   color: #475569;
-
-  font-size: 16px;
-  line-height: 1.8;
+  font-size: 0.94rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-/* ===== DETAILS GRID ===== */
-
-.details-grid {
+/* Bottom learning/fit sections keep their existing visual identity. */
+.details-bottom-grid {
   display: grid;
-
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  gap: 18px;
-
-  margin-bottom: 28px;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 4px;
 }
 
-.details-item {
-  background: #f8fafc;
-
-  border: 1px solid #e2e8f0;
-
-  border-radius: 18px;
-
-  padding: 18px;
+.details-info-box {
+  height: 100%;
+  padding: 16px 18px;
+  border-radius: 16px;
 }
 
-.details-label {
-  display: block;
-
-  font-size: 13px;
-  font-weight: 700;
-
-  color: #64748b;
-
-  margin-bottom: 8px;
-
+/* Section heading inside What You'll Learn and Good Fit For boxes. */
+.details-info-box-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
-.details-item p {
-  color: #0f172a;
+/* Indents the bullet list slightly inside the modal info boxes. */
+.details-info-box ul {
+  list-style: none;
+  padding: 0 0 0 10px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
 
-  font-size: 16px;
-  font-weight: 600;
+/* Shared bullet row alignment for modal info boxes. */
+.details-info-point {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
 
+/* Keeps bullet icons centered with the first line of text. */
+.details-info-point i {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.details-learn-point {
+  color: #065f46;
+}
+
+.details-learn-point i {
+  color: #10b981;
+}
+
+.details-fit-point {
+  color: #5b21b6;
+}
+
+.details-fit-point i {
+  color: #8b5cf6;
+}
+
+.details-info-box-green {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.details-info-box-green .details-info-box-label {
+  color: #059669;
+}
+
+.details-info-box-purple {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+}
+
+.details-info-box-purple .details-info-box-label {
+  color: #7c3aed;
+}
+
+/* Soft note that tells users the workshop is held online. */
+.details-online-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: var(--primary-light);
+  color: var(--text-light);
+  font-size: 0.85rem;
   line-height: 1.5;
 }
 
-/* ===== ACTIONS ===== */
-
-.details-actions {
-  display: flex;
-  justify-content: flex-end;
+.details-online-note i {
+  color: var(--primary);
+  margin-top: 3px;
+  flex-shrink: 0;
 }
+
+.details-online-note span {
+  color: var(--text-light);
+}
+
+/* Sticky booking action inside the details modal. */
+.details-book-footer {
+  position: sticky;
+  bottom: -30px;
+  margin: 18px -30px -30px;
+  padding: 14px 30px 18px;
+  background: rgba(255, 255, 255, 0.94);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  backdrop-filter: blur(10px);
+  z-index: 3;
+}
+
+/* The modal booking button uses the same primary action style as workshop cards. */
+.details-book-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 640px) {
   #details-modal {
+    max-height: 90vh;
     padding: 24px;
     border-radius: 22px;
   }
 
-  .details-grid {
+  #details-title {
+    font-size: 1.55rem;
+  }
+
+  .details-session-strip,
+  .details-bottom-grid {
     grid-template-columns: 1fr;
   }
 
-  #details-title {
-    font-size: 24px;
+  .details-meta-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .details-instructor-badge {
+    max-width: 100%;
+  }
+
+   .details-book-footer {
+    bottom: -24px;
+    margin: 18px -24px -24px;
+    padding: 14px 24px 18px;
   }
 }
 
@@ -1565,7 +1900,7 @@ nav#main-nav.open ul li a {
     grid-template-columns: 1fr;
   }
   .services-section {
-  padding-top: 24px;
+  padding-top: 10px;
 }
 
 .services-search-panel {
@@ -1670,12 +2005,11 @@ nav#main-nav.open ul li a {
   color: #dc2626;
 }
 
-/* Workshop info summary box inside modal */
 #modal-workshop-info {
-  background: var(--primary-light);
+  background: #f8fbff;
   border: 1px solid rgba(44,123,229,0.2);
   border-radius: var(--radius);
-  padding: 16px 20px;
+  padding: 18px 20px;
   margin-bottom: 24px;
 }
 
@@ -1694,7 +2028,7 @@ nav#main-nav.open ul li a {
 
 .booking-feedback-card {
   text-align: center;
-  padding: 22px 10px 8px;
+  padding: 18px 10px 0;
 }
 
 .booking-feedback-card h3 {
@@ -1748,7 +2082,7 @@ nav#main-nav.open ul li a {
   align-items: flex-start;
   gap: 10px;
   max-width: 440px;
-  margin: 18px auto 22px;
+  margin: 16px auto 18px;
   padding: 12px 14px;
   border-radius: 14px;
   background: var(--primary-light);
@@ -1773,8 +2107,39 @@ nav#main-nav.open ul li a {
   color: #DC2626;
 }
 
+/* Success modal actions stay aligned with compact workshop action buttons. */
 .booking-success-actions {
   justify-content: center;
+  gap: 14px;
+  margin-top: 26px;
+  margin-bottom: 0;
+}
+
+.booking-success-actions .btn {
+  width: 210px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Keeps the success primary button from looking larger than the outline button. */
+.booking-success-actions .btn-primary {
+  box-shadow: 0 6px 18px rgba(44, 123, 229, 0.24);
+}
+
+.booking-success-actions .btn-primary:hover {
+  transform: none;
+}
+
+.booking-success-actions .btn i {
+  font-size: 0.92rem;
 }
 
 #info-name {
@@ -1784,31 +2149,49 @@ nav#main-nav.open ul li a {
   margin-bottom: 8px;
 }
 
-#info-details {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-#info-details span {
-  font-size: 0.85rem;
-  color: var(--text-light);
-  background: white;
-  padding: 4px 12px;
-  border-radius: 99px;
+/* Booking modal session strip mirrors the View Details date/time/duration row. */
+.booking-session-strip {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 18px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 2px 0 12px;
+  padding: 9px 13px;
   border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--shadow-sm);
 }
 
+.booking-session-item {
+  color: #55657a;
+  font-size: 0.9rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
 
-/* "Details will be sent to your email" notice */
+.booking-session-item i {
+  color: #64748b;
+}
+
+/* Confirmation email note stays compact under the session box. */
 #info-email-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 0.82rem;
   color: var(--text-light);
   margin: 0;
   font-style: italic;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
+#info-email-note i {
+  flex-shrink: 0;
+}
 
 /* Scrollbar inside modal */
 #booking-modal::-webkit-scrollbar { width: 5px; }
@@ -1824,6 +2207,15 @@ nav#main-nav.open ul li a {
     border-radius: 16px;
   }
   .form-row { grid-template-columns: 1fr; }
+
+  .booking-session-strip {
+  flex-wrap: wrap;
+}
+
+#info-email-note {
+  align-items: flex-start;
+  white-space: normal;
+}
 }
 /* Generic badge style */
 .badge {
@@ -1854,20 +2246,31 @@ nav#main-nav.open ul li a {
 }
 
 /* ASEEL ADDITION: Workshop action buttons */
+/* View Details — outlined secondary style so it doesn't compete with Book */
 .view-details-btn {
-  background: #10b981;
-  color: #ffffff;
-  border: 0;
+  background: white;
+  color: var(--text);
+  border: 2px solid var(--border);
   border-radius: 999px;
-  padding: 12px 22px;
+  padding: 10px 22px;
   font-weight: 700;
-  box-shadow: 0 10px 22px rgba(16, 185, 129, 0.22);
+  box-shadow: none;
+  width: 100%;
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.2s;
 }
 
 .view-details-btn:hover {
-  background: #059669;
+  background: var(--background);
+  color: var(--text);
+  border-color: var(--text-light);
+  box-shadow: none;
+  transform: none;
 }
-
 .btn-secondary:disabled {
   background: #e2e8f0;
   color: #64748b;
@@ -2893,6 +3296,8 @@ input[type="password"]:focus {
   }
 }
 
+
+
 /* Keeps workshop booking buttons full width without inline styles. */
 .workshop-book-btn {
   width: 100%;
@@ -2903,6 +3308,8 @@ input[type="password"]:focus {
   .auth-header-link {
     padding: 8px 12px;
     font-size: 0.82rem;
+      gap: 8px;
+        padding: 0.75rem 1.5rem;
   }
 
   .auth-hero {
@@ -3319,7 +3726,7 @@ input[type="password"]:focus {
   padding: 0.75rem 1.5rem;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 13.3333px;
   border: 2px solid var(--border);
   background: var(--background);
   color: var(--text-light);

@@ -3,160 +3,102 @@
 /* Name=Raghad Abdullah Alzahrani , ID=2206740, Section=DAR, Date=20/3 */
 
 /*
-  This JavaScript file controls the main interactive features of the website.
-  It handles navigation behavior through initMobileNav() and setActiveNavLink(),
-  adds visual effects using initScrollAnimations() and initRippleEffect(),
-  validates the feedback form with initFormValidation(), and manages the
-  workshop booking process through openBookingModal(), closeBookingModal(),
-  clearBookingErrors(), and initBookingForm(). Finally, all main features are
-  initialized when the page finishes loading inside the DOMContentLoaded event.
+  main.js — SkillHub frontend logic.
+  Handles navigation, scroll animations, feedback form validation,
+  booking modal (instant seat counter + Already Booked swap),
+  workshop details modal (instructor hover popup, What you'll learn,
+  Good Fit For), profile modals, live search, and local time display.
 */
 
-/*
-  This function handles the navigation menu behavior.
-  It gets the menu button and navigation container, then checks that both
-  elements exist before continuing. When the user clicks the menu button,
-  it opens or closes the navigation menu and changes the button symbol
-  to match the current state.
-*/
-// ===== MOBILE NAVIGATION TOGGLE =====
 function initMobileNav() {
-  const toggle = document.getElementById("menu-toggle"); // gets the mobile menu toggle button
-  const nav = document.getElementById("main-nav"); // gets the main navigation menu
-  if (!toggle || !nav) return; // stops the function if one of the required elements is missing
-
+  const toggle = document.getElementById("menu-toggle");
+  const nav = document.getElementById("main-nav");
+  if (!toggle || !nav) return;
   toggle.addEventListener("click", function () {
-    // runs when the user clicks the menu button
-    nav.classList.toggle("open"); // adds or removes the open class to show or hide the menu
-    toggle.textContent = nav.classList.contains("open") ? "✕" : "☰"; // changes the icon depending on whether the menu is open or closed
+    nav.classList.toggle("open");
+    toggle.textContent = nav.classList.contains("open") ? "✕" : "☰";
   });
 }
 
-/*
-  This function highlights the navigation link of the current page.
-  It reads the current file name from the page URL, then selects all
-  navigation links inside the main menu. After that, it compares each
-  link path with the current page and adds the active class to the
-  matching link.
-*/
-// ===== ACTIVE NAV LINK =====
 function setActiveNavLink() {
-  const currentPage = window.location.pathname.split("/").pop() || "index.php"; // gets the current page file name from the URL
-  const navLinks = document.querySelectorAll("nav#main-nav ul li a"); // selects all links inside the main navigation
-
-  navLinks.forEach(function (link) {
-    // loops through each navigation link
-    const href = link.getAttribute("href"); // gets the href value of the current link
-    if (!href) return; // skips this link if it does not have an href value
-
+  const currentPage = window.location.pathname.split("/").pop() || "index.php";
+  document.querySelectorAll("nav#main-nav ul li a").forEach(function (link) {
+    const href = link.getAttribute("href");
+    if (!href) return;
     if (
-      href === currentPage || // checks if the link matches the current page directly
-      (currentPage === "index.php" && href === "../index.php") || // also handles the home link if written as ../index.php
-      (currentPage === "index.php" && href === "index.php") // also handles the home link if written as index.php
+      href === currentPage ||
+      (currentPage === "index.php" &&
+        (href === "../index.php" || href === "index.php"))
     ) {
-      link.classList.add("active"); // adds the active class to highlight the current page link
+      link.classList.add("active");
     }
   });
 }
 
-/*
-  This function adds a scroll animation effect to selected page elements.
-  It first creates the CSS rules needed for the fade-in effect, then adds
-  them to the page. After that, it selects the target elements and uses
-  IntersectionObserver to detect when each element appears on the screen.
-  When an element becomes visible, the function adds the visible class so
-  the animation plays only once.
-*/
-// ===== SCROLL ANIMATIONS =====
 function initScrollAnimations() {
   const targets = document.querySelectorAll(
     ".card, .info-card, .section-header, .page-hero, .table-wrapper",
-  ); // selects the elements that should receive the scroll animation
-  if (!targets.length) return; // stops the function if no matching elements are found
-
+  );
+  if (!targets.length) return;
   const observer = new IntersectionObserver(
     function (entries) {
-      // creates an observer to watch when elements enter the viewport
       entries.forEach(function (entry) {
-        // checks each observed element
         if (entry.isIntersecting) {
-          // runs when the element becomes visible on screen
-          entry.target.classList.add("visible"); // adds the visible class to trigger the animation
-          observer.unobserve(entry.target); // stops observing this element so the animation only happens once
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
         }
       });
     },
     { threshold: 0.12 },
-  ); // triggers when about 12% of the element is visible
-
+  );
   targets.forEach(function (el) {
-    // loops through each target element
-    el.classList.add("fade-in"); // adds the initial hidden animation class
-    observer.observe(el); // starts observing the element
+    el.classList.add("fade-in");
+    observer.observe(el);
   });
 }
 
-/*
-  This function handles validation for the feedback form before submission.
-  It checks that the name, email, and rating fields are filled correctly,
-  shows error messages for invalid inputs, and prevents submission until
-  the required data is valid. If all inputs are correct, the form is hidden
-  and a success message is displayed. It also removes error styling while
-  the user edits the name and email fields.
-*/
 function initFormValidation() {
-  const form = document.getElementById("feedback-form"); // gets the feedback form element
-  if (!form) return; // stops the function if the form does not exist on the page
-
+  const form = document.getElementById("feedback-form");
+  if (!form) return;
   form.addEventListener("submit", function (e) {
-    // runs when the user tries to submit the form
-    e.preventDefault(); // prevents the default form submission behavior
-
-    let isValid = true; // keeps track of whether the form passes all validation checks
-    const errors = []; // stores validation error messages to show in one alert
-
-    const nameInput = document.getElementById("name"); // gets the name input field
-    const nameError = document.getElementById("name-error"); // gets the error message element for the name field
+    e.preventDefault();
+    let isValid = true;
+    const errors = [];
+    const nameInput = document.getElementById("name");
+    const nameError = document.getElementById("name-error");
     if (!nameInput.value.trim()) {
-      // checks whether the name field is empty after removing extra spaces
-      nameInput.classList.add("error"); // adds error styling to the name field
-      nameError.classList.add("visible"); // shows the name error message
-      errors.push("Name is required."); // adds the error text to the error list
-      isValid = false; // marks the form as invalid
+      nameInput.classList.add("error");
+      nameError.classList.add("visible");
+      errors.push("Name is required.");
+      isValid = false;
     } else {
-      nameInput.classList.remove("error"); // removes error styling if the name is valid
-      nameError.classList.remove("visible"); // hides the name error message
+      nameInput.classList.remove("error");
+      nameError.classList.remove("visible");
     }
-
-    const emailInput = document.getElementById("email"); // gets the email input field
-    const emailError = document.getElementById("email-error"); // gets the error message element for the email field
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // defines a simple pattern to check valid email format
-
+    const emailInput = document.getElementById("email");
+    const emailError = document.getElementById("email-error");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailInput.value.trim()) {
-      // checks whether the email field is empty
-      emailInput.classList.add("error"); // adds error styling to the email field
-      emailError.classList.add("visible"); // shows the email error message
-      emailError.textContent = "Please enter your email address."; // sets the error text for missing email
-      errors.push("Email is required."); // adds the error to the error list
-      isValid = false; // marks the form as invalid
+      emailInput.classList.add("error");
+      emailError.classList.add("visible");
+      emailError.textContent = "Please enter your email address.";
+      errors.push("Email is required.");
+      isValid = false;
     } else if (!emailRegex.test(emailInput.value.trim())) {
-      // checks whether the email format is incorrect
-      emailInput.classList.add("error"); // adds error styling to the email field
-      emailError.classList.add("visible"); // shows the email error message
-      emailError.textContent = "Please enter a valid email address."; // sets the error text for invalid email format
-      errors.push("Email format is invalid."); // adds the format error to the error list
-      isValid = false; // marks the form as invalid
+      emailInput.classList.add("error");
+      emailError.classList.add("visible");
+      emailError.textContent = "Please enter a valid email address.";
+      errors.push("Email format is invalid.");
+      isValid = false;
     } else {
-      emailInput.classList.remove("error"); // removes error styling if the email is valid
-      emailError.classList.remove("visible"); // hides the email error message
+      emailInput.classList.remove("error");
+      emailError.classList.remove("visible");
     }
-
-    const ratingInputs = document.querySelectorAll('input[name="rating"]'); // gets all rating radio button inputs
-    const ratingError = document.getElementById("rating-error"); // gets the error message element for the rating field
+    const ratingInputs = document.querySelectorAll('input[name="rating"]');
+    const ratingError = document.getElementById("rating-error");
     const ratingSelected = Array.from(ratingInputs).some(function (r) {
       return r.checked;
-    }); // checks whether at least one rating option is selected
-
+    });
     if (!ratingSelected) {
       if (ratingError) ratingError.classList.add("visible");
       errors.push("Please select a rating.");
@@ -164,150 +106,70 @@ function initFormValidation() {
     } else {
       if (ratingError) ratingError.classList.remove("visible");
     }
-
     if (!isValid) {
-      // checks whether any validation error was found
       alert(
         "Please fix the following errors before submitting:\n\n• " +
           errors.join("\n• "),
-      ); // Shows all collected validation errors in one alert message
-      return; // stops the function so the form is not processed further
+      );
+      return;
     }
-
-    // Save feedback to database via AJAX so admin can see it on the dashboard
-    // This runs silently — the user sees success regardless of save result
     try {
-      var feedbackData = new FormData(form);
       fetch("../server/process_feedback.php", {
         method: "POST",
-        body: feedbackData,
+        body: new FormData(form),
       });
-    } catch (e) {
-      /* silent fail — UI still shows success */
-    }
-
-    form.style.display = "none"; // hides the form after successful validation
-    const successMsg = document.getElementById("success-message"); // gets the success message element
+    } catch (e) {}
+    form.style.display = "none";
+    const successMsg = document.getElementById("success-message");
     if (successMsg) {
-      // checks that the success message element exists
-      successMsg.style.display = "block"; // displays the success message
-      successMsg.scrollIntoView({ behavior: "smooth" }); // scrolls smoothly to the success message
+      successMsg.style.display = "block";
+      successMsg.scrollIntoView({ behavior: "smooth" });
     }
   });
-
   ["name", "email"].forEach(function (id) {
-    // loops through the input fields that should clear errors while typing
-    const el = document.getElementById(id); // gets the current input element by its id
-    if (!el) return; // skips this field if the element does not exist
-
+    const el = document.getElementById(id);
+    if (!el) return;
     el.addEventListener("input", function () {
-      // runs whenever the user types in the field
-      el.classList.remove("error"); // removes the error styling from the input field
-      const errEl = document.getElementById(id + "-error"); // gets the related error message element
-      if (errEl) errEl.classList.remove("visible"); // hides the related error message if it exists
+      el.classList.remove("error");
+      const errEl = document.getElementById(id + "-error");
+      if (errEl) errEl.classList.remove("visible");
     });
   });
 }
 
-// ===== BUTTON RIPPLE EFFECT =====
-/*
-  This function adds a ripple click effect to website buttons.
-  It attaches a click event to each button with the btn class, creates
-  a ripple element at the click position, and removes it after the
-  animation ends. The visual styling of the ripple is handled in the
-  main CSS file.
-*/
-// ===== BUTTON RIPPLE EFFECT =====
 function initRippleEffect() {
   document.querySelectorAll(".btn").forEach(function (btn) {
-    // loops through all buttons that use the btn class
     btn.addEventListener("click", function (e) {
-      // runs when the user clicks a button
-      const ripple = document.createElement("span"); // creates a span element that will act as the ripple
-      ripple.classList.add("btn-ripple"); // applies the ripple styling class from the CSS file
-      ripple.style.left = e.offsetX - 5 + "px"; // positions the ripple horizontally based on the click point
-      ripple.style.top = e.offsetY - 5 + "px"; // positions the ripple vertically based on the click point
-
-      btn.appendChild(ripple); // adds the ripple element inside the clicked button
-
+      const ripple = document.createElement("span");
+      ripple.classList.add("btn-ripple");
+      ripple.style.left = e.offsetX - 5 + "px";
+      ripple.style.top = e.offsetY - 5 + "px";
+      btn.appendChild(ripple);
       setTimeout(function () {
-        // waits until the animation finishes
-        ripple.remove(); // removes the ripple element from the button
+        ripple.remove();
       }, 500);
     });
   });
 }
 
-// function initRippleEffect() {
-//   document.querySelectorAll('.btn').forEach(function (btn) {
-//     btn.addEventListener('click', function (e) {
-//       const ripple = document.createElement('span');
-//       ripple.style.cssText = `
-//         position: absolute;
-//         width: 10px; height: 10px;
-//         background: rgba(255,255,255,0.5);
-//         border-radius: 50%;
-//         transform: scale(0);
-//         animation: ripple-anim 0.5s linear;
-//         pointer-events: none;
-//         left: ${e.offsetX - 5}px;
-//         top: ${e.offsetY - 5}px;
-//       `;
-
-//       if (!document.getElementById('ripple-style')) {
-//         const s = document.createElement('style');
-//         s.id = 'ripple-style';
-//         s.textContent = `@keyframes ripple-anim { to { transform: scale(30); opacity: 0; } }`;
-//         document.head.appendChild(s);
-//       }
-
-//       btn.style.position = 'relative';
-//       btn.style.overflow = 'hidden';
-//       btn.appendChild(ripple);
-
-//       setTimeout(function () {
-//         ripple.remove();
-//       }, 500);
-//     });
-//   });
-// }
-
 // ===== BOOKING MODAL =====
-
-/*
-  This object stores the information of the workshop currently selected
-  by the user. It is updated when the booking modal is opened, so the
-  selected workshop data can be shown inside the booking form and used
-  later during the booking process.
-*/
 var currentWorkshop = {};
 
-/*
-  This function switches the booking modal between confirmation,
-  loading, success, and error states.
-*/
 function setBookingState(state) {
-  var states = [
+  [
     "booking-state-confirm",
     "booking-state-loading",
     "booking-state-success",
     "booking-state-error",
-  ];
-
-  states.forEach(function (id) {
-    var element = document.getElementById(id);
-    if (element) element.hidden = true;
+  ].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.hidden = true;
   });
-
-  var activeState = document.getElementById("booking-state-" + state);
-  if (activeState) activeState.hidden = false;
+  var active = document.getElementById("booking-state-" + state);
+  if (active) active.hidden = false;
 }
 
-/*
-  This function opens the booking modal and fills it with the selected
-  workshop details before the user confirms the reservation.
-*/
-function openBookingModal(id, name, date, time, link) {
+function openBookingModal(id, name, date, time, link, duration) {
   if (document.body.dataset.loggedIn === "0") {
     window.location.href = "login.php?reason=booking";
     return;
@@ -319,11 +181,17 @@ function openBookingModal(id, name, date, time, link) {
     date: date,
     time: time,
     link: link,
+    duration: duration,
   };
 
   document.getElementById("info-name").textContent = name;
-  document.getElementById("info-date").textContent = "Date: " + date;
-  document.getElementById("info-time").textContent = "Time: " + time;
+  document.getElementById("info-date").textContent = date || "TBA";
+  document.getElementById("info-time").textContent = time || "TBA";
+
+  var infoDuration = document.getElementById("info-duration");
+  if (infoDuration) {
+    infoDuration.textContent = duration || "TBA";
+  }
 
   setBookingState("confirm");
 
@@ -332,47 +200,220 @@ function openBookingModal(id, name, date, time, link) {
   document.body.style.overflow = "hidden";
 }
 
-/*
-  This function closes the booking modal and restores page scrolling.
-*/
 function closeBookingModal() {
   var overlay = document.getElementById("booking-overlay");
   if (!overlay) return;
-
   overlay.hidden = true;
   document.body.style.overflow = "";
 }
 
 /*
-  ASEEL ADDITION:
-  Opens the workshop details modal and fills it using the selected
-  card button data attributes.
+  Escapes dynamic text before inserting it into HTML strings.
+  This prevents broken markup and keeps admin-entered text safe.
 */
-function openDetailsModal(button) {
-  document.getElementById("details-title").textContent = button.dataset.title;
-  document.getElementById("details-description").textContent = button.dataset.description;
-  document.getElementById("details-instructor").textContent = "Instructor: " + button.dataset.instructor;
-  document.getElementById("details-date").textContent = "Date: " + button.dataset.date;
-  document.getElementById("details-time").textContent = "Time: " + button.dataset.time;
-  document.getElementById("details-location").textContent = "Location: " + button.dataset.location;
-  document.getElementById("details-price").textContent = "Price: " + button.dataset.price + " SAR";
-  document.getElementById("details-seats").textContent = "Available Seats: " + button.dataset.seats;
-
-  var overlay = document.getElementById("details-overlay");
-  overlay.hidden = false;
-  document.body.style.overflow = "hidden";
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
+// ===== WORKSHOP DETAILS MODAL =====
 /*
   ASEEL ADDITION:
-  Handles opening and closing the workshop details modal.
+  Populates the details modal with:
+  - Title, description, category, seats badge
+  - Instructor hover popup (name, specialty, experience, email)
+  - Date, Time cards
+  - "What you'll learn" (green) from learning_points — admin-written bullets
+  - "Good fit for" (purple) from good_fit_for — admin-written bullets
+  Both sections are hidden if the field is empty.
 */
 function initWorkshopDetailsModal() {
   document.addEventListener("click", function (event) {
-    var detailsButton = event.target.closest(".view-details-btn");
+    var btn = event.target.closest(".view-details-btn");
+    if (btn) {
+      var title = btn.dataset.title || "";
+      var description = btn.dataset.description || "";
+      var hook = btn.dataset.hook || "";
+      var instructor = btn.dataset.instructor || "Not assigned";
+      var instructorEmail = btn.dataset.instructorEmail || "";
+      var instructorSpecialty = btn.dataset.instructorSpecialty || "";
+      var instructorExp = btn.dataset.instructorExperience || "";
+      var learningPoints = btn.dataset.learningPoints || "";
+      var goodFitFor = btn.dataset.goodFitFor || "";
+      var date = btn.dataset.date || "";
+      var time = btn.dataset.time || "";
+      var duration = btn.dataset.duration || "";
+      var totalSeats = btn.dataset.totalSeats || "";
+      var seats = btn.dataset.seats || "0";
+      var category = btn.dataset.category || "Workshop";
+       var workshopId = btn.dataset.workshopId || "";
+      var isAdmin = document.body.dataset.isAdmin === "1";
+      var bookedIds = window.bookedWorkshopIds || [];
+      var isBooked = bookedIds.includes(parseInt(workshopId));
+      var isFull = parseInt(seats) <= 0;
 
-    if (detailsButton) {
-      openDetailsModal(detailsButton);
+      document.getElementById("details-title").textContent = title;
+      document.getElementById("details-description").textContent = description;
+      document.getElementById("details-hook").textContent = hook;
+      document.getElementById("details-category").textContent = category;
+      document.getElementById("details-seats-badge").textContent = totalSeats
+        ? seats + "/" + totalSeats + " seats available"
+        : seats + " seats available";
+      document.getElementById("details-date").textContent = date;
+      document.getElementById("details-time").textContent = time;
+      document.getElementById("details-duration").textContent = duration;
+            // Configure sticky booking button inside the details modal.
+      var detailsBookFooter = document.getElementById("details-book-footer");
+      var detailsBookBtn = document.getElementById("details-book-btn");
+
+      if (detailsBookFooter && detailsBookBtn) {
+        if (isAdmin) {
+          detailsBookFooter.hidden = true;
+        } else {
+          detailsBookFooter.hidden = false;
+
+          detailsBookBtn.dataset.workshopId = workshopId;
+          detailsBookBtn.dataset.workshopTitle = title;
+          detailsBookBtn.dataset.workshopDate = date;
+          detailsBookBtn.dataset.workshopTime = time;
+          detailsBookBtn.dataset.workshopDuration = duration;
+          detailsBookBtn.dataset.workshopLink = "#";
+
+          if (isFull) {
+            detailsBookBtn.disabled = true;
+            detailsBookBtn.className = "btn btn-secondary details-book-btn";
+            detailsBookBtn.innerHTML =
+              '<i class="fa-solid fa-circle-xmark"></i> Full';
+          } else if (isBooked) {
+            detailsBookBtn.disabled = true;
+            detailsBookBtn.className = "btn btn-booked-already details-book-btn";
+            detailsBookBtn.innerHTML =
+              '<i class="fa-solid fa-circle-check"></i> Already Booked';
+          } else {
+            detailsBookBtn.disabled = false;
+            detailsBookBtn.className = "btn btn-primary book-btn details-book-btn";
+            detailsBookBtn.innerHTML =
+              '<i class="fa-solid fa-calendar-days"></i> Book This Workshop';
+          }
+        }
+      }
+
+      // Instructor popup
+      var nameEl = document.getElementById("details-instructor-name");
+      if (nameEl) nameEl.textContent = instructor;
+      var popupNameEl = document.getElementById(
+        "details-instructor-popup-name",
+      );
+      if (popupNameEl) popupNameEl.textContent = instructor;
+
+      var specEl = document.getElementById("details-instructor-specialty");
+      if (specEl) {
+        if (instructorSpecialty) {
+          specEl.textContent = "Specialty: " + instructorSpecialty;
+          specEl.style.display = "block";
+        } else {
+          specEl.textContent = "";
+          specEl.style.display = "none";
+        }
+      }
+
+      var expEl = document.getElementById("details-instructor-experience");
+      if (expEl) {
+        if (instructorExp) {
+          expEl.textContent = "Experience: " + instructorExp;
+          expEl.style.display = "block";
+        } else {
+          expEl.textContent = "";
+          expEl.style.display = "none";
+        }
+      }
+
+      var emailEl = document.getElementById("details-instructor-email");
+      if (emailEl) {
+        if (instructorEmail) {
+          emailEl.textContent = instructorEmail;
+          emailEl.style.display = "block";
+        } else {
+          emailEl.textContent = "";
+          emailEl.style.display = "none";
+        }
+      }
+
+      // ── "What you'll learn" (green) ──
+      // Admin-written bullet points from learning_points field. NOT the description.
+      var learnSection = document.getElementById("details-learn-section");
+      var learnEl = document.getElementById("details-learn");
+      if (learnEl && learnSection) {
+        if (learningPoints.trim()) {
+          var points = learningPoints
+            .split("\n")
+            .map(function (p) {
+              return p.trim();
+            })
+            .filter(function (p) {
+              return p.length > 0;
+            });
+          if (points.length > 0) {
+            learnEl.innerHTML = points
+              .map(function (p) {
+              return (
+                '<li class="details-info-point details-learn-point">' +
+                '<i class="fa-solid fa-circle-check"></i>' +
+                escapeHTML(p) +
+                "</li>"
+              );
+              })
+              .join("");
+            learnSection.style.display = "";
+          } else {
+            learnSection.style.display = "none";
+          }
+        } else {
+          learnSection.style.display = "none";
+        }
+      }
+
+      // ── "Good Fit For" (purple) ──
+      // Admin-written bullet points from good_fit_for field.
+      // Uses purple color scheme to distinguish from the green learn section.
+      var fitSection = document.getElementById("details-fit-section");
+      var fitEl = document.getElementById("details-fit");
+      if (fitEl && fitSection) {
+        if (goodFitFor.trim()) {
+          var fitPoints = goodFitFor
+            .split("\n")
+            .map(function (p) {
+              return p.trim();
+            })
+            .filter(function (p) {
+              return p.length > 0;
+            });
+          if (fitPoints.length > 0) {
+            fitEl.innerHTML = fitPoints
+              .map(function (p) {
+              return (
+                '<li class="details-info-point details-fit-point">' +
+                '<i class="fa-solid fa-user-check"></i>' +
+                escapeHTML(p) +
+                "</li>"
+              );
+              })
+              .join("");
+            fitSection.style.display = "";
+          } else {
+            fitSection.style.display = "none";
+          }
+        } else {
+          fitSection.style.display = "none";
+        }
+      }
+
+      document.getElementById("details-overlay").hidden = false;
+      document.body.style.overflow = "hidden";
       return;
     }
 
@@ -386,21 +427,19 @@ function initWorkshopDetailsModal() {
   });
 }
 
+// ===== SUBMIT BOOKING =====
 /*
-  This function sends the booking request to the PHP API, then updates
-  the modal state based on whether the booking succeeds or fails.
+  On success:
+  1. Instantly swaps Book button to Already Booked
+  2. Instantly reduces the seats counter by 1
+  3. Updates global bookedWorkshopIds array
 */
 async function submitWorkshopBooking() {
   var confirmButton = document.getElementById("booking-confirm-btn");
   var errorMessage = document.getElementById("booking-error-message");
-
   if (!currentWorkshop.id) return;
-
   setBookingState("loading");
-
-  if (confirmButton) {
-    confirmButton.disabled = true;
-  }
+  if (confirmButton) confirmButton.disabled = true;
 
   var fullName = document.body.dataset.userName || "SkillHub User";
   var email = document.body.dataset.userEmail || "";
@@ -419,181 +458,253 @@ async function submitWorkshopBooking() {
       method: "POST",
       body: formData,
     });
-
     var result = await response.json();
-   if (result.success) {
-    var successMessage = document.getElementById("booking-success-message");
 
-    // Keep the modal honest if the booking worked but PHP mail() failed.
-    if (successMessage) {
-      successMessage.textContent = result.email_sent
-        ? "Your seat has been reserved successfully. A confirmation email was sent with your booking details."
-        : "Your seat has been reserved successfully, but the confirmation email could not be sent. You can still view the booking from your profile.";
-    }
-
-    setBookingState("success");
-    return;
-  }
-
-    // Special case: user already booked this workshop
-    if (result.already_booked) {
-      if (errorMessage) {
-        errorMessage.textContent =
-          "You have already booked this workshop. Check your profile to view your bookings.";
+    if (result.success) {
+      var successMessage = document.getElementById("booking-success-message");
+      if (successMessage) {
+        successMessage.textContent = result.email_sent
+          ? "Your seat has been reserved successfully. A confirmation email was sent with your booking details."
+          : "Your seat has been reserved successfully, but the confirmation email could not be sent.";
       }
-      setBookingState("error");
+      var bookedId = currentWorkshop.id;
+      if (bookedId) {
+        // Swap button instantly
+        var bookBtn = document.querySelector(
+          '.workshop-book-btn[data-workshop-id="' + bookedId + '"]',
+        );
+        if (bookBtn) {
+          var alreadyBtn = document.createElement("button");
+          alreadyBtn.type = "button";
+          alreadyBtn.className = "btn btn-booked-already";
+          alreadyBtn.disabled = true;
+          alreadyBtn.innerHTML =
+            '<i class="fa-solid fa-circle-check"></i> Already Booked';
+          bookBtn.replaceWith(alreadyBtn);
+        }
+        // Reduce seats counter instantly
+        var seatsTag = document.getElementById("seats-tag-" + bookedId);
+        if (seatsTag) {
+          var currentSeats = parseInt(seatsTag.textContent) || 0;
+          var newSeats = Math.max(0, currentSeats - 1);
+          var totalSeats = seatsTag.dataset.totalSeats;
+
+          // Keep the card label consistent after a successful booking.
+          seatsTag.textContent = totalSeats
+            ? newSeats + "/" + totalSeats + " seats available"
+            : newSeats + " seats available";        }
+        if (window.bookedWorkshopIds)
+          window.bookedWorkshopIds.push(parseInt(bookedId));
+      }
+      setBookingState("success");
       return;
     }
-
-    if (errorMessage) {
+    if (result.already_booked) {
+      var successMessage = document.getElementById("booking-success-message");
+      if (successMessage)
+        successMessage.textContent =
+          "You have already booked this workshop. Visit your profile to view your bookings.";
+      setBookingState("success");
+      return;
+    }
+    if (errorMessage)
       errorMessage.textContent =
         result.message || "Booking failed. Please try again.";
-    }
-
     setBookingState("error");
   } catch (error) {
-    if (errorMessage) {
+    if (errorMessage)
       errorMessage.textContent =
         "Something went wrong while submitting your booking.";
-    }
-
     setBookingState("error");
   } finally {
-    if (confirmButton) {
-      confirmButton.disabled = false;
-    }
+    if (confirmButton) confirmButton.disabled = false;
   }
 }
 
-/*
-  This function wires the booking modal buttons without inline JavaScript.
-*/
 function initBookingConfirmation() {
   var overlay = document.getElementById("booking-overlay");
+  if (!overlay) return;
   var closeButton = document.getElementById("modal-close");
   var cancelButton = document.getElementById("booking-cancel-btn");
   var confirmButton = document.getElementById("booking-confirm-btn");
   var backButton = document.getElementById("booking-back-btn");
   var errorBackButton = document.getElementById("booking-error-back-btn");
-
-  if (!overlay) return;
-
   if (closeButton) closeButton.addEventListener("click", closeBookingModal);
   if (cancelButton) cancelButton.addEventListener("click", closeBookingModal);
   if (backButton) backButton.addEventListener("click", closeBookingModal);
   if (errorBackButton)
     errorBackButton.addEventListener("click", closeBookingModal);
-
-  if (confirmButton) {
+  if (confirmButton)
     confirmButton.addEventListener("click", submitWorkshopBooking);
-  }
-
   overlay.addEventListener("click", function (e) {
-    if (e.target === overlay) {
-      closeBookingModal();
-    }
+    if (e.target === overlay) closeBookingModal();
   });
-
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !overlay.hidden) {
-      closeBookingModal();
-    }
+    if (e.key === "Escape" && !overlay.hidden) closeBookingModal();
   });
 }
 
-/*
-  This function handles live workshop search and category filtering.
-  It sends the current search text and selected category to the PHP API,
-  receives matching workshops as JSON, and updates the workshop cards
-  without reloading the page.
-*/
+// ===== LIVE WORKSHOP SEARCH =====
 async function initWorkshopSearch() {
   const searchInput = document.getElementById("searchInput");
   const categoryFilter = document.getElementById("categoryFilter");
   const grid = document.querySelector(".grid-2");
-
   if (!searchInput || !categoryFilter || !grid) return;
+
+  function formatTimeStr(t) {
+    if (!t) return "";
+    const [h, m] = t.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    return hour + ":" + String(m).padStart(2, "0") + " " + ampm;
+  }
+
+
+  function formatDateShort(dateText) {
+  if (!dateText) return "";
+
+  const date = new Date(dateText + "T00:00:00");
+  if (Number.isNaN(date.getTime())) return dateText;
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+/*
+  Calculates compact workshop duration for the details modal.
+  Example output: 45m, 1h, 1h 30m.
+*/
+function formatDuration(startTime, endTime) {
+  if (!startTime || !endTime) return "";
+
+  const [startH, startM] = startTime.split(":").map(Number);
+  const [endH, endM] = endTime.split(":").map(Number);
+
+  const startTotal = startH * 60 + startM;
+  const endTotal = endH * 60 + endM;
+  const duration = Math.max(0, endTotal - startTotal);
+
+  if (duration >= 60) {
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    return hours + "h" + (minutes ? " " + minutes + "m" : "");
+  }
+
+  return duration + "m";
+}
 
   async function loadWorkshops() {
     const searchValue = searchInput.value;
     const categoryValue = categoryFilter.value;
-
     const response = await fetch(
       "../api/search_workshops.php?search=" +
         encodeURIComponent(searchValue) +
         "&category=" +
-        encodeURIComponent(categoryValue)
+        encodeURIComponent(categoryValue),
     );
-
     const workshops = await response.json();
-
     grid.innerHTML = "";
+    const bookedIds = window.bookedWorkshopIds || [];
+    const isAdmin = document.body.dataset.isAdmin === "1";
 
     workshops.forEach(function (workshop) {
-      var seats = parseInt(workshop.available_seats);
-      var isFull = seats <= 0;
-      var btnHtml = "";
+      const seats = parseInt(workshop.available_seats);
+      const isFull = seats <= 0;
+      const hasImg = workshop.image_path && workshop.image_path.trim() !== "";
+      const imgHtml = hasImg
+        ? `<img src="${workshop.image_path}" alt="${workshop.title}" class="card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />`
+        : "";
+      const placeholderStyle = hasImg ? 'style="display:none"' : "";
+      const placeholderHtml = `<div class="card-img-placeholder" ${placeholderStyle}><i class="fa-solid fa-book-open"></i><span>${workshop.category_name}</span></div>`;
 
-      if (isFull) {
-        btnHtml = `
-          <button type="button" class="btn btn-secondary" disabled>
-            <i class="fa-solid fa-circle-xmark"></i>
-            Full
-          </button>
-        `;
-      } else {
-        btnHtml = `
-          <button
-            type="button"
-            class="btn btn-primary book-btn workshop-book-btn"
-            data-workshop-id="${workshop.workshop_id}"
-            data-workshop-title="${workshop.title}"
-            data-workshop-date="${workshop.workshop_date}"
-            data-workshop-time="${workshop.start_time} - ${workshop.end_time}"
-            data-workshop-link="#"
-          >
-            <i class="fa-solid fa-calendar-days"></i>
-            Book Workshop
-          </button>
-        `;
+      const instructorName = (workshop.instructor_name || "").trim() || "—";
+      const instructorEmail = (workshop.instructor_email || "").trim();
+      const instructorSpecialty = (workshop.instructor_specialty || "").trim();
+      const instructorExp = (workshop.instructor_experience || "").trim();
+      const durationText = formatDuration(workshop.start_time, workshop.end_time);
+      const learningPoints = (workshop.learning_points || "").trim();
+      const goodFitFor = (workshop.good_fit_for || "").trim();
+      const hookMessage = (workshop.hook_message || "").trim();
+        // Build display text for compact card metadata.
+      const totalSeats = parseInt(workshop.total_seats || workshop.available_seats) || seats;
+      const seatText = seats + "/" + totalSeats + " seats available";
+      const cardHook = hookMessage || "View details to learn more about this workshop.";
+      const instructorLabel =
+        instructorName && instructorName !== "—" ? instructorName : "Instructor TBA";
+
+      let btnHtml = "";
+      if (!isAdmin) {
+        if (isFull) {
+          btnHtml = `<button type="button" class="btn btn-secondary workshop-book-btn" disabled><i class="fa-solid fa-circle-xmark"></i> Full</button>`;
+        } else if (bookedIds.includes(parseInt(workshop.workshop_id))) {
+          btnHtml = `<button type="button" class="btn btn-booked-already" disabled><i class="fa-solid fa-circle-check"></i> Already Booked</button>`;
+        } else {
+          btnHtml = `<button type="button" class="btn btn-primary book-btn workshop-book-btn"
+  data-workshop-id="${escapeHTML(workshop.workshop_id)}"
+  data-workshop-title="${escapeHTML(workshop.title)}"
+  data-workshop-date="${escapeHTML(formatDateShort(workshop.workshop_date))}"
+  data-workshop-time="${escapeHTML(formatTimeStr(workshop.start_time) + " – " + formatTimeStr(workshop.end_time))}"
+  data-workshop-duration="${escapeHTML(durationText)}"
+  data-workshop-link="#"><i class="fa-solid fa-calendar-days"></i> Book Workshop</button>`;
+        }
       }
 
-      grid.innerHTML += `
-        <div class="card">
-          <img src="${workshop.image_path}" alt="${workshop.title}" class="card-img" />
+      // Secondary details action; keeps all data needed by the details modal.
+      const viewDetailsBtn = `<button
+        type="button"
+        class="btn view-details-btn workshop-details-btn"
+        data-title="${escapeHTML(workshop.title)}"
+        data-description="${escapeHTML(workshop.description)}"
+        data-category="${escapeHTML(workshop.category_name)}"
+        data-instructor="${escapeHTML(instructorName)}"
+        data-instructor-email="${escapeHTML(instructorEmail)}"
+        data-instructor-specialty="${escapeHTML(instructorSpecialty)}"
+        data-instructor-experience="${escapeHTML(instructorExp)}"
+        data-learning-points="${escapeHTML(learningPoints)}"
+        data-good-fit-for="${escapeHTML(goodFitFor)}"
+        data-date="${escapeHTML(formatDateShort(workshop.workshop_date))}"
+        data-time="${escapeHTML(formatTimeStr(workshop.start_time) + " – " + formatTimeStr(workshop.end_time))}"
+        data-hook="${escapeHTML(cardHook)}"
+        data-duration="${escapeHTML(durationText)}"
+        data-seats="${escapeHTML(workshop.available_seats)}"
+        data-total-seats="${escapeHTML(totalSeats)}"
+        data-workshop-id="${escapeHTML(workshop.workshop_id)}">
+        <i class="fa-solid fa-eye"></i> View Details
+      </button>`;
 
-          <div class="card-body">
+      grid.innerHTML += `
+        <div class="card workshop-card">
+          ${imgHtml}
+          ${placeholderHtml}
+
+          <div class="card-body workshop-card-body">
             <div class="card-icon card-icon-web">
               <i class="fa-solid fa-laptop-code"></i>
             </div>
 
-            <h3>${workshop.title}</h3>
-            <p>${workshop.description}</p>
+            <h3>${escapeHTML(workshop.title)}</h3>
+            <p class="workshop-card-hook">${escapeHTML(cardHook)}</p>
 
-            <div class="card-tags" style="margin-top: 16px">
-              <span class="tag tag-primary">${workshop.category_name}</span>
-              <span class="tag tag-secondary">${workshop.available_seats} Seats</span>
+            <div class="workshop-card-meta">
+              <div class="workshop-card-tags">
+                <span class="tag tag-primary">${escapeHTML(workshop.category_name)}</span>
+                <span
+                  class="tag tag-secondary seats-tag"
+                  id="seats-tag-${escapeHTML(workshop.workshop_id)}"
+                  data-total-seats="${escapeHTML(totalSeats)}"
+                >
+                  ${escapeHTML(seatText)}
+                </span>
+              </div>
+
+              <span class="workshop-card-instructor">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                ${escapeHTML(instructorLabel)}
+              </span>
             </div>
 
-            <button
-              type="button"
-              class="btn btn-secondary view-details-btn"
-              data-title="${workshop.title}"
-              data-description="${workshop.description}"
-              data-instructor="${workshop.instructor || ""}"
-              data-specialty="${workshop.instructor_specialty || ""}"
-              data-experience="${workshop.instructor_experience || ""}"
-              data-bio="${workshop.instructor_bio || ""}"
-              data-date="${workshop.workshop_date}"
-              data-time="${workshop.start_time} - ${workshop.end_time}"
-              data-location="${workshop.location || "Online"}"
-              data-price="${workshop.price || "0.00"}"
-              data-seats="${workshop.available_seats}"
-            >
-              <i class="fa-solid fa-eye"></i>
-              View Details
-            </button>
-
+            ${viewDetailsBtn}
             ${btnHtml}
           </div>
         </div>
@@ -604,13 +715,8 @@ async function initWorkshopSearch() {
   searchInput.addEventListener("keyup", loadWorkshops);
   categoryFilter.addEventListener("change", loadWorkshops);
 }
-/*
-  This function handles clicks on Book Workshop buttons through event delegation.
-  It works for both initial workshop cards and cards added later by live search.
-*/
+
 function initBookingButtons() {
-  // Hide Book Workshop buttons if the current user is an admin
-  // Admins can view the site but cannot book workshops
   var isAdmin = document.body.dataset.isAdmin === "1";
   if (isAdmin) {
     document
@@ -619,217 +725,154 @@ function initBookingButtons() {
         btn.style.display = "none";
       });
   }
-
   document.addEventListener("click", function (e) {
     var button = e.target.closest(".book-btn");
     if (!button) return;
-
-    // Double-check: admins cannot book even if button somehow shows
     if (isAdmin) return;
-
     var isLoggedIn = document.body.dataset.loggedIn === "1";
-
     if (!isLoggedIn) {
       window.location.href = "login.php?reason=booking";
       return;
     }
+    // Close details modal first so the booking modal is not hidden behind it.
+    var detailsOverlay = document.getElementById("details-overlay");
+    if (detailsOverlay && !detailsOverlay.hidden) {
+      detailsOverlay.hidden = true;
+      document.body.style.overflow = "";
+    }
 
-    openBookingModal(
-      button.dataset.workshopId,
-      button.dataset.workshopTitle,
-      button.dataset.workshopDate,
-      button.dataset.workshopTime,
-      button.dataset.workshopLink,
-    );
+openBookingModal(
+  button.dataset.workshopId,
+  button.dataset.workshopTitle,
+  button.dataset.workshopDate,
+  button.dataset.workshopTime,
+  button.dataset.workshopLink,
+  button.dataset.workshopDuration,
+);
   });
 }
 
-// ===== PROFILE PICTURE UPLOAD MODAL =====
-/*
-  This function controls the profile picture upload modal.
-  The avatar opens the modal, the close button and outside overlay close it,
-  and the selected file name is shown before the user submits the upload form.
-*/
 function initProfilePictureUpload() {
   var openButton = document.getElementById("profile-avatar-open");
   var overlay = document.getElementById("profile-upload-overlay");
   var closeButton = document.getElementById("profile-upload-close");
   var fileInput = document.getElementById("profile_image");
-var uploadBox = document.getElementById('profile-upload-box');
-var uploadLabel = document.getElementById('profile-upload-label');
-var selectedName = document.getElementById('profile-upload-selected-name');
-var submitButton = document.getElementById('profile-upload-submit');
-
+  var uploadBox = document.getElementById("profile-upload-box");
+  var uploadLabel = document.getElementById("profile-upload-label");
+  var selectedName = document.getElementById("profile-upload-selected-name");
+  var submitButton = document.getElementById("profile-upload-submit");
   if (!openButton || !overlay) return;
-
   function openProfileUploadModal() {
     overlay.hidden = false;
     document.body.style.overflow = "hidden";
   }
-
   function closeProfileUploadModal() {
     overlay.hidden = true;
     document.body.style.overflow = "";
   }
-
   openButton.addEventListener("click", openProfileUploadModal);
-
-  if (closeButton) {
+  if (closeButton)
     closeButton.addEventListener("click", closeProfileUploadModal);
-  }
-
   overlay.addEventListener("click", function (e) {
-    if (e.target === overlay) {
-      closeProfileUploadModal();
-    }
+    if (e.target === overlay) closeProfileUploadModal();
   });
-
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !overlay.hidden) {
-      closeProfileUploadModal();
-    }
+    if (e.key === "Escape" && !overlay.hidden) closeProfileUploadModal();
   });
-
   if (fileInput && uploadBox && uploadLabel && selectedName && submitButton) {
-    fileInput.addEventListener('change', function () {
+    fileInput.addEventListener("change", function () {
       var hasFile = fileInput.files.length > 0;
-
-      // Update the upload box so the selected state is obvious.
       if (hasFile) {
-        uploadBox.classList.add('has-file');
-        uploadLabel.textContent = 'Picture selected';
+        uploadBox.classList.add("has-file");
+        uploadLabel.textContent = "Picture selected";
         selectedName.textContent = fileInput.files[0].name;
         submitButton.disabled = false;
-        return;
+      } else {
+        uploadBox.classList.remove("has-file");
+        uploadLabel.textContent = "Choose picture";
+        selectedName.textContent = "JPG, JPEG, or PNG";
+        submitButton.disabled = true;
       }
-
-      // Reset the modal if the user clears the file picker.
-      uploadBox.classList.remove('has-file');
-      uploadLabel.textContent = 'Choose picture';
-      selectedName.textContent = 'JPG, JPEG, or PNG';
-      submitButton.disabled = true;
     });
   }
 }
 
-// ===== PROFILE PASSWORD MODAL =====
-/*
-  This function controls the change password modal on the profile page.
-  The visible button opens the modal, while the close button, overlay click,
-  and Escape key close it without using inline JavaScript.
-*/
 function initProfilePasswordModal() {
   var openButton = document.getElementById("profile-password-open");
   var overlay = document.getElementById("profile-password-overlay");
   var closeButton = document.getElementById("profile-password-close");
-
   if (!openButton || !overlay) return;
-
   function openPasswordModal() {
     overlay.hidden = false;
     document.body.style.overflow = "hidden";
   }
-
   function closePasswordModal() {
     overlay.hidden = true;
     document.body.style.overflow = "";
   }
-
   openButton.addEventListener("click", openPasswordModal);
-
-  if (closeButton) {
-    closeButton.addEventListener("click", closePasswordModal);
-  }
-
+  if (closeButton) closeButton.addEventListener("click", closePasswordModal);
   overlay.addEventListener("click", function (e) {
-    if (e.target === overlay) {
-      closePasswordModal();
-    }
+    if (e.target === overlay) closePasswordModal();
   });
-
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !overlay.hidden) {
-      closePasswordModal();
-    }
+    if (e.key === "Escape" && !overlay.hidden) closePasswordModal();
   });
 }
 
-// ===== PROFILE NAME EDIT MODE =====
-/*
-  This function controls the profile name edit field.
-  The name starts as read-only. Clicking the pen enables editing,
-  changes the icon to a check mark, and lets the user submit by
-  pressing Enter or clicking the check button.
-*/
 function initProfileNameEdit() {
   var form = document.getElementById("profile-name-form");
   var input = document.getElementById("full_name");
   var button = document.getElementById("profile-name-edit");
-
   if (!form || !input || !button) return;
-
   var originalValue = input.value.trim();
   var isEditing = false;
-
   function setEditMode() {
     isEditing = true;
-
     input.removeAttribute("readonly");
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
-
     button.classList.add("is-editing");
     button.setAttribute("aria-label", button.dataset.saveLabel || "Save name");
     button.innerHTML = '<i class="fa-solid fa-check"></i>';
   }
-
   function setViewMode() {
     isEditing = false;
-
     input.setAttribute("readonly", "readonly");
     input.value = originalValue;
-
     button.classList.remove("is-editing");
     button.setAttribute("aria-label", button.dataset.editLabel || "Edit name");
     button.innerHTML = '<i class="fa-solid fa-pen"></i>';
   }
-
   button.addEventListener("click", function (e) {
     if (!isEditing) {
       e.preventDefault();
       setEditMode();
       return;
     }
-
     form.requestSubmit();
   });
-
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && isEditing) {
       e.preventDefault();
       form.requestSubmit();
     }
-
     if (e.key === "Escape" && isEditing) {
       e.preventDefault();
       setViewMode();
     }
   });
-
   form.addEventListener("submit", function (e) {
     var currentValue = input.value.trim();
-
     if (!isEditing) {
       e.preventDefault();
       return;
     }
-
     if (currentValue === "") {
       e.preventDefault();
       input.focus();
       return;
     }
-
     if (currentValue === originalValue) {
       e.preventDefault();
       setViewMode();
@@ -837,22 +880,14 @@ function initProfileNameEdit() {
   });
 }
 
-// ===== LOCAL TIME DISPLAY =====
-/*
-  Converts UTC timestamps printed by PHP into the user's browser timezone.
-  This avoids showing IONOS/MySQL server time directly to users.
-*/
 function initLocalTimeDisplay() {
   var timeElements = document.querySelectorAll(".js-local-time");
   if (!timeElements.length) return;
-
   timeElements.forEach(function (element) {
     var utcTime = element.dataset.utcTime;
     if (!utcTime) return;
-
     var date = new Date(utcTime);
     if (Number.isNaN(date.getTime())) return;
-
     element.textContent = date.toLocaleString(undefined, {
       month: "short",
       day: "numeric",
@@ -863,91 +898,19 @@ function initLocalTimeDisplay() {
     });
   });
 }
-/*
-  ASEEL ADDITION:
-  Enables the View Details modal for both PHP-rendered cards
-  and AJAX search/filter cards.
-*/
-function initWorkshopDetailsModal() {
-  document.addEventListener("click", function (event) {
-    var detailsButton = event.target.closest(".view-details-btn");
 
-    if (detailsButton) {
-      document.getElementById("details-title").textContent = detailsButton.dataset.title || "";
-      document.getElementById("details-description").textContent = detailsButton.dataset.description || "";
-  //     document.getElementById("details-instructor").textContent =
-  // detailsButton.dataset.instructor || "Not assigned";
-  document.getElementById("details-instructor-name").textContent =
-  detailsButton.dataset.instructor || "Not assigned";
-
-document.getElementById("details-instructor-popup-name").textContent =
-  detailsButton.dataset.instructor || "Not assigned";
-
-document.getElementById("details-instructor-specialty").textContent =
-  "Specialty: " + (detailsButton.dataset.specialty || "Not specified");
-
-document.getElementById("details-instructor-experience").textContent =
-  "Experience: " + (detailsButton.dataset.experience || "Not specified");
-
-document.getElementById("details-instructor-bio").textContent =
-  detailsButton.dataset.bio || "No instructor bio available.";
-
-document.getElementById("details-date").textContent =
-  detailsButton.dataset.date || "";
-
-document.getElementById("details-time").textContent =
-  detailsButton.dataset.time || "";
-
-// document.getElementById("details-location").textContent =
-//   detailsButton.dataset.location || "Online";
-
-// document.getElementById("details-price").textContent =
-//   (detailsButton.dataset.price || "0.00") + " SAR";
-
-// document.getElementById("details-seats").textContent =
-//   detailsButton.dataset.seats || "0";
-
-document.getElementById("details-category").textContent =
-  "Workshop";
-
-document.getElementById("details-seats-badge").textContent =
-  (detailsButton.dataset.seats || "0") + " Seats";
-
-      document.getElementById("details-overlay").hidden = false;
-      document.body.style.overflow = "hidden";
-      return;
-    }
-
-    if (
-      event.target.classList.contains("details-close-btn") ||
-      event.target.id === "details-overlay"
-    ) {
-      document.getElementById("details-overlay").hidden = true;
-      document.body.style.overflow = "";
-    }
-  });
-}
-/*
-  This event runs after the HTML document finishes loading.
-  It starts the main website features by calling the functions
-  responsible for navigation behavior, active link highlighting,
-  scroll animations, feedback form validation, button ripple effects,
-  and booking form handling.
-*/
-// ===== INITIALIZE =====
 document.addEventListener("DOMContentLoaded", function () {
-  initWorkshopDetailsModal(); // enables the workshop View Details modal
-  initMobileNav(); // initializes the navigation menu toggle behavior
-  setActiveNavLink(); // highlights the link of the current page in the navigation menu
-  initScrollAnimations(); // activates fade-in animations for selected page elements during scrolling
-  initFormValidation(); // enables validation for the feedback form
-  initRippleEffect(); // enables the ripple click effect on buttons
-  initProfilePictureUpload(); // enables the profile picture upload modal behavior
-  initProfilePasswordModal(); // enables the profile password change modal behavior
-  initProfileNameEdit(); // enables edit mode for the profile name field
-  initWorkshopSearch(); // enables live workshop search and filtering
-  initBookingButtons(); // controls guest redirect and logged-in booking modal
-  initBookingConfirmation(); // controls booking confirmation, loading, and success states
-  initLocalTimeDisplay(); // formats UTC timestamps using the user's browser timezone
-  
+  initWorkshopDetailsModal();
+  initMobileNav();
+  setActiveNavLink();
+  initScrollAnimations();
+  initFormValidation();
+  initRippleEffect();
+  initProfilePictureUpload();
+  initProfilePasswordModal();
+  initProfileNameEdit();
+  initWorkshopSearch();
+  initBookingButtons();
+  initBookingConfirmation();
+  initLocalTimeDisplay();
 });

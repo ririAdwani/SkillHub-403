@@ -123,7 +123,7 @@ $currentPage = 'about';
           <div class="info-icon"><i class="fa-solid fa-book-open"></i></div>
           <h2>Workshop Categories</h2>
         </div>
-        <p>We offer a diverse range of workshops across four key skill areas:</p>
+        <p>We offer a growing range of workshops across practical skill areas:</p>
 
         <div class="category-grid">
           <div class="category-item">

@@ -166,35 +166,36 @@ if ($isLoggedIn && !$isAdminUser && function_exists('current_user_id')) {
               </a>
             </li>
 
-            <?php if ($isAdminUser): ?>
-              <li>
-                <a href="<?= $basePath ?>pages/Admin/admin.php"
-                   class="<?= $currentPage === 'admin' ? 'active' : '' ?>">
-                  <i class="fa-solid fa-user-shield"></i> Admin
-                </a>
-              </li>
-            <?php endif; ?>
           <?php endif; ?>
         </ul>
       </nav>
 
       <!-- Account actions (Profile + Logout) — separated from main nav -->
       <div id="account-actions" aria-label="Account actions">
-        <?php if ($isLoggedIn): ?>
+      <?php if ($isLoggedIn): ?>
+        <?php if ($isAdminUser): ?>
+          <a href="<?= $basePath ?>pages/Admin/admin.php"
+            class="account-btn profile-btn <?= $currentPage === 'admin' ? 'active' : '' ?>"
+            aria-label="Admin panel">
+            <i class="fa-solid fa-user-shield"></i>
+            <span class="sr-only">Admin panel</span>
+          </a>
+        <?php else: ?>
           <a href="<?= $basePath ?>pages/profile.php"
-             class="account-btn profile-btn <?= $currentPage === 'profile' ? 'active' : '' ?>"
-             aria-label="Profile">
+            class="account-btn profile-btn <?= $currentPage === 'profile' ? 'active' : '' ?>"
+            aria-label="Profile">
             <i class="fa-solid fa-user"></i>
             <span class="sr-only">Profile</span>
           </a>
+        <?php endif; ?>
 
-          <a href="<?= $basePath ?>pages/logout.php"
-             class="account-btn logout-btn"
-             aria-label="Logout">
-            <i class="fa-solid fa-right-from-bracket"></i>
-            <span class="sr-only">Logout</span>
-          </a>
-        <?php else: ?>
+        <a href="<?= $basePath ?>pages/logout.php"
+          class="account-btn logout-btn"
+          aria-label="Logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span class="sr-only">Logout</span>
+        </a>
+      <?php else: ?>
           <a href="<?= $basePath ?>pages/login.php" class="auth-header-link">
             <i class="fa-solid fa-right-to-bracket"></i>
             <span>Login</span>

@@ -266,3 +266,63 @@ VALUES (
 -- Stores when user last opened the My Replies tab
 -- Used to determine which admin replies are unread
 ALTER TABLE users ADD COLUMN replies_seen_at DATETIME DEFAULT NULL;
+
+
+
+===
+Run these SQL commands in phpMyAdmin inside `skillhub_db`:
+
+```sql
+ALTER TABLE workshops
+ADD instructor_specialty VARCHAR(100) DEFAULT NULL,
+ADD instructor_experience VARCHAR(50) DEFAULT NULL,
+ADD instructor_bio TEXT DEFAULT NULL;
+```
+
+Then run:
+
+```sql
+UPDATE workshops
+SET 
+  instructor_specialty = CASE instructor
+    WHEN 'Dr. Ahmed Hassan' THEN 'Data Science'
+    WHEN 'Prof. Lina Torres' THEN 'Project Management'
+    WHEN 'Ms. Sara Ali' THEN 'Graphic Design'
+    WHEN 'Mr. Omar Khalid' THEN 'Mobile App Development'
+    WHEN 'Ms. Nora Saeed' THEN 'Cybersecurity'
+    WHEN 'Ms. Huda Salem' THEN 'Communication Skills'
+    WHEN 'Mr. Faisal Nasser' THEN 'Business Analytics'
+    WHEN 'Ms. Reem Ali' THEN 'UI/UX Design'
+    WHEN 'Mr. Khalid Omar' THEN 'Web Development'
+    WHEN 'Ms. Dana Fahad' THEN 'Digital Marketing'
+    ELSE instructor_specialty
+  END,
+
+  instructor_experience = CASE instructor
+    WHEN 'Dr. Ahmed Hassan' THEN '8 Years'
+    WHEN 'Prof. Lina Torres' THEN '10 Years'
+    WHEN 'Ms. Sara Ali' THEN '5 Years'
+    WHEN 'Mr. Omar Khalid' THEN '6 Years'
+    WHEN 'Ms. Nora Saeed' THEN '5 Years'
+    WHEN 'Ms. Huda Salem' THEN '4 Years'
+    WHEN 'Mr. Faisal Nasser' THEN '7 Years'
+    WHEN 'Ms. Reem Ali' THEN '6 Years'
+    WHEN 'Mr. Khalid Omar' THEN '7 Years'
+    WHEN 'Ms. Dana Fahad' THEN '5 Years'
+    ELSE instructor_experience
+  END,
+
+  instructor_bio = CASE instructor
+    WHEN 'Dr. Ahmed Hassan' THEN 'Experienced instructor in data analysis, Python, and practical machine learning concepts.'
+    WHEN 'Prof. Lina Torres' THEN 'Project management specialist with experience in planning, teamwork, and agile practices.'
+    WHEN 'Ms. Sara Ali' THEN 'Creative design trainer focused on visual communication, branding, and beginner-friendly design tools.'
+    WHEN 'Mr. Omar Khalid' THEN 'Mobile development instructor experienced in building user-friendly Android and iOS app concepts.'
+    WHEN 'Ms. Nora Saeed' THEN 'Certified trainer specialized in security awareness and account protection.'
+    WHEN 'Ms. Huda Salem' THEN 'Communication skills trainer focused on presentations, teamwork, and professional confidence.'
+    WHEN 'Mr. Faisal Nasser' THEN 'Business analytics trainer experienced in dashboards, reporting, and data-driven decision making.'
+    WHEN 'Ms. Reem Ali' THEN 'UI/UX designer focused on user research, wireframes, and clean interface design.'
+    WHEN 'Mr. Khalid Omar' THEN 'Full-stack developer experienced in HTML, CSS, JavaScript, PHP, and MySQL.'
+    WHEN 'Ms. Dana Fahad' THEN 'Digital marketing trainer focused on content strategy, social media, and campaign basics.'
+    ELSE instructor_bio
+  END;
+```
